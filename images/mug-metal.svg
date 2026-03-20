@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" fill="none">
+  <defs>
+    <linearGradient id="metalBody" x1="120" y1="92" x2="548" y2="408" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="0.18" stop-color="#CBD5E1"/>
+      <stop offset="0.44" stop-color="#F8FAFC"/>
+      <stop offset="0.72" stop-color="#94A3B8"/>
+      <stop offset="1" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="metalHandle" x1="527" y1="152" x2="666" y2="347" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CBD5E1"/>
+      <stop offset="0.5" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#94A3B8"/>
+    </linearGradient>
+    <linearGradient id="metalLip" x1="140" y1="112" x2="512" y2="145" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2E8F0"/>
+      <stop offset="0.5" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#CBD5E1"/>
+    </linearGradient>
+    <filter id="mugShadow" x="58" y="58" width="650" height="380" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="26" stdDeviation="18" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <g filter="url(#mugShadow)">
+    <path d="M146 124C146 105.222 161.222 90 180 90H478C496.778 90 512 105.222 512 124V332C512 350.778 496.778 366 478 366H180C161.222 366 146 350.778 146 332V124Z" fill="url(#metalBody)"/>
+    <ellipse cx="329" cy="124" rx="183" ry="33" fill="url(#metalLip)"/>
+    <ellipse cx="329" cy="333" rx="183" ry="24" fill="#94A3B8" opacity="0.34"/>
+    <path d="M522 166C583 153 634 188 634 244C634 300 583 335 522 322" stroke="url(#metalHandle)" stroke-width="28" stroke-linecap="round"/>
+    <path d="M203 124H243V366H203V124Z" fill="#FFFFFF" opacity="0.62"/>
+    <path d="M354 124H412V366H354V124Z" fill="#FFFFFF" opacity="0.26"/>
+    <path d="M447 124H474V366H447V124Z" fill="#334155" opacity="0.16"/>
+    <path d="M155 327C179 318.333 237.8 311.2 329 311.2C420.2 311.2 479 318.333 503 327V337C479 345.667 420.2 352.8 329 352.8C237.8 352.8 179 345.667 155 337V327Z" fill="#0F172A" opacity="0.08"/>
+  </g>
+</svg>

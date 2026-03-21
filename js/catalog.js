@@ -1,4 +1,4 @@
-﻿const Catalog = {
+const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
     ITEMS_PER_PAGE: 40,
@@ -920,7 +920,7 @@
 
         this.state.currentItem = item;
         this.state.currentModalSize = item?.selectedSize || '';
-        const gallery = this.buildGalleryUrls(item);
+        const gallery = this.buildPreviewGalleryUrls(item);
         const title = item.title || 'Товар';
         const category = this.getDisplayCategory(item);
         const description = item.description || 'Готовий надрукований товар.';

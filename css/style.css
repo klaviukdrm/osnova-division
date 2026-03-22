@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap');
 
 :root {
     --accent: #1d4ed8;
@@ -1146,6 +1146,11 @@ body.editor-sheet-open {
 }
 
 @media (max-width: 768px) {
+    #constructor > .max-w-7xl {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
     .image-transform-handle {
         width: 14px;
         height: 14px;
@@ -1762,7 +1767,7 @@ body.editor-sheet-open {
     }
 
     .mockup-stage {
-        padding: 6px;
+        padding: 2px;
         border-radius: 26px;
     }
 
@@ -1780,6 +1785,11 @@ body.editor-sheet-open {
 }
 
 @media (max-width: 480px) {
+    #constructor > .max-w-7xl {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
+
     nav .max-w-7xl {
         padding-top: 12px;
         padding-bottom: 12px;
@@ -1878,7 +1888,8 @@ body.editor-sheet-open {
     }
 
     .mockup-stage {
-        padding: 4px;
+        padding: 0;
+        border-radius: 18px;
     }
 
     .mockup-container {
@@ -2889,7 +2900,7 @@ footer#contacts::before {
 /* Wider constructor tools without inner scroll on desktop */
 @media (min-width: 1024px) {
     #constructor-layout {
-        grid-template-columns: minmax(0, 1.55fr) minmax(420px, 1fr) !important;
+        grid-template-columns: minmax(0, 1.78fr) minmax(420px, 1fr) !important;
         gap: 24px !important;
     }
 

@@ -182,6 +182,7 @@ const Editor = {
             colorLabel: 'Білий',
             swatch: '#ffffff',
             defaultVariantId: 'white',
+            defaultFormatId: 'tee-a3',
             variants: [
                 {
                     id: 'white',
@@ -969,7 +970,9 @@ const Editor = {
             ? options.formatId
             : product.formats.some((format) => format.id === this.state.formatId)
                 ? this.state.formatId
-                : product.formats[0].id;
+                : product.formats.some((format) => format.id === product.defaultFormatId)
+                    ? product.defaultFormatId
+                    : product.formats[0].id;
 
         this.selectFormat(nextFormatId);
         this.resetAllImageTransforms();

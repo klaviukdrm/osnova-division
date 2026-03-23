@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "rewrites": [
+    { "source": "/", "destination": "/api/home-page" },
+    { "source": "/index.html", "destination": "/api/home-page" },
+    { "source": "/product/:slug", "destination": "/api/product-page?slug=:slug" },
+    { "source": "/product/:slug/", "destination": "/api/product-page?slug=:slug" },
+    { "source": "/product/:slug*", "destination": "/api/product-page?slug=:slug*" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/robots.txt", "destination": "/api/robots" }
+  ]
+}

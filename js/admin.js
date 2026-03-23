@@ -168,6 +168,18 @@ const AdminPanel = {
         this.elements.authButton.classList.toggle('pointer-events-none', isPending);
     },
 
+    normalizeId(value) {
+        if (value === null || typeof value === 'undefined') return '';
+        return String(value).trim();
+    },
+
+    escapeAttr(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;');
+    },
+
     async requestApi(path, options = {}) {
         const response = await fetch(path, {
             credentials: 'same-origin',
@@ -243,6 +255,15 @@ const AdminPanel = {
             const description = String(product?.description || '').trim();
             const category = String(product?.category || '').trim() || 'Футболки';
             const subcategory = String(product?.subcategory || product?.display_category || '').trim();
+            const id = this.normalizeId(product?.id ?? product?.product_id);
+            const escapedId = this.escapeAttr(id);
+
+            console.log('[Admin] renderProducts id mapping', {
+                rowId: product?.id,
+                rowProductId: product?.product_id,
+                mappedId: id,
+                title
+            });
 
             return `
                 <article class="rounded-xl border border-slate-700 p-3 sm:p-4">
@@ -257,7 +278,7 @@ const AdminPanel = {
                             ${description ? `<p class="text-xs text-slate-500 mt-1">${description}</p>` : ''}
                             <p class="text-xs text-slate-500 mt-1 break-all">${image}</p>
                             <div class="mt-2">
-                                <button type="button" class="liquid-glass-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-red-500" data-delete-product-id="${product?.id || ''}">
+                                <button type="button" class="liquid-glass-btn px-3 py-1.5 rounded-lg text-xs font-semibold border-red-500" data-delete-product-id="${escapedId}">
                                     Видалити
                                 </button>
                             </div>
@@ -274,6 +295,11 @@ const AdminPanel = {
                 this.elements.refreshButton.disabled = true;
             }
             const payload = await this.requestApi('/api/products', { method: 'GET' });
+            console.log('[Admin] /api/products payload ids', (payload?.products || []).map((item) => ({
+                id: item?.id,
+                product_id: item?.product_id,
+                title: item?.title
+            })));
             this.renderProducts(payload?.products || []);
         } catch (error) {
             if (this.elements.productsList) {
@@ -287,7 +313,12 @@ const AdminPanel = {
     },
 
     async deleteProductById(productId) {
-        const id = String(productId || '').trim();
+        const id = this.normalizeId(productId);
+        console.log('[Admin] deleteProductById input', {
+            incomingProductId: productId,
+            incomingType: typeof productId,
+            normalizedId: id
+        });
         if (!id) {
             this.setSubmitState(false, 'Некоректний id товару.');
             window.UI?.showToast?.('Некоректний id товару', { tone: 'warning' });
@@ -305,6 +336,7 @@ const AdminPanel = {
 
         try {
             this.setSubmitState(true, 'Видаляємо товар...');
+            console.log('[Admin] DELETE /api/products id before fetch', { id });
             await this.requestApi(`/api/products?id=${encodeURIComponent(String(id))}`, {
                 method: 'DELETE',
                 headers: {
@@ -489,7 +521,9 @@ const AdminPanel = {
         this.elements.productsList?.addEventListener('click', async (event) => {
             const button = event.target.closest('[data-delete-product-id]');
             if (!button) return;
-            const id = String(button.getAttribute('data-delete-product-id') || '').trim();
+            const idRaw = button.getAttribute('data-delete-product-id');
+            const id = this.normalizeId(idRaw);
+            console.log('[Admin] click delete button id', { idRaw, normalizedId: id });
             if (!id) return;
             await this.deleteProductById(id);
         });

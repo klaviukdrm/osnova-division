@@ -287,8 +287,8 @@ const AdminPanel = {
     },
 
     async deleteProductById(productId) {
-        const id = Number(productId);
-        if (!Number.isFinite(id) || id <= 0) {
+        const id = String(productId || '').trim();
+        if (!id) {
             this.setSubmitState(false, 'Некоректний id товару.');
             window.UI?.showToast?.('Некоректний id товару', { tone: 'warning' });
             return;

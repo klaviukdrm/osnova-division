@@ -1,4 +1,4 @@
-﻿const RU_TO_UA_WORD_MAP = new Map([
+const RU_TO_UA_WORD_MAP = new Map([
     ['а', 'а'],
     ['без', 'без'],
     ['будь', 'будь'],
@@ -209,8 +209,8 @@ const Editor = {
             text: { min: 14, max: 52, default: 28 },
             printArea: { top: 26, left: 50, width: 41, height: 49, radius: 12 },
             formats: [
-                { id: 'tee-a7', label: 'A7', widthMm: 74, heightMm: 105, width: 12, height: 16, top: 33, price: 550, note: 'Компактний формат для мінімалістичних акцентів.' },
-                { id: 'tee-a6', label: 'A6', widthMm: 105, heightMm: 148, width: 15, height: 20, top: 31, price: 580, note: 'Невеликий формат для акуратного принта.' },
+                { id: 'tee-a7', label: 'A7', widthMm: 74, heightMm: 105, width: 12, height: 9, top: 27, left: 63, price: 550, note: 'Компактний формат для мінімалістичних акцентів.' },
+                { id: 'tee-a6', label: 'A6', widthMm: 105, heightMm: 148, width: 12, height: 15, top: 27, left: 63, price: 580, note: 'Невеликий формат для акуратного принта.' },
                 { id: 'tee-a5', label: 'A5', widthMm: 148, heightMm: 210, width: 19, height: 25, top: 27, price: 600, note: 'Акуратний варіант для невеликих написів і знаків.' },
                 { id: 'tee-a4', label: 'A4', widthMm: 210, heightMm: 297, width: 26, height: 35, top: 27, price: 620, note: 'Комфортний формат для логотипів і середніх макетів.' },
                 { id: 'tee-a3', label: 'A3', widthMm: 297, heightMm: 420, width: 36, height: 50, top: 27, price: 650, note: 'Стандартна зона для центрального принта.' },

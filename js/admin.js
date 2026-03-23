@@ -106,14 +106,25 @@ const AdminPanel = {
 
     buildAutoDescription(title, category, subcategory) {
         const safeTitle = String(title || '').trim();
-        const safeCategory = String(category || '').trim();
-        const safeSubcategory = String(subcategory || '').trim();
         if (!safeTitle) return '';
 
-        if (safeSubcategory) {
-            return `Готовий товар «${safeTitle}». Категорія: ${safeCategory}. Тип: ${safeSubcategory}.`;
-        }
-        return `Готовий товар «${safeTitle}». Категорія: ${safeCategory}.`;
+        void subcategory;
+        const selectedCategory = String(category || '').trim();
+        const categoryIndex = Array.isArray(this.categoryOptions)
+            ? this.categoryOptions.findIndex((entry) => String(entry?.value || '').trim() === selectedCategory)
+            : -1;
+
+        const templates = [
+            (value) => `\u0413\u043e\u0442\u043e\u0432\u0430 \u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${value}\u00bb.`,
+            (value) => `\u0413\u043e\u0442\u043e\u0432\u0435 \u0445\u0443\u0434\u0456 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${value}\u00bb.`,
+            (value) => `\u0413\u043e\u0442\u043e\u0432\u0430 \u0447\u0430\u0448\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${value}\u00bb.`,
+            (value) => `\u0413\u043e\u0442\u043e\u0432\u0430 \u0442\u0435\u0440\u043c\u043e\u0447\u0430\u0448\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${value}\u00bb.`,
+            (value) => `\u0413\u043e\u0442\u043e\u0432\u0438\u0439 \u043f\u043e\u0434\u0430\u0440\u0443\u043d\u043a\u043e\u0432\u0438\u0439 \u043d\u0430\u0431\u0456\u0440 \u00ab${value}\u00bb.`,
+            (value) => `\u0413\u043e\u0442\u043e\u0432\u0430 \u0441\u0443\u043c\u043a\u0430-\u0448\u043e\u043f\u0435\u0440 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${value}\u00bb.`
+        ];
+
+        const buildByCategory = templates[categoryIndex] || templates[0];
+        return buildByCategory(safeTitle);
     },
 
     applyAutoValuesFromTitle() {

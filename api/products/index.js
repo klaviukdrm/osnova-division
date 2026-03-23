@@ -102,6 +102,11 @@ function normalizeSubcategory(value, category) {
     return raw.slice(0, 120);
 }
 
+function normalizeId(value) {
+    if (value === null || typeof value === 'undefined') return '';
+    return String(value).trim();
+}
+
 function normalizeProductPayload(body) {
     const title = String(body?.title || '').trim();
     const description = String(body?.description || '').trim();
@@ -131,9 +136,18 @@ function mapProductRow(row) {
     const priceNumber = Number(row?.price);
     const category = normalizeCategory(row?.category);
     const subcategory = normalizeSubcategory(row?.subcategory || row?.display_category, category);
+    const rawId = row?.id ?? row?.product_id ?? '';
+    const id = normalizeId(rawId);
+
+    console.log('[API /api/products] mapProductRow id mapping', {
+        rowId: row?.id,
+        rowProductId: row?.product_id,
+        mappedId: id,
+        title: row?.title
+    });
 
     return {
-        id: row?.id,
+        id,
         title: String(row?.title || '').trim(),
         price: Number.isFinite(priceNumber) ? Math.max(0, Math.round(priceNumber)) : 0,
         image: String(row?.image || '').trim(),
@@ -217,6 +231,7 @@ module.exports = async (req, res) => {
             }
 
             const products = Array.isArray(rows) ? rows.map(mapProductRow).filter((row) => row.title) : [];
+            console.log('[API /api/products GET] ids for admin list', products.map((item) => ({ id: item?.id, title: item?.title })));
             sendJson(res, 200, { ok: true, products });
         } catch (error) {
             console.error('Failed to load products from Supabase.', error);
@@ -289,17 +304,26 @@ module.exports = async (req, res) => {
         const body = readBody(req);
         if (!requireAdminSession(req, res)) return;
 
-        const idRaw = getRequestQueryParam(req, 'id') || String(body?.id || '').trim();
-        const id = Number(idRaw);
-        if (!Number.isFinite(id) || id <= 0) {
+        const queryId = normalizeId(getRequestQueryParam(req, 'id'));
+        const bodyId = normalizeId(body?.id);
+        const id = queryId || bodyId;
+        console.log('[API /api/products DELETE] incoming id values', {
+            queryId,
+            bodyId,
+            normalizedId: id,
+            url: req?.url,
+            query: req?.query
+        });
+        if (!id) {
             sendJson(res, 400, { error: 'Передайте коректний id товару для видалення.' });
             return;
         }
 
         try {
+            const encodedId = encodeURIComponent(id);
             const rows = await requestSupabase(
                 config,
-                `/rest/v1/products?id=eq.${id}&select=${LEGACY_PRODUCTS_SELECT}`,
+                `/rest/v1/products?id=eq.${encodedId}&select=${LEGACY_PRODUCTS_SELECT}`,
                 {
                     method: 'DELETE',
                     headers: {
@@ -309,9 +333,17 @@ module.exports = async (req, res) => {
             );
 
             const deleted = Array.isArray(rows) ? rows[0] : rows;
+            if (!deleted) {
+                sendJson(res, 404, {
+                    error: 'Товар з таким id не знайдено або вже видалено.',
+                    id
+                });
+                return;
+            }
+
             sendJson(res, 200, {
                 ok: true,
-                deleted: deleted ? mapProductRow(deleted) : { id }
+                deleted: mapProductRow(deleted)
             });
         } catch (error) {
             console.error('Failed to delete product in Supabase.', error);
@@ -326,3 +358,5 @@ module.exports = async (req, res) => {
     res.setHeader('Allow', 'GET, POST, DELETE');
     sendJson(res, 405, { error: 'Method not allowed' });
 };
+
+

@@ -144,24 +144,53 @@ function buildProductHtml(product, baseUrl) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        #product-order-btn {
-            background-color: #16a34a !important;
-            border-color: #22c55e !important;
-            color: #ffffff !important;
+        .product-page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            min-height: 3.2rem;
+            padding: 0.78rem 1.6rem;
+            border-radius: 0.95rem;
+            border: 2px solid transparent;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, background 0.2s ease;
+            user-select: none;
         }
 
-        #product-order-btn:hover {
-            background-color: #15803d !important;
+        .product-page-btn:hover {
+            transform: translateY(-1px);
         }
 
-        #product-size-chart-btn {
-            background-color: #f97316 !important;
-            border-color: #fb923c !important;
-            color: #ffffff !important;
+        .product-page-btn:active {
+            transform: translateY(0);
         }
 
-        #product-size-chart-btn:hover {
-            background-color: #ea580c !important;
+        .product-page-btn--green {
+            background: linear-gradient(180deg, #178a44 0%, #146636 100%);
+            border-color: #22c55e;
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(8, 89, 44, 0.36);
+        }
+
+        .product-page-btn--green:hover {
+            filter: brightness(1.05);
+            box-shadow: 0 14px 24px rgba(8, 89, 44, 0.42);
+        }
+
+        .product-page-btn--orange {
+            background: linear-gradient(180deg, #f07a1c 0%, #d45f0a 100%);
+            border-color: #fb923c;
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(172, 86, 16, 0.34);
+        }
+
+        .product-page-btn--orange:hover {
+            filter: brightness(1.05);
+            box-shadow: 0 14px 24px rgba(172, 86, 16, 0.42);
         }
 
         @media (min-width: 1024px) {
@@ -224,11 +253,12 @@ function buildProductHtml(product, baseUrl) {
                     ` : ''}
 
                     <div class="pt-2 flex flex-wrap gap-3">
-                        <button id="product-order-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition">
-                            Замовити
+                        <button id="product-order-btn" type="button" class="product-page-btn product-page-btn--green">
+                            <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+                            Додати в кошик
                         </button>
                         ${availableSizes.length ? `
-                        <button id="product-size-chart-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-semibold transition">
+                        <button id="product-size-chart-btn" type="button" class="product-page-btn product-page-btn--orange">
                             Таблиця розмірів
                         </button>
                         ` : ''}

@@ -1,6 +1,7 @@
-﻿const Catalog = {
+const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
+    PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
     ITEMS_PER_PAGE: 24,
     DEFAULT_CATEGORIES: [
         'Футболка з надруком'
@@ -673,6 +674,60 @@
         this.renderCartModal();
         this.updateCartBadge();
         window.UI?.showToast?.('Кошик очищено', { tone: 'info' });
+    },
+
+    getPendingProductOrder() {
+        try {
+            const raw = window.sessionStorage.getItem(this.PRODUCT_ORDER_STORAGE_KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw);
+            const slug = String(parsed?.slug || '').trim().toLowerCase();
+            const size = String(parsed?.size || '').trim();
+            const quantity = this.normalizeQuantity(parsed?.quantity);
+
+            if (!slug) return null;
+            return { slug, size, quantity };
+        } catch (_) {
+            return null;
+        }
+    },
+
+    clearPendingProductOrder() {
+        try {
+            window.sessionStorage.removeItem(this.PRODUCT_ORDER_STORAGE_KEY);
+        } catch (_) {}
+    },
+
+    applyPendingProductOrder() {
+        const pending = this.getPendingProductOrder();
+        if (!pending) return false;
+
+        const product = this.state.products.find((item) => {
+            const slug = String(item?.slug || '').trim().toLowerCase();
+            return Boolean(slug) && slug === pending.slug;
+        });
+
+        if (!product) return false;
+
+        const availableSizes = this.getAvailableSizes(product);
+        let selectedSize = '';
+
+        if (availableSizes.length) {
+            const requestedSize = String(pending.size || '').trim();
+            selectedSize = availableSizes.includes(requestedSize)
+                ? requestedSize
+                : this.getSelectedSize(product, availableSizes);
+            this.setSelectedSize(product, selectedSize);
+        }
+
+        this.addToCart({
+            ...product,
+            selectedSize
+        }, pending.quantity);
+
+        this.clearPendingProductOrder();
+        return true;
     },
 
     renderCartModal() {
@@ -1847,11 +1902,37 @@
         const demoCategories = this.DEFAULT_CATEGORIES.slice();
         const demoProducts = this.generateDemoProducts(demoCategories);
         this.setCatalogData(demoCategories, demoProducts);
-        this.loadProductsFromApi();
 
-        if (window.sessionStorage.getItem('openCartOnHome') === '1') {
+        const shouldOpenCart = window.sessionStorage.getItem('openCartOnHome') === '1';
+        let cartOpened = false;
+
+        const openCartIfNeeded = () => {
+            if (!shouldOpenCart || cartOpened) return;
             window.sessionStorage.removeItem('openCartOnHome');
             this.openCartModal();
+            cartOpened = true;
+        };
+
+        const hadPending = Boolean(this.getPendingProductOrder());
+        const addedImmediately = this.applyPendingProductOrder();
+        if (!hadPending || addedImmediately) {
+            openCartIfNeeded();
+        }
+
+        const finalizePendingFlow = () => {
+            const addedAfterLoad = this.applyPendingProductOrder();
+            if (addedAfterLoad || !this.getPendingProductOrder()) {
+                openCartIfNeeded();
+                return;
+            }
+            openCartIfNeeded();
+        };
+
+        const loadPromise = this.loadProductsFromApi();
+        if (loadPromise && typeof loadPromise.finally === 'function') {
+            loadPromise.finally(finalizePendingFlow);
+        } else {
+            finalizePendingFlow();
         }
     }
 };

@@ -2879,6 +2879,7 @@ textarea::placeholder {
     #modal-size-selector {
         order: 4;
         padding-top: 0 !important;
+        margin-bottom: 25px !important;
     }
 
     #modal-detail-grid {

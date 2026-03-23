@@ -1,4 +1,4 @@
-﻿const Catalog = {
+const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
     ITEMS_PER_PAGE: 24,
@@ -187,7 +187,7 @@
         const previewImage = this.toThumbFromImagePath(fullImage);
         const title = String(product?.title || '').trim() || 'Товар';
         const description = String(product?.description || '').trim() || `Готовий товар «${title}».`;
-        const category = String(product?.category || '').trim() || this.BASE_APPAREL_LABEL;
+        const category = this.normalizeCatalogCategoryName(product?.category || this.BASE_APPAREL_LABEL);
         const subcategory = String(product?.subcategory || product?.displayCategory || product?.display_category || '').trim();
         const displayCategory = subcategory || (
             normalizedPrice >= this.HIGH_APPAREL_PRICE
@@ -244,7 +244,7 @@
             const mergedProducts = [...existingProducts, ...mappedProducts];
 
             const categoryOrder = [
-                'Футболки',
+                this.BASE_APPAREL_LABEL,
                 'Худі',
                 'Чашки',
                 'Термочашки',
@@ -289,6 +289,10 @@
         const value = String(label || '').trim();
         if (!value) return 'Каталог';
 
+        if (value === 'Футболки') {
+            return this.BASE_APPAREL_LABEL;
+        }
+
         if (value === 'Футболки з надруком') {
             return this.BASE_APPAREL_LABEL;
         }
@@ -299,6 +303,33 @@
             || value === 'Футболка з двосторонним надруком'
         ) {
             return this.DOUBLE_SIDED_APPAREL_LABEL;
+        }
+
+        return value;
+    },
+
+    normalizeCatalogCategoryName(category) {
+        const value = String(category || '').trim();
+        if (!value) return this.BASE_APPAREL_LABEL;
+
+        const lower = value.toLowerCase();
+        if (lower === 'футболки' || lower === 'футболка з надруком' || lower === 'футболки з надруком') {
+            return this.BASE_APPAREL_LABEL;
+        }
+        if (lower === 'худи') {
+            return 'Худі';
+        }
+        if (lower === 'чашка') {
+            return 'Чашки';
+        }
+        if (lower === 'термочашка') {
+            return 'Термочашки';
+        }
+        if (lower === 'подарунковий набір') {
+            return 'Подарункові набори';
+        }
+        if (lower === 'сумка-шопер' || lower === 'шопер') {
+            return 'Сумки-шопери';
         }
 
         return value;

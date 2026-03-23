@@ -1,5 +1,7 @@
 const { getAllCatalogProducts } = require('./_lib/product-catalog');
 
+const APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+
 function escapeHtml(value) {
     return String(value || '')
         .replace(/&/g, '&amp;')
@@ -50,6 +52,12 @@ function getSlug(req) {
     return '';
 }
 
+function isApparelProduct(product) {
+    const haystack = `${product?.category || ''} ${product?.displayCategory || ''} ${product?.title || ''}`
+        .toLowerCase();
+    return haystack.includes('футбол');
+}
+
 function buildNotFoundHtml(baseUrl) {
     const title = 'Товар не знайдено | Ukrainian Print Family';
     const canonical = `${baseUrl}/`;
@@ -93,6 +101,10 @@ function buildProductHtml(product, baseUrl) {
         ? (/^(https?:)?\/\//i.test(image) ? image : `${baseUrl}${image}`)
         : `${baseUrl}/images/logosait.jpg`;
     const pageTitle = `${title} | Ukrainian Print Family`;
+    const supportsSizes = isApparelProduct(product);
+    const availableSizes = supportsSizes ? APPAREL_SIZES : [];
+    const defaultSize = availableSizes[0] || '';
+    const slug = String(product?.slug || '').trim();
 
     return `<!DOCTYPE html>
 <html lang="uk">
@@ -157,15 +169,111 @@ function buildProductHtml(product, baseUrl) {
                     <h1 class="text-3xl md:text-5xl font-bold section-title">${escapeHtml(title)}</h1>
                     <p class="text-3xl font-semibold text-emerald-600">${escapeHtml(priceLabel)}</p>
                     <p class="text-lg text-slate-600 leading-relaxed">${escapeHtml(description)}</p>
-                    <div class="pt-2">
-                        <a href="/index.html#products" class="inline-flex liquid-glass-btn px-6 py-3 rounded-2xl bg-blue-700 text-white font-semibold">
-                            Відкрити каталог
+
+                    ${availableSizes.length ? `
+                    <div class="pt-1">
+                        <p class="product-card-v2__meta-label mb-2">Розмір</p>
+                        <div id="product-size-options" class="product-card-v2__sizes">
+                            ${availableSizes.map((size, index) => `
+                                <button
+                                    type="button"
+                                    class="product-card-v2__size ${index === 0 ? 'is-active' : ''}"
+                                    data-product-size="${escapeHtml(size)}"
+                                    aria-pressed="${index === 0 ? 'true' : 'false'}"
+                                >${escapeHtml(size)}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <button id="product-order-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-emerald-600 text-white font-semibold transition">
+                            Замовити
+                        </button>
+                        ${availableSizes.length ? `
+                        <button id="product-size-chart-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-slate-700 text-white font-semibold transition">
+                            Таблиця розмірів
+                        </button>
+                        ` : ''}
+                        <a href="/index.html#products" class="inline-flex items-center liquid-glass-btn px-6 py-3 rounded-2xl bg-blue-700 text-white font-semibold">
+                            В каталог
                         </a>
                     </div>
                 </div>
             </article>
         </section>
     </main>
+
+    ${availableSizes.length ? `
+    <div id="product-size-chart-modal" class="fixed inset-0 z-[64] hidden">
+        <button type="button" class="absolute inset-0 bg-slate-900/75" data-size-chart-close aria-label="Закрити"></button>
+        <div class="relative max-w-4xl mx-auto mt-8 mb-8 bg-white rounded-3xl shadow-2xl p-5 md:p-7 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <button type="button" class="absolute top-4 right-4 w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:border-blue-700 transition" data-size-chart-close aria-label="Закрити">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="pr-12">
+                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">РОЗМІРНА СІТКА</p>
+                <h3 class="text-2xl md:text-3xl font-bold section-title mt-2">Таблиця розмірів для футболок</h3>
+            </div>
+            <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 md:p-3">
+                <img src="/images/Screenshot_214%20(1).png" alt="Розмірна сітка футболок" class="w-full h-auto rounded-xl object-contain bg-white">
+            </div>
+        </div>
+    </div>
+    ` : ''}
+
+    <script>
+    (() => {
+        const orderBtn = document.getElementById('product-order-btn');
+        const sizeButtons = Array.from(document.querySelectorAll('[data-product-size]'));
+        let selectedSize = ${JSON.stringify(defaultSize)};
+        const slug = ${JSON.stringify(slug)};
+
+        if (sizeButtons.length) {
+            sizeButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    selectedSize = String(button.getAttribute('data-product-size') || '').trim();
+                    sizeButtons.forEach((item) => {
+                        const isActive = item === button;
+                        item.classList.toggle('is-active', isActive);
+                        item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                    });
+                });
+            });
+        }
+
+        const sizeChartBtn = document.getElementById('product-size-chart-btn');
+        const sizeChartModal = document.getElementById('product-size-chart-modal');
+        if (sizeChartBtn && sizeChartModal) {
+            sizeChartBtn.addEventListener('click', () => {
+                sizeChartModal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            });
+
+            sizeChartModal.querySelectorAll('[data-size-chart-close]').forEach((closeEl) => {
+                closeEl.addEventListener('click', () => {
+                    sizeChartModal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                });
+            });
+        }
+
+        if (orderBtn) {
+            orderBtn.addEventListener('click', () => {
+                try {
+                    window.sessionStorage.setItem('upf_order_from_product', JSON.stringify({
+                        slug,
+                        size: selectedSize,
+                        quantity: 1
+                    }));
+                    window.sessionStorage.setItem('openCartOnHome', '1');
+                } catch (_) {}
+
+                window.location.href = '/index.html#products';
+            });
+        }
+    })();
+    </script>
 </body>
 </html>`;
 }

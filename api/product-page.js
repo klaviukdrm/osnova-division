@@ -161,13 +161,13 @@ function buildProductHtml(product, baseUrl) {
     <main class="py-10 md:py-14">
         <section class="max-w-7xl mx-auto px-6">
             <article class="grid lg:grid-cols-2 gap-10 items-start">
-                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 md:p-6">
-                    <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="w-full rounded-2xl object-cover bg-white">
+                <div class="rounded-3xl overflow-hidden">
+                    <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="w-full rounded-3xl object-cover">
                 </div>
                 <div class="space-y-5">
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">${escapeHtml(category)}</p>
                     <h1 class="text-3xl md:text-5xl font-bold section-title">${escapeHtml(title)}</h1>
-                    <p class="text-3xl font-semibold text-emerald-600">${escapeHtml(priceLabel)}</p>
+                    <p id="product-price-label" class="text-3xl font-semibold text-emerald-600">${escapeHtml(priceLabel)}</p>
                     <p class="text-lg text-slate-600 leading-relaxed">${escapeHtml(description)}</p>
 
                     ${availableSizes.length ? `
@@ -187,17 +187,14 @@ function buildProductHtml(product, baseUrl) {
                     ` : ''}
 
                     <div class="pt-2 flex flex-wrap gap-3">
-                        <button id="product-order-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-emerald-600 text-white font-semibold transition">
+                        <button id="product-order-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition">
                             Замовити
                         </button>
                         ${availableSizes.length ? `
-                        <button id="product-size-chart-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-slate-700 text-white font-semibold transition">
+                        <button id="product-size-chart-btn" type="button" class="liquid-glass-btn px-6 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-semibold transition">
                             Таблиця розмірів
                         </button>
                         ` : ''}
-                        <a href="/index.html#products" class="inline-flex items-center liquid-glass-btn px-6 py-3 rounded-2xl bg-blue-700 text-white font-semibold">
-                            В каталог
-                        </a>
                     </div>
                 </div>
             </article>
@@ -225,9 +222,26 @@ function buildProductHtml(product, baseUrl) {
     <script>
     (() => {
         const orderBtn = document.getElementById('product-order-btn');
+        const priceLabelEl = document.getElementById('product-price-label');
         const sizeButtons = Array.from(document.querySelectorAll('[data-product-size]'));
         let selectedSize = ${JSON.stringify(defaultSize)};
         const slug = ${JSON.stringify(slug)};
+        const basePrice = ${JSON.stringify(Number.isFinite(priceValue) ? Math.max(0, Math.round(priceValue)) : 0)};
+        const plusSizeCode = '3XL';
+        const plusSizeSurcharge = 200;
+
+        const formatPrice = (value) => {
+            const amount = Number(value || 0);
+            return Math.round(amount).toLocaleString('uk-UA') + ' грн';
+        };
+
+        const updateDisplayedPrice = () => {
+            if (!priceLabelEl || !Number.isFinite(basePrice)) return;
+            const total = selectedSize === plusSizeCode
+                ? basePrice + plusSizeSurcharge
+                : basePrice;
+            priceLabelEl.textContent = formatPrice(total);
+        };
 
         if (sizeButtons.length) {
             sizeButtons.forEach((button) => {
@@ -238,9 +252,12 @@ function buildProductHtml(product, baseUrl) {
                         item.classList.toggle('is-active', isActive);
                         item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
                     });
+                    updateDisplayedPrice();
                 });
             });
         }
+
+        updateDisplayedPrice();
 
         const sizeChartBtn = document.getElementById('product-size-chart-btn');
         const sizeChartModal = document.getElementById('product-size-chart-modal');

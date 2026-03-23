@@ -143,6 +143,43 @@ function buildProductHtml(product, baseUrl) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        #product-order-btn {
+            background-color: #16a34a !important;
+            border-color: #22c55e !important;
+            color: #ffffff !important;
+        }
+
+        #product-order-btn:hover {
+            background-color: #15803d !important;
+        }
+
+        #product-size-chart-btn {
+            background-color: #f97316 !important;
+            border-color: #fb923c !important;
+            color: #ffffff !important;
+        }
+
+        #product-size-chart-btn:hover {
+            background-color: #ea580c !important;
+        }
+
+        @media (min-width: 1024px) {
+            .product-page-layout {
+                grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.78fr) !important;
+                gap: 3rem !important;
+            }
+
+            .product-page-image-wrap,
+            .product-page-image {
+                min-height: 42rem;
+            }
+
+            .product-page-image {
+                height: 100%;
+            }
+        }
+    </style>
 </head>
 <body class="tail-container bg-white text-slate-900 overflow-x-hidden">
     <nav class="bg-white/95 border-b border-slate-200 sticky top-0 z-50 backdrop-blur">
@@ -160,9 +197,9 @@ function buildProductHtml(product, baseUrl) {
 
     <main class="py-10 md:py-14">
         <section class="max-w-7xl mx-auto px-6">
-            <article class="grid lg:grid-cols-2 gap-10 items-start">
-                <div class="rounded-3xl overflow-hidden">
-                    <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="w-full rounded-3xl object-cover">
+            <article class="product-page-layout grid lg:grid-cols-2 gap-10 items-start">
+                <div class="product-page-image-wrap rounded-3xl overflow-hidden">
+                    <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="product-page-image w-full rounded-3xl object-cover">
                 </div>
                 <div class="space-y-5">
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">${escapeHtml(category)}</p>
@@ -200,6 +237,64 @@ function buildProductHtml(product, baseUrl) {
             </article>
         </section>
     </main>
+
+    <footer id="contacts" class="product-page-desktop-footer hidden lg:block bg-slate-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12">
+            <div>
+                <div class="flex items-center gap-x-3 mb-6">
+                    <div class="w-8 h-8 bg-white rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
+                        <img src="/images/photo_2025-09-24_14-16-02.jpg" alt="Логотип Ukrainian Print Family" class="w-full h-full object-cover">
+                    </div>
+                    <span class="text-2xl font-bold">Ukrainian Print Family</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">Сторінка конструктора для персоналізації друку на одязі та посуді.</p>
+            </div>
+
+            <div>
+                <p class="font-medium mb-4">Швидкі посилання</p>
+                <div class="space-y-2 text-slate-400 text-sm">
+                    <a href="/index.html#products" class="block hover:text-white transition">Каталог</a>
+                    <a href="/editor.html" class="block hover:text-white transition">Конструктор</a>
+                    <a href="#contacts" class="block hover:text-white transition">Контакти</a>
+                </div>
+            </div>
+
+            <div>
+                <p class="font-medium mb-4">Зв'язатися з нами</p>
+                <p class="text-slate-400">Хмельницький, Україна</p>
+                <p class="text-slate-400">+380986677359</p>
+                <p class="text-slate-400">dreamprint777@ukr.net</p>
+                <a href="https://t.me/Ukrainian_Print_Familybot" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-2xl border border-slate-600 hover:border-sky-400 text-slate-200 hover:text-white transition">
+                    <i class="fa-brands fa-telegram"></i>
+                    @Ukrainian_Print_Familybot
+                </a>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <a href="https://www.instagram.com/ukrainian_print_family?igsh=YXVlNGV1a204ZGVi" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-slate-600 hover:border-pink-400 text-slate-200 hover:text-white transition">
+                        <i class="fa-brands fa-instagram"></i>
+                        Instagram
+                    </a>
+                    <a href="https://www.tiktok.com/@ukrainian_print_family?_r=1&_t=ZS-94w8loPo8hB" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-slate-600 hover:border-cyan-400 text-slate-200 hover:text-white transition">
+                        <i class="fa-brands fa-tiktok"></i>
+                        TikTok
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 mt-10">
+            <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-400">
+                <a href="/index.html#contacts" class="hover:text-white transition">Доставка і оплата</a>
+                <span class="text-slate-600">•</span>
+                <a href="/index.html#contacts" class="hover:text-white transition">Угода користувача</a>
+                <span class="text-slate-600">•</span>
+                <a href="/index.html#contacts" class="hover:text-white transition">Політика конфіденційності</a>
+            </div>
+        </div>
+
+        <div class="text-center text-xs text-slate-500 mt-20">
+            © 2026 Ukrainian Print Family. Усі права захищені.
+        </div>
+    </footer>
 
     ${availableSizes.length ? `
     <div id="product-size-chart-modal" class="fixed inset-0 z-[64] hidden">

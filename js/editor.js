@@ -896,6 +896,12 @@ const Editor = {
         return this.getFormatBasePrice(product, format) + this.getSizeSurcharge(product, size);
     },
 
+    normalizeQuantity(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return 1;
+        return Math.max(1, Math.floor(parsed));
+    },
+
     getFormatPriceBaseLabel(product = this.getSelectedProduct()) {
         if (product?.kind !== 'apparel') return '';
         if (product?.id === 'hoodie-black') return ' разом з худі';
@@ -1387,7 +1393,22 @@ const Editor = {
         }
 
         ctx.restore();
-        return canvas.toDataURL('image/png');
+
+        const jpegQualities = [0.9, 0.82, 0.74];
+        for (const quality of jpegQualities) {
+            try {
+                const jpeg = canvas.toDataURL('image/jpeg', quality);
+                if (typeof jpeg === 'string' && jpeg.startsWith('data:image/jpeg')) {
+                    return jpeg;
+                }
+            } catch (_) {}
+        }
+
+        try {
+            return canvas.toDataURL('image/png');
+        } catch (_) {
+            return null;
+        }
     },
 
     saveCurrentDesign() {
@@ -2169,25 +2190,43 @@ const Editor = {
                     throw storageError;
                 }
 
-                // Keep regular catalog items and only one heavy constructor preview to free storage.
-                const compacted = cartItems
-                    .filter((entry) => {
-                        const image = entry?.item?.image;
-                        const isHeavyPreview = typeof image === 'string' && image.startsWith('data:image/');
-                        if (!isHeavyPreview) return true;
-                        return entry?.item?.customKey === cartItem.customKey;
-                    })
-                    .map((entry) => {
-                        const nextItem = { ...(entry?.item || {}) };
-                        delete nextItem.gallery;
-                        return {
-                            item: nextItem,
-                            quantity: this.normalizeQuantity(entry?.quantity)
-                        };
-                    });
+                const toCompactEntries = (entries, mode = 'keep-current-sources') => entries.map((entry) => {
+                    const nextItem = { ...(entry?.item || {}) };
+                    delete nextItem.gallery;
 
-                window.localStorage.setItem(cartStorageKey, JSON.stringify(compacted));
-                window.UI?.showToast?.('Кошик оновлено після очищення зайвих превʼю', { tone: 'info' });
+                    if (Array.isArray(nextItem.sourceImages)) {
+                        if (mode === 'keep-current-sources') {
+                            if (nextItem.customKey !== cartItem.customKey) {
+                                delete nextItem.sourceImages;
+                            } else {
+                                nextItem.sourceImages = nextItem.sourceImages.slice(0, 2);
+                            }
+                        } else if (mode === 'drop-all-sources') {
+                            delete nextItem.sourceImages;
+                        }
+                    }
+
+                    return {
+                        item: nextItem,
+                        quantity: this.normalizeQuantity(entry?.quantity)
+                    };
+                });
+
+                let persisted = false;
+                const compactKeepCurrentSources = toCompactEntries(cartItems, 'keep-current-sources');
+                try {
+                    window.localStorage.setItem(cartStorageKey, JSON.stringify(compactKeepCurrentSources));
+                    persisted = true;
+                    window.UI?.showToast?.('Кошик збережено, але частину файлів старих макетів прибрано', { tone: 'info' });
+                } catch (secondStorageError) {
+                    if (!isQuotaError(secondStorageError)) throw secondStorageError;
+                }
+
+                if (!persisted) {
+                    const compactDropAllSources = toCompactEntries(cartItems, 'drop-all-sources');
+                    window.localStorage.setItem(cartStorageKey, JSON.stringify(compactDropAllSources));
+                    window.UI?.showToast?.('Кошик збережено у спрощеному режимі для великих файлів', { tone: 'info' });
+                }
             }
 
             window.MainApp?.syncCartBadges?.();

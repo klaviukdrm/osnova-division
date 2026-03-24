@@ -1,7 +1,7 @@
 const BASE_APPAREL_PRICE = 650;
 const HIGH_APPAREL_PRICE = 750;
-const BASE_APPAREL_LABEL = 'Футболка з надруком';
-const DOUBLE_SIDED_APPAREL_LABEL = 'Футболка з двостороннім надруком';
+const BASE_APPAREL_LABEL = '\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c';
+const DOUBLE_SIDED_APPAREL_LABEL = '\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u0434\u0432\u043e\u0441\u0442\u043e\u0440\u043e\u043d\u043d\u0456\u043c \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c';
 
 const HIGH_PRICE_APPAREL_DESIGNS = new Set([
     '9999',
@@ -9,9 +9,9 @@ const HIGH_PRICE_APPAREL_DESIGNS = new Set([
     'DUNE 2',
     'KULYA V LOB',
     'TNMT',
-    'ЖИТТЄЛЮБ',
-    'ЗЕНИК',
-    'ЩУР MOTHERS CHAMBER'
+    '\u0416\u0418\u0422\u0422\u0404\u041b\u042e\u0411',
+    '\u0417\u0415\u041d\u0418\u041a',
+    '\u0429\u0423\u0420 MOTHERS CHAMBER'
 ]);
 
 const APPAREL_IMAGE_FILES = [
@@ -107,12 +107,59 @@ function getDesignNameFromFile(fileName) {
         .trim();
 }
 
+function extractDesignNameFromTitle(title) {
+    const normalizedTitle = String(title || '').trim();
+    if (!normalizedTitle) return '';
+
+    const quotedMatch = normalizedTitle.match(/\u00ab([^\u00bb]+)\u00bb/);
+    if (quotedMatch && quotedMatch[1]) {
+        return quotedMatch[1].trim();
+    }
+
+    return normalizedTitle
+        .replace(/^\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043f\u0440\u0438\u043d\u0442\u043e\u043c\s*/i, '')
+        .trim();
+}
+
+function getTitleSeed(value) {
+    return Array.from(String(value || '')).reduce((acc, char, index) => {
+        return acc + (char.codePointAt(0) || 0) * (index + 1);
+    }, 0);
+}
+
+function buildStaticProductDescription(title) {
+    const designName = extractDesignNameFromTitle(title) || '\u0432\u043b\u0430\u0441\u043d\u0438\u043c \u0434\u0438\u0437\u0430\u0439\u043d\u043e\u043c';
+    const variantIndex = getTitleSeed(designName) % 3;
+
+    const firstParts = [
+        `\u0421\u0442\u0438\u043b\u044c\u043d\u0430 \u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043f\u0440\u0438\u043d\u0442\u043e\u043c \u00ab${designName}\u00bb \u0434\u043b\u044f \u043f\u043e\u0432\u0441\u044f\u043a\u0434\u0435\u043d\u043d\u043e\u0433\u043e \u043e\u0431\u0440\u0430\u0437\u0443.`,
+        `\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u00ab${designName}\u00bb \u0441\u0442\u0432\u043e\u0440\u0435\u043d\u0430 \u0434\u043b\u044f \u0442\u0438\u0445, \u0445\u0442\u043e \u043b\u044e\u0431\u0438\u0442\u044c \u0432\u0438\u0440\u0430\u0437\u043d\u0456 \u043f\u0440\u0438\u043d\u0442\u0438.`,
+        `\u041c\u043e\u0434\u0435\u043b\u044c \u0437 \u043f\u0440\u0438\u043d\u0442\u043e\u043c \u00ab${designName}\u00bb \u0433\u0430\u0440\u043d\u043e \u043f\u043e\u0454\u0434\u043d\u0443\u0454\u0442\u044c\u0441\u044f \u0437 \u043f\u043e\u0432\u0441\u044f\u043a\u0434\u0435\u043d\u043d\u0438\u043c \u0433\u0430\u0440\u0434\u0435\u0440\u043e\u0431\u043e\u043c.`
+    ];
+    const secondParts = [
+        '\u042f\u043a\u0456\u0441\u043d\u0438\u0439 \u0434\u0440\u0443\u043a \u043f\u0435\u0440\u0435\u0434\u0430\u0454 \u0434\u0435\u0442\u0430\u043b\u0456 \u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u043d\u044f \u0442\u0430 \u0437\u0431\u0435\u0440\u0456\u0433\u0430\u0454 \u043d\u0430\u0441\u0438\u0447\u0435\u043d\u0456 \u043a\u043e\u043b\u044c\u043e\u0440\u0438.',
+        '\u0429\u0456\u043b\u044c\u043d\u0438\u0439 \u043c\u0430\u0442\u0435\u0440\u0456\u0430\u043b \u0456 \u0447\u0456\u0442\u043a\u0438\u0439 \u0434\u0440\u0443\u043a \u0437\u0430\u0431\u0435\u0437\u043f\u0435\u0447\u0443\u044e\u0442\u044c \u043e\u0445\u0430\u0439\u043d\u0438\u0439 \u0432\u0438\u0433\u043b\u044f\u0434 \u0449\u043e\u0434\u043d\u044f.',
+        '\u041a\u043e\u043c\u0444\u043e\u0440\u0442\u043d\u0438\u0439 \u043a\u0440\u0456\u0439 \u0442\u0430 \u0441\u0442\u0456\u0439\u043a\u0438\u0439 \u0434\u0440\u0443\u043a \u0440\u043e\u0431\u043b\u044f\u0442\u044c \u0457\u0457 \u0437\u0440\u0443\u0447\u043d\u043e\u044e \u0434\u043b\u044f \u0440\u0435\u0433\u0443\u043b\u044f\u0440\u043d\u043e\u0433\u043e \u043d\u043e\u0441\u0456\u043d\u043d\u044f.'
+    ];
+    const thirdParts = [
+        '\u0414\u043e\u0431\u0440\u0438\u0439 \u0432\u0438\u0431\u0456\u0440 \u0434\u043b\u044f \u0444\u0430\u043d\u0430\u0442\u0456\u0432 \u043e\u0440\u0438\u0433\u0456\u043d\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u043c\u0435\u0440\u0447\u0443.',
+        '\u041f\u0456\u0434\u0456\u0439\u0434\u0435 \u0434\u043b\u044f \u0442\u0438\u0445, \u0445\u0442\u043e \u0445\u043e\u0447\u0435 \u043f\u0456\u0434\u043a\u0440\u0435\u0441\u043b\u0438\u0442\u0438 \u0441\u0432\u0456\u0439 \u0441\u0442\u0438\u043b\u044c.',
+        '\u0406\u0434\u0435\u0430\u043b\u044c\u043d\u043e \u0434\u043b\u044f \u0442\u0438\u0445, \u0445\u0442\u043e \u0448\u0443\u043a\u0430\u0454 \u043f\u043e\u043c\u0456\u0442\u043d\u0438\u0439 \u0434\u0438\u0437\u0430\u0439\u043d \u043d\u0430 \u043a\u043e\u0436\u0435\u043d \u0434\u0435\u043d\u044c.'
+    ];
+
+    return `${firstParts[variantIndex]} ${secondParts[variantIndex]} ${thirdParts[variantIndex]}`;
+}
+
 function normalizeCatalogCategoryName(category) {
     const value = String(category || '').trim();
     if (!value) return BASE_APPAREL_LABEL;
 
     const lower = value.toLowerCase();
-    if (lower === 'футболки' || lower === 'футболка з надруком' || lower === 'футболки з надруком') {
+    if (
+        lower === '\u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0438'
+        || lower === '\u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c'
+        || lower === '\u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0438 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c'
+    ) {
         return BASE_APPAREL_LABEL;
     }
 
@@ -122,7 +169,7 @@ function normalizeCatalogCategoryName(category) {
 function slugifyProductTitle(value) {
     const source = String(value || '')
         .toLowerCase()
-        .replace(/['’`"]/g, ' ')
+        .replace(/['\u2019`"]/g, ' ')
         .replace(/&/g, ' and ')
         .replace(/_/g, ' ')
         .trim();
@@ -130,9 +177,11 @@ function slugifyProductTitle(value) {
     if (!source) return '';
 
     const translitMap = {
-        а: 'a', б: 'b', в: 'v', г: 'h', ґ: 'g', д: 'd', е: 'e', є: 'ye', ж: 'zh', з: 'z', и: 'y', і: 'i', ї: 'yi', й: 'y',
-        к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch',
-        ш: 'sh', щ: 'shch', ь: '', ю: 'yu', я: 'ya', ъ: '', ы: 'y', э: 'e', ё: 'yo'
+        '\u0430': 'a', '\u0431': 'b', '\u0432': 'v', '\u0433': 'h', '\u0491': 'g', '\u0434': 'd', '\u0435': 'e', '\u0454': 'ye',
+        '\u0436': 'zh', '\u0437': 'z', '\u0438': 'y', '\u0456': 'i', '\u0457': 'yi', '\u0439': 'y', '\u043a': 'k', '\u043b': 'l',
+        '\u043c': 'm', '\u043d': 'n', '\u043e': 'o', '\u043f': 'p', '\u0440': 'r', '\u0441': 's', '\u0442': 't', '\u0443': 'u',
+        '\u0444': 'f', '\u0445': 'kh', '\u0446': 'ts', '\u0447': 'ch', '\u0448': 'sh', '\u0449': 'shch', '\u044c': '', '\u044e': 'yu',
+        '\u044f': 'ya', '\u044a': '', '\u044b': 'y', '\u044d': 'e', '\u0451': 'yo'
     };
 
     let output = '';
@@ -184,14 +233,15 @@ function mapStaticProduct(fileName) {
     const isHighPrice = HIGH_PRICE_APPAREL_DESIGNS.has(designKey);
     const price = isHighPrice ? HIGH_APPAREL_PRICE : BASE_APPAREL_PRICE;
     const displayCategory = isHighPrice ? DOUBLE_SIDED_APPAREL_LABEL : BASE_APPAREL_LABEL;
+    const title = `Футболка з принтом «${designName}»`;
 
     return {
-        title: `Футболка з принтом «${designName}»`,
+        title,
         price,
         image: fullImage,
         category: BASE_APPAREL_LABEL,
         displayCategory,
-        description: `Готова футболка з надруком «${designName}».`,
+        description: buildStaticProductDescription(title),
         gallery: [fullImage],
         source: 'static'
     };
@@ -270,7 +320,7 @@ function mapApiProduct(row) {
         image,
         category,
         displayCategory,
-        description: String(row?.description || '').trim() || `Готова футболка з надруком «${title}».`,
+        description: String(row?.description || '').trim() || `\u0413\u043e\u0442\u043e\u0432\u0430 \u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${title}\u00bb.`,
         gallery: image ? [image] : [],
         source: 'api'
     };
@@ -310,3 +360,5 @@ module.exports = {
     slugifyProductTitle,
     assignProductSlugs
 };
+
+

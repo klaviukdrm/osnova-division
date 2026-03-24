@@ -167,6 +167,11 @@ const DEFAULT_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 const HOODIE_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const APPAREL_PLUS_SIZE_CODE = '3XL';
 const APPAREL_PLUS_SIZE_SURCHARGE = 200;
+const MAX_UPLOAD_ABSOLUTE_BYTES = 80 * 1024 * 1024;
+const MAX_UPLOAD_DIRECT_BYTES = 6 * 1024 * 1024;
+const MAX_UPLOAD_TARGET_BYTES = 4 * 1024 * 1024;
+const MAX_UPLOAD_SIDE = 2600;
+const HEAVY_UPLOAD_QUALITY_STEPS = [0.9, 0.82, 0.74, 0.66];
 
 const Editor = {
     products: [
@@ -309,6 +314,7 @@ const Editor = {
     imageTransformBoxEl: null,
     imageIdCounter: 0,
     imageSourceById: {},
+    imageUploadPendingCount: 0,
     imageHistoryStack: [],
     isRestoringImageSnapshot: false,
     imageScaleGestureActive: false,
@@ -406,6 +412,7 @@ const Editor = {
         this.applyInitialRouteState();
         this.renderProductSelector();
         this.bindEvents();
+        this.applySaveButtonState();
         this.selectProduct(this.state.productId);
         this.updatePreviewText();
         this.updatePreviewColor();
@@ -1266,6 +1273,24 @@ const Editor = {
         addButton.classList.toggle('pointer-events-none', !isReady);
     },
 
+    applySaveButtonState() {
+        const saveButton = this.elements.saveDesignBtn;
+        if (!saveButton) return;
+        const isPending = this.imageUploadPendingCount > 0;
+        saveButton.disabled = isPending;
+        saveButton.classList.toggle('opacity-60', isPending);
+        saveButton.classList.toggle('pointer-events-none', isPending);
+    },
+
+    setImageUploadPending(isPending) {
+        if (isPending) {
+            this.imageUploadPendingCount += 1;
+        } else {
+            this.imageUploadPendingCount = Math.max(0, this.imageUploadPendingCount - 1);
+        }
+        this.applySaveButtonState();
+    },
+
     markDesignDirty() {
         this.designDirty = true;
         this.applyConstructorOrderControlsState();
@@ -1366,6 +1391,11 @@ const Editor = {
     },
 
     saveCurrentDesign() {
+        if (this.imageUploadPendingCount > 0) {
+            window.UI?.showToast?.('Зачекай, фото ще обробляється...', { tone: 'info' });
+            return;
+        }
+
         const snapshot = this.buildDesignSnapshotDataUrl();
         if (!snapshot) {
             window.UI?.showToast?.('Не вдалося зберегти макет. Спробуйте ще раз.', { tone: 'warning' });
@@ -1605,32 +1635,122 @@ const Editor = {
         window.requestAnimationFrame(() => this.updateImageTransformBox());
     },
 
-    handleImageUpload(file, options = {}) {
+    readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(String(event?.target?.result || ''));
+            reader.onerror = () => reject(new Error('failed_to_read_file'));
+            reader.readAsDataURL(file);
+        });
+    },
+
+    loadImageFromObjectUrl(objectUrl) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('failed_to_decode_image'));
+            image.src = objectUrl;
+        });
+    },
+
+    canvasToBlob(canvas, type, quality) {
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), type, quality);
+        });
+    },
+
+    async getOptimizedUploadDataUrl(file) {
+        if (!(file instanceof File)) {
+            return { dataUrl: '', optimized: false };
+        }
+
+        if (file.size > MAX_UPLOAD_ABSOLUTE_BYTES) {
+            throw new Error('file_too_large');
+        }
+
+        if (file.size <= MAX_UPLOAD_DIRECT_BYTES) {
+            return { dataUrl: await this.readFileAsDataUrl(file), optimized: false };
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        try {
+            const image = await this.loadImageFromObjectUrl(objectUrl);
+            const sourceWidth = Math.max(1, Number(image.naturalWidth || image.width || 0));
+            const sourceHeight = Math.max(1, Number(image.naturalHeight || image.height || 0));
+            const scale = Math.min(1, MAX_UPLOAD_SIDE / Math.max(sourceWidth, sourceHeight));
+            const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+            const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return { dataUrl: await this.readFileAsDataUrl(file), optimized: false };
+            }
+
+            ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+            let bestBlob = null;
+            for (const quality of HEAVY_UPLOAD_QUALITY_STEPS) {
+                const blob = await this.canvasToBlob(canvas, 'image/jpeg', quality);
+                if (!blob) continue;
+                bestBlob = blob;
+                if (blob.size <= MAX_UPLOAD_TARGET_BYTES) break;
+            }
+
+            if (!bestBlob) {
+                return { dataUrl: await this.readFileAsDataUrl(file), optimized: false };
+            }
+
+            const optimizedFile = new File([bestBlob], `${Date.now()}-optimized.jpg`, { type: 'image/jpeg' });
+            return { dataUrl: await this.readFileAsDataUrl(optimizedFile), optimized: true };
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
+    },
+
+    async handleImageUpload(file, options = {}) {
         if (!file) return;
         const shouldRecordHistory = options.recordHistory !== false;
         if (shouldRecordHistory) {
             this.pushImageHistorySnapshot();
         }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const source = event.target.result;
+        this.setImageUploadPending(true);
+        try {
+            const { dataUrl, optimized } = await this.getOptimizedUploadDataUrl(file);
+            if (!dataUrl) {
+                throw new Error('empty_image_payload');
+            }
+
             const imageId = `img-${Date.now()}-${++this.imageIdCounter}`;
-            this.imageSourceById[imageId] = source;
+            this.imageSourceById[imageId] = dataUrl;
             const image = this.createImageLayer({
                 id: imageId,
-                src: source,
+                src: dataUrl,
                 state: this.createDefaultImageState()
             });
+
             this.setActiveImage(image, { syncControls: true });
             this.ensureImageTransformBox();
             this.updateUploadPromptVisibility();
             this.updateCanvasLayout();
             this.elements.imageUpload.value = '';
             this.markDesignDirty();
-        };
 
-        reader.readAsDataURL(file);
+            if (optimized) {
+                window.UI?.showToast?.('Велике фото оптимізовано для стабільної роботи редактора', { tone: 'info' });
+            }
+        } catch (error) {
+            const message = error?.message === 'file_too_large'
+                ? 'Файл занадто великий. Спробуй фото до 80 МБ.'
+                : 'Не вдалося завантажити фото. Спробуй інший файл.';
+            window.UI?.showToast?.(message, { tone: 'warning' });
+            console.warn('Failed to process upload image.', error);
+        } finally {
+            this.setImageUploadPending(false);
+        }
     },
 
     bindImageDrag(image) {

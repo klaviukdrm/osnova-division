@@ -343,41 +343,6 @@ const Catalog = {
         return this.normalizeApparelCategoryLabel(item?.displayCategory || item?.category || 'Каталог');
     },
 
-    extractDesignNameFromTitle(title) {
-        const raw = String(title || '').trim();
-        if (!raw) return 'власним принтом';
-
-        const quoted = raw.match(/«([^»]+)»/);
-        if (quoted && quoted[1]) {
-            return quoted[1].trim();
-        }
-
-        return raw
-            .replace(/^(футболка|худі|чашка|термочашка)\s+з\s+принтом\s*/i, '')
-            .replace(/^["'«]+|["'»]+$/g, '')
-            .trim() || raw;
-    },
-
-    getCardShortDescription(item) {
-        const title = String(item?.title || '').trim();
-        const category = this.getDisplayCategory(item).toLowerCase();
-        const design = this.extractDesignNameFromTitle(title);
-
-        if (category.includes('худі')) {
-            return `Худі з принтом «${design}» на чорній базі. Готове до швидкого оформлення в кошику.`;
-        }
-
-        if (category.includes('футбол')) {
-            return `Футболка з принтом «${design}» на чорній базі. Доступна для замовлення без переходу в редактор.`;
-        }
-
-        if (category.includes('чаш')) {
-            return `Чашка з принтом «${design}». Ідеально для щоденного використання або подарунка.`;
-        }
-
-        return `${title || 'Готовий товар'} доступний для замовлення в каталозі. Швидке оформлення просто в кошику.`;
-    },
-
     getCategoryChipLabel(name) {
         const normalized = this.normalizeApparelCategoryLabel(name);
         if (normalized === this.BASE_APPAREL_LABEL) {
@@ -1102,7 +1067,6 @@ const Catalog = {
                 const meta = this.getCardMeta(item, startIndex + index);
                 const selectedSize = this.getSelectedSize(item, meta.sizes);
                 const displayPrice = this.getProductPrice(item, selectedSize);
-                const cardDescription = this.getCardShortDescription(item);
                 return `
             <article class="product-card product-card-v2 bg-white rounded-3xl overflow-hidden border border-slate-200 text-left transition" data-index="${index}">
                 <div class="product-card-v2__media" data-action="open-product-page" data-index="${index}">
@@ -1129,9 +1093,6 @@ const Catalog = {
                     <p class="text-xs uppercase tracking-[0.2em] text-slate-400">${this.getDisplayCategory(item)}</p>
                     <p class="font-semibold text-lg leading-snug text-slate-900">
                         <a href="${this.getProductUrl(item)}" class="hover:text-blue-700 transition">${item.title || 'Товар'}</a>
-                    </p>
-                    <p class="text-sm text-slate-600 leading-relaxed" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-                        ${cardDescription}
                     </p>
 
                     <div class="product-card-v2__price-row">

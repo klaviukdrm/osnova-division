@@ -100,11 +100,28 @@ function normalizeCatalogImagePath(value) {
 
 function getDesignNameFromFile(fileName) {
     const raw = String(fileName || '').trim();
+    const rawUpper = raw.toUpperCase();
+    if (rawUpper === 'DOOM%20%D0%91%D0%A3.JPG') {
+        return 'DOOM \u0421\u0411\u0423';
+    }
+    if (rawUpper === 'OOM%20AUTISM.JPG') {
+        return 'DOOM AUTISM';
+    }
+
     const decoded = raw.includes('%') ? decodeURIComponent(raw) : raw;
-    return decoded
+    const normalizedName = decoded
         .replace(/\.[^.]+$/, '')
         .replace(/\s+/g, ' ')
         .trim();
+
+    if (normalizedName.toUpperCase() === 'DOOM \u0411\u0423') {
+        return 'DOOM \u0421\u0411\u0423';
+    }
+    if (normalizedName.toUpperCase() === 'OOM AUTISM') {
+        return 'DOOM AUTISM';
+    }
+
+    return normalizedName;
 }
 
 function extractDesignNameFromTitle(title) {

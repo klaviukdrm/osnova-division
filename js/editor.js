@@ -220,6 +220,45 @@ const Editor = {
             ]
         },
         {
+            id: 'hoodie-black',
+            name: 'Худі',
+            shortName: 'Худі',
+            icon: 'fa-shirt',
+            image: 'images/ХУДІ МОКАП ОДНА СТОРОНА.jpg',
+            imageAlt: 'Чорне худі для друку',
+            kind: 'apparel',
+            previewWidth: 840,
+            price: 299,
+            colorLabel: 'Чорний',
+            swatch: '#0f172a',
+            defaultVariantId: 'black',
+            defaultFormatId: 'tee-a3',
+            variants: [
+                {
+                    id: 'black',
+                    label: 'Чорна',
+                    colorLabel: 'Чорний',
+                    swatch: '#0f172a',
+                    image: 'images/ХУДІ МОКАП ОДНА СТОРОНА.jpg',
+                    imageAlt: 'Чорне худі для друку'
+                }
+            ],
+            description: 'Базове худі під персональний принт.',
+            material: 'Бавовна/поліестер, 320 г/м²',
+            printTech: 'DTG, DTF та термоперенос',
+            leadTime: '3-5 робочих днів',
+            maxPrintHint: 'до 42 x 59.4 см',
+            printHint: 'Залишай 2-3 см від краю без важливих елементів — так дизайн виглядатиме чисто після друку.',
+            text: { min: 14, max: 52, default: 28 },
+            printArea: { top: 26, left: 50, width: 41, height: 49, radius: 12 },
+            formats: [
+                { id: 'tee-a6', label: 'A6', widthMm: 105, heightMm: 148, width: 12, height: 9, top: 40, left: 55, price: 1300, note: 'Невеликий формат для акуратного принта.' },
+                { id: 'tee-a5', label: 'A5', widthMm: 148, heightMm: 210, width: 17, height: 14, top: 40, price: 1350, note: 'Акуратний варіант для невеликих написів і знаків.' },
+                { id: 'tee-a4', label: 'A4', widthMm: 210, heightMm: 297, width: 22, height: 16, top: 40, price: 1400, note: 'Комфортний формат для логотипів і середніх макетів.' },
+                { id: 'tee-a3', label: 'A3', widthMm: 297, heightMm: 420, width: 28, height: 23, top: 40, price: 1450, note: 'Стандартна зона для центрального принта.' }
+            ]
+        },
+        {
             id: 'mug-metal',
             name: 'Керамічна чашка',
             shortName: 'Керамічна чашка',
@@ -818,6 +857,12 @@ const Editor = {
         return this.getFormatBasePrice(product, format) + this.getSizeSurcharge(product, size);
     },
 
+    getFormatPriceBaseLabel(product = this.getSelectedProduct()) {
+        if (product?.kind !== 'apparel') return '';
+        if (product?.id === 'hoodie-black') return ' разом з худі';
+        return ' разом з футболкою';
+    },
+
     renderProductSelector() {
         this.elements.productSelector.innerHTML = this.products.map((product) => `
             <button type="button" class="product-option" data-product-id="${product.id}" aria-pressed="false">
@@ -938,11 +983,12 @@ const Editor = {
     renderFormatButtons() {
         const product = this.getSelectedProduct();
         const selectedSize = this.getSelectedProductSize(product);
+        const priceBaseLabel = this.getFormatPriceBaseLabel(product);
         this.elements.formatButtons.innerHTML = product.formats.map((format) => `
             <button type="button" class="format-btn" data-format-id="${format.id}" aria-pressed="false">
                 <span class="format-btn__title">${format.label}</span>
                 <span class="format-btn__meta">${format.widthMm} x ${format.heightMm} мм</span>
-                <span class="format-btn__meta">${this.getFormatBasePrice(product, format)} грн${product.kind === 'apparel' ? ' разом з футболкою' : ''}${this.getSizeSurcharge(product, selectedSize) ? ' (+200 грн за 3XL)' : ''}</span>
+                <span class="format-btn__meta">${this.getFormatBasePrice(product, format)} грн${priceBaseLabel}${this.getSizeSurcharge(product, selectedSize) ? ' (+200 грн за 3XL)' : ''}</span>
             </button>
         `).join('');
     },

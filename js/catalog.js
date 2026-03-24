@@ -13,6 +13,18 @@ const Catalog = {
     HIGH_APPAREL_PRICE: 750,
     PLUS_SIZE_SURCHARGE: 200,
     PLUS_SIZE_CODE: '3XL',
+    SIZE_CHART_CONFIG: {
+        default: {
+            title: 'Таблиця розмірів для футболок',
+            image: 'images/Screenshot_214%20(1).png',
+            alt: 'Розмірна сітка для футболок'
+        },
+        hoodie: {
+            title: 'Таблиця розмірів для худі',
+            image: 'images/setkarozmera.jpg',
+            alt: 'Розмірна сітка для худі'
+        }
+    },
     BASE_APPAREL_LABEL: 'Футболка з надруком',
     DOUBLE_SIDED_APPAREL_LABEL: 'Футболка з двостороннім надруком',
     HIGH_PRICE_APPAREL_DESIGNS: new Set([
@@ -82,7 +94,8 @@ const Catalog = {
         selectedSizes: {},
         cartItems: [],
         favoriteKeys: new Set(),
-        modalImageLoadToken: 0
+        modalImageLoadToken: 0,
+        currentSizeChartType: 'default'
     },
 
     getDemoVisual(category, index) {
@@ -373,24 +386,6 @@ const Catalog = {
         if (apparelProducts.length) {
             items.push(...apparelProducts);
         }
-
-        categories.forEach((category) => {
-            const hasRealApparelProducts = category === apparelCategory && apparelProducts.length > 0;
-            const count = hasRealApparelProducts ? 0 : 4;
-
-            for (let index = 0; index < count; index += 1) {
-                const title = `${category} — ${this.DEMO_ADJECTIVES[index % this.DEMO_ADJECTIVES.length]} ${this.DEMO_SERIES[index % this.DEMO_SERIES.length]} ${index + 1}`;
-                const image = this.getDemoVisual(category, index);
-                items.push({
-                    title,
-                    price: this.getDemoPrice(category, index),
-                    image,
-                    category,
-                    description: this.getDemoDescription(category, title),
-                    gallery: [image]
-                });
-            }
-        });
         return items;
     },
 
@@ -866,7 +861,7 @@ const Catalog = {
 
         if (source.includes('худі')) {
             colors = ['#111827', '#374151', '#64748b', '#991b1b'];
-            sizes = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+            sizes = ['S', 'M', 'L', 'XL', '2XL'];
         } else if (source.includes('термо')) {
             colors = ['#111827', '#334155', '#0f766e', '#a16207'];
             sizes = ['350 мл', '450 мл', '500 мл'];
@@ -1294,6 +1289,7 @@ const Catalog = {
 
         this.state.currentItem = item;
         this.state.currentModalSize = item?.selectedSize || '';
+        this.applySizeChartConfig(item);
         const galleryPairs = this.buildModalGalleryPairs(item);
         const title = item.title || 'Товар';
         const category = this.getDisplayCategory(item);
@@ -1357,7 +1353,35 @@ const Catalog = {
         window.UI?.closeModal('product-modal');
     },
 
+    isHoodieItem(item) {
+        const haystack = `${item?.category || ''} ${item?.displayCategory || ''} ${item?.subcategory || ''} ${item?.title || ''}`
+            .toLowerCase();
+        return haystack.includes('худі') || haystack.includes('худи') || haystack.includes('hoodie');
+    },
+
+    getSizeChartConfig(item = this.state.currentItem) {
+        if (this.isHoodieItem(item)) {
+            return this.SIZE_CHART_CONFIG.hoodie;
+        }
+        return this.SIZE_CHART_CONFIG.default;
+    },
+
+    applySizeChartConfig(item = this.state.currentItem) {
+        const config = this.getSizeChartConfig(item);
+        const titleEl = document.getElementById('size-chart-title');
+        const imageEl = document.getElementById('size-chart-image');
+
+        this.state.currentSizeChartType = config === this.SIZE_CHART_CONFIG.hoodie ? 'hoodie' : 'default';
+
+        if (titleEl) titleEl.textContent = config.title;
+        if (imageEl) {
+            imageEl.src = config.image;
+            imageEl.alt = config.alt;
+        }
+    },
+
     openSizeChartModal() {
+        this.applySizeChartConfig(this.state.currentItem);
         window.UI?.openModal('size-chart-modal');
     },
 

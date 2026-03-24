@@ -289,6 +289,49 @@ const Catalog = {
             .trim();
     },
 
+    extractDesignNameFromTitle(title) {
+        const normalizedTitle = String(title || '').trim();
+        if (!normalizedTitle) return '';
+
+        const quotedMatch = normalizedTitle.match(/«([^»]+)»/);
+        if (quotedMatch && quotedMatch[1]) {
+            return quotedMatch[1].trim();
+        }
+
+        return normalizedTitle
+            .replace(/^Футболка з принтом\s*/i, '')
+            .trim();
+    },
+
+    getTitleSeed(value) {
+        return Array.from(String(value || '')).reduce((acc, char, index) => {
+            return acc + (char.codePointAt(0) || 0) * (index + 1);
+        }, 0);
+    },
+
+    buildStaticProductDescription(title) {
+        const designName = this.extractDesignNameFromTitle(title) || 'власним дизайном';
+        const variantIndex = this.getTitleSeed(designName) % 3;
+
+        const firstParts = [
+            `Стильна футболка з принтом «${designName}» для повсякденного образу.`,
+            `Футболка «${designName}» створена для тих, хто любить виразні принти.`,
+            `Модель з принтом «${designName}» гарно поєднується з повсякденним гардеробом.`
+        ];
+        const secondParts = [
+            'Якісний друк передає деталі зображення та зберігає насичені кольори.',
+            'Щільний матеріал і чіткий друк забезпечують охайний вигляд щодня.',
+            'Комфортний крій та стійкий друк роблять її зручною для регулярного носіння.'
+        ];
+        const thirdParts = [
+            'Добрий вибір для фанатів оригінального мерчу.',
+            'Підійде для тих, хто хоче підкреслити свій стиль.',
+            'Ідеально для тих, хто шукає помітний дизайн на кожен день.'
+        ];
+
+        return `${firstParts[variantIndex]} ${secondParts[variantIndex]} ${thirdParts[variantIndex]}`;
+    },
+
     normalizeApparelCategoryLabel(label) {
         const value = String(label || '').trim();
         if (!value) return 'Каталог';
@@ -363,15 +406,16 @@ const Catalog = {
             const price = isHighPrice ? this.HIGH_APPAREL_PRICE : this.BASE_APPAREL_PRICE;
             const normalizedCategory = this.normalizeApparelCategoryLabel(category);
             const displayCategory = isHighPrice ? this.DOUBLE_SIDED_APPAREL_LABEL : normalizedCategory;
+            const title = `Футболка з принтом «${designName}»`;
 
             return {
-                title: `\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043f\u0440\u0438\u043d\u0442\u043e\u043c \u00ab${designName}\u00bb`,
+                title,
                 price,
                 image: previewImage,
                 previewImage,
                 category: normalizedCategory,
                 displayCategory,
-                description: `\u0413\u043e\u0442\u043e\u0432\u0430 \u0444\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c \u00ab${designName}\u00bb.`,
+                description: this.buildStaticProductDescription(title),
                 gallery: [fullImage],
                 previewGallery: [previewImage]
             };

@@ -4,7 +4,8 @@ const Catalog = {
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
     ITEMS_PER_PAGE: 24,
     DEFAULT_CATEGORIES: [
-        'Футболка з надруком'
+        'Футболка з надруком',
+        'Худі'
     ],
     DEMO_ADJECTIVES: ['Стильний', 'Преміум', 'Лімітований', 'Сезонний', 'Міський', 'Soft Touch'],
     DEMO_SERIES: ['серія', 'набір', 'дроп', 'варіант'],
@@ -242,7 +243,8 @@ const Catalog = {
             const mergedProducts = [...existingProducts, ...mappedProducts];
 
             const categoryOrder = [
-                this.BASE_APPAREL_LABEL
+                this.BASE_APPAREL_LABEL,
+                'Худі'
             ];
             const uniqueCategories = [];
             const seen = new Set();
@@ -256,7 +258,7 @@ const Catalog = {
                 uniqueCategories.push(category);
             });
 
-            const orderedCategories = [this.BASE_APPAREL_LABEL];
+            const orderedCategories = [...categoryOrder];
             this.setCatalogData(orderedCategories, mergedProducts);
             return true;
         } catch (error) {

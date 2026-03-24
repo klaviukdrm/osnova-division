@@ -2151,6 +2151,12 @@ const Editor = {
                 parsed = [];
             }
             const cartItems = Array.isArray(parsed) ? parsed : [];
+            const existingConstructorEntry = cartItems.find((entry) => String(entry?.item?.category || '').trim() === 'Конструктор');
+            if (existingConstructorEntry) {
+                window.UI?.showToast?.('За одне замовлення можна оформити лише один кастомний товар. Для уточнення зверніться в розділ «Контакти».', { tone: 'warning' });
+                return;
+            }
+
             const itemKey = cartItem.customKey || `${cartItem.category || ''}::${cartItem.title || ''}`;
             const existingIndex = cartItems.findIndex((entry) => {
                 const customKey = entry?.item?.customKey || '';

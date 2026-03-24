@@ -1,6 +1,7 @@
 const { getAllCatalogProducts } = require('./_lib/product-catalog');
 
 const APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+const HOODIE_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 
 function escapeHtml(value) {
     return String(value || '')
@@ -55,7 +56,13 @@ function getSlug(req) {
 function isApparelProduct(product) {
     const haystack = `${product?.category || ''} ${product?.displayCategory || ''} ${product?.title || ''}`
         .toLowerCase();
-    return haystack.includes('футбол');
+    return haystack.includes('\u0444\u0443\u0442\u0431\u043e\u043b') || haystack.includes('\u0445\u0443\u0434\u0456') || haystack.includes('\u0445\u0443\u0434\u0438') || haystack.includes('hoodie');
+}
+
+function isHoodieProduct(product) {
+    const haystack = `${product?.category || ''} ${product?.displayCategory || ''} ${product?.subcategory || ''} ${product?.title || ''}`
+        .toLowerCase();
+    return haystack.includes('\u0445\u0443\u0434\u0456') || haystack.includes('\u0445\u0443\u0434\u0438') || haystack.includes('hoodie');
 }
 
 function buildNotFoundHtml(baseUrl) {
@@ -102,9 +109,19 @@ function buildProductHtml(product, baseUrl) {
         : `${baseUrl}/images/logosait.jpg`;
     const pageTitle = `${title} | Ukrainian Print Family`;
     const supportsSizes = isApparelProduct(product);
-    const availableSizes = supportsSizes ? APPAREL_SIZES : [];
+    const hoodieProduct = isHoodieProduct(product);
+    const availableSizes = supportsSizes ? (hoodieProduct ? HOODIE_SIZES : APPAREL_SIZES) : [];
     const defaultSize = availableSizes[0] || '';
     const slug = String(product?.slug || '').trim();
+    const sizeChartImage = hoodieProduct
+        ? '/images/setkarozmera.jpg'
+        : '/images/Screenshot_214%20(1).png';
+    const sizeChartAlt = hoodieProduct
+        ? '\u0420\u043e\u0437\u043c\u0456\u0440\u043d\u0430 \u0441\u0456\u0442\u043a\u0430 \u0434\u043b\u044f \u0445\u0443\u0434\u0456'
+        : '\u0420\u043e\u0437\u043c\u0456\u0440\u043d\u0430 \u0441\u0456\u0442\u043a\u0430 \u0434\u043b\u044f \u0444\u0443\u0442\u0431\u043e\u043b\u043e\u043a';
+    const sizeChartTitle = hoodieProduct
+        ? '\u0422\u0430\u0431\u043b\u0438\u0446\u044f \u0440\u043e\u0437\u043c\u0456\u0440\u0456\u0432 \u0434\u043b\u044f \u0445\u0443\u0434\u0456'
+        : '\u0422\u0430\u0431\u043b\u0438\u0446\u044f \u0440\u043e\u0437\u043c\u0456\u0440\u0456\u0432 \u0434\u043b\u044f \u0444\u0443\u0442\u0431\u043e\u043b\u043e\u043a';
 
     return `<!DOCTYPE html>
 <html lang="uk">
@@ -335,10 +352,10 @@ function buildProductHtml(product, baseUrl) {
             </button>
             <div class="pr-12">
                 <p class="text-xs uppercase tracking-[0.25em] text-slate-400">РОЗМІРНА СІТКА</p>
-                <h3 class="text-2xl md:text-3xl font-bold section-title mt-2">Таблиця розмірів для футболок</h3>
+                <h3 class="text-2xl md:text-3xl font-bold section-title mt-2">${escapeHtml(sizeChartTitle)}</h3>
             </div>
             <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 md:p-3">
-                <img src="/images/Screenshot_214%20(1).png" alt="Розмірна сітка футболок" class="w-full h-auto rounded-xl object-contain bg-white">
+                <img src="${escapeHtml(sizeChartImage)}" alt="${escapeHtml(sizeChartAlt)}" class="w-full h-auto rounded-xl object-contain bg-white">
             </div>
         </div>
     </div>

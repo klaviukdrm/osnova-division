@@ -356,6 +356,8 @@ const Editor = {
             editorSizeChartModal: document.getElementById('editor-size-chart-modal'),
             editorSizeChartClose: document.getElementById('editor-size-chart-close'),
             editorSizeChartBackdrop: document.querySelector('[data-close-editor-size-chart]'),
+            editorSizeChartTitle: document.getElementById('editor-size-chart-title'),
+            editorSizeChartImage: document.getElementById('editor-size-chart-image'),
             editorFormatGuideBtn: document.getElementById('editor-format-guide-btn'),
             editorFormatGuideModal: document.getElementById('editor-format-guide-modal'),
             editorFormatGuideClose: document.getElementById('editor-format-guide-close'),
@@ -571,11 +573,41 @@ const Editor = {
     },
 
     openEditorSizeChartModal() {
+        this.syncEditorSizeChartModal();
         window.UI?.openModal('editor-size-chart-modal');
     },
 
     closeEditorSizeChartModal() {
         window.UI?.closeModal('editor-size-chart-modal');
+    },
+
+    getEditorSizeChartConfig(product = this.getSelectedProduct()) {
+        if (product?.id === 'hoodie-black') {
+            return {
+                title: 'Таблиця розмірів для худі',
+                image: 'images/setkarozmera.jpg',
+                alt: 'Розмірна сітка для худі'
+            };
+        }
+
+        return {
+            title: 'Порівняння форматів друку',
+            image: 'images/Screenshot_214%20(1).png',
+            alt: 'Розмірна сітка форматів друку'
+        };
+    },
+
+    syncEditorSizeChartModal(product = this.getSelectedProduct()) {
+        const config = this.getEditorSizeChartConfig(product);
+
+        if (this.elements.editorSizeChartTitle) {
+            this.elements.editorSizeChartTitle.textContent = config.title;
+        }
+
+        if (this.elements.editorSizeChartImage) {
+            this.elements.editorSizeChartImage.src = config.image;
+            this.elements.editorSizeChartImage.alt = config.alt;
+        }
     },
 
     openEditorFormatGuideModal() {
@@ -1012,6 +1044,7 @@ const Editor = {
         this.configureTextSlider(product);
         this.updateProductMeta(product);
         this.updateProductMockup(product);
+        this.syncEditorSizeChartModal(product);
         this.elements.mockupContainer.style.setProperty('--mockup-max-width', `${product.previewWidth}px`);
         this.elements.mockupStage.dataset.productKind = product.kind;
         this.elements.printCanvas.dataset.productKind = product.kind;

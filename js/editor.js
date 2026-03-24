@@ -164,6 +164,7 @@ const RU_TO_UA_PHRASE_MAP = new Map([
 
 const CYRILLIC_TOKEN_REGEX = /[А-Яа-яЁёІіЇїЄєҐґ'-]+/g;
 const DEFAULT_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+const HOODIE_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const APPAREL_PLUS_SIZE_CODE = '3XL';
 const APPAREL_PLUS_SIZE_SURCHARGE = 200;
 
@@ -767,6 +768,9 @@ const Editor = {
         }
 
         if (product?.kind === 'apparel') {
+            if (product?.id === 'hoodie-black') {
+                return [...HOODIE_APPAREL_SIZES];
+            }
             return [...DEFAULT_APPAREL_SIZES];
         }
 

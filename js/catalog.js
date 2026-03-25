@@ -1635,9 +1635,153 @@ const Catalog = {
         const invoiceReceiptInput = document.getElementById('invoice-receipt-input');
         const invoiceReceiptName = document.getElementById('invoice-receipt-name');
         const invoiceTotalAmount = document.getElementById('invoice-total-amount');
+        const orderPhoneInput = document.getElementById('order-phone');
 
         if (closeButton) closeButton.addEventListener('click', () => this.closeOrderModal());
         if (backdrop) backdrop.addEventListener('click', () => this.closeOrderModal());
+
+        const extractOrderPhoneDigits = (value) => {
+            let digits = String(value || '').replace(/\D/g, '');
+            if (digits.startsWith('380')) {
+                digits = digits.slice(3);
+            } else if (digits.startsWith('38') && digits.length > 9) {
+                digits = digits.slice(2);
+            }
+            if (digits.startsWith('0')) {
+                digits = digits.slice(1);
+            }
+            return digits.slice(0, 9);
+        };
+
+        const formatOrderPhoneMask = (digits) => {
+            const normalized = String(digits || '');
+            const template = '38 (0__) ___-__-__';
+            let pointer = 0;
+            return template.replace(/_/g, () => {
+                if (pointer < normalized.length) {
+                    return normalized[pointer++];
+                }
+                return '_';
+            });
+        };
+
+        const phoneEditablePositions = [5, 6, 9, 10, 11, 13, 14, 16, 17];
+        const getPhoneDigitIndexFromCaret = (caret) => {
+            const pos = Number.isFinite(caret) ? caret : 0;
+            for (let idx = 0; idx < phoneEditablePositions.length; idx += 1) {
+                if (pos <= phoneEditablePositions[idx]) {
+                    return idx;
+                }
+            }
+            return phoneEditablePositions.length;
+        };
+        const getPhoneCaretFromDigitIndex = (digitIndex) => {
+            const idx = Math.max(0, Math.min(phoneEditablePositions.length, Number(digitIndex) || 0));
+            if (!phoneEditablePositions.length) return 0;
+            if (idx >= phoneEditablePositions.length) {
+                return phoneEditablePositions[phoneEditablePositions.length - 1] + 1;
+            }
+            return phoneEditablePositions[idx];
+        };
+        const setOrderPhoneCaret = (digitIndex) => {
+            if (!orderPhoneInput || typeof orderPhoneInput.setSelectionRange !== 'function') return;
+            const caret = getPhoneCaretFromDigitIndex(digitIndex);
+            orderPhoneInput.setSelectionRange(caret, caret);
+        };
+
+        const applyOrderPhoneMask = (forceTemplate = false) => {
+            if (!orderPhoneInput) return;
+            const digits = extractOrderPhoneDigits(orderPhoneInput.value);
+            if (!digits && !forceTemplate && document.activeElement !== orderPhoneInput) {
+                orderPhoneInput.value = '';
+                return;
+            }
+            orderPhoneInput.value = formatOrderPhoneMask(digits);
+        };
+
+        const syncOrderPhoneValidity = () => {
+            if (!orderPhoneInput) return;
+            const value = String(orderPhoneInput.value || '').trim();
+            if (!value) {
+                orderPhoneInput.setCustomValidity('');
+                return;
+            }
+            const digits = extractOrderPhoneDigits(value);
+            if (digits.length < 9) {
+                orderPhoneInput.setCustomValidity('Введіть повний номер телефону.');
+                return;
+            }
+            orderPhoneInput.setCustomValidity('');
+        };
+
+        if (orderPhoneInput) {
+            orderPhoneInput.addEventListener('focus', () => {
+                applyOrderPhoneMask(true);
+                const digits = extractOrderPhoneDigits(orderPhoneInput.value);
+                setOrderPhoneCaret(Math.min(digits.length, phoneEditablePositions.length));
+                syncOrderPhoneValidity();
+            });
+            orderPhoneInput.addEventListener('input', () => {
+                applyOrderPhoneMask(true);
+                const digits = extractOrderPhoneDigits(orderPhoneInput.value);
+                setOrderPhoneCaret(Math.min(digits.length, phoneEditablePositions.length));
+                syncOrderPhoneValidity();
+            });
+            orderPhoneInput.addEventListener('blur', () => {
+                applyOrderPhoneMask(false);
+                syncOrderPhoneValidity();
+            });
+            orderPhoneInput.addEventListener('paste', () => {
+                window.setTimeout(() => {
+                    applyOrderPhoneMask(true);
+                    const digits = extractOrderPhoneDigits(orderPhoneInput.value);
+                    setOrderPhoneCaret(Math.min(digits.length, phoneEditablePositions.length));
+                    syncOrderPhoneValidity();
+                }, 0);
+            });
+            orderPhoneInput.addEventListener('keydown', (event) => {
+                if (event.key !== 'Backspace' && event.key !== 'Delete') return;
+
+                const currentDigits = extractOrderPhoneDigits(orderPhoneInput.value);
+                if (!currentDigits.length) {
+                    orderPhoneInput.value = '';
+                    syncOrderPhoneValidity();
+                    return;
+                }
+
+                const start = Number.isFinite(orderPhoneInput.selectionStart) ? orderPhoneInput.selectionStart : 0;
+                const end = Number.isFinite(orderPhoneInput.selectionEnd) ? orderPhoneInput.selectionEnd : start;
+                const digitsArray = currentDigits.split('');
+
+                event.preventDefault();
+
+                if (start !== end) {
+                    const from = getPhoneDigitIndexFromCaret(start);
+                    const to = getPhoneDigitIndexFromCaret(end);
+                    if (to > from) {
+                        digitsArray.splice(from, to - from);
+                    }
+                    const nextDigits = digitsArray.join('');
+                    orderPhoneInput.value = nextDigits ? formatOrderPhoneMask(nextDigits) : '';
+                    setOrderPhoneCaret(from);
+                    syncOrderPhoneValidity();
+                    return;
+                }
+
+                const caretIndex = getPhoneDigitIndexFromCaret(start);
+                const removeIndex = event.key === 'Backspace' ? caretIndex - 1 : caretIndex;
+                if (removeIndex < 0 || removeIndex >= digitsArray.length) {
+                    syncOrderPhoneValidity();
+                    return;
+                }
+
+                digitsArray.splice(removeIndex, 1);
+                const nextDigits = digitsArray.join('');
+                orderPhoneInput.value = nextDigits ? formatOrderPhoneMask(nextDigits) : '';
+                setOrderPhoneCaret(Math.max(0, removeIndex));
+                syncOrderPhoneValidity();
+            });
+        }
 
         if (form) {
             const submitDefaultText = submitButton?.textContent?.trim() || 'Оплата за реквізитами';
@@ -1741,7 +1885,10 @@ const Catalog = {
                 const name = fullNameInput?.value?.trim() || 'Без ПІБ';
                 const city = cityInput?.value?.trim() || 'Без міста';
                 const shipping = shippingInput?.value?.trim() || 'Без номера доставки';
-                const phone = phoneInput?.value?.trim() || 'Без телефону';
+                const phoneDigits = extractOrderPhoneDigits(phoneInput?.value || '');
+                const phone = phoneDigits.length === 9
+                    ? formatOrderPhoneMask(phoneDigits)
+                    : (phoneInput?.value?.trim() || 'Без телефону');
                 const comment = commentInput?.value?.trim() || '';
                 const cartItems = [...this.state.cartItems];
 
@@ -1772,6 +1919,7 @@ const Catalog = {
             };
 
             const processInvoiceOrder = async () => {
+                syncOrderPhoneValidity();
                 if (!form.reportValidity()) return;
                 const orderPayload = buildOrderPayload();
                 if (!orderPayload) return;
@@ -1817,6 +1965,7 @@ const Catalog = {
             };
 
             const processWalletPayment = async () => {
+                syncOrderPhoneValidity();
                 if (!form.reportValidity()) return;
                 const orderPayload = buildOrderPayload();
                 if (!orderPayload) return;
@@ -1864,6 +2013,7 @@ const Catalog = {
 
             if (submitButton) {
                 submitButton.addEventListener('click', () => {
+                    syncOrderPhoneValidity();
                     if (!form.reportValidity()) return;
                     const orderPayload = buildOrderPayload();
                     if (!orderPayload) return;

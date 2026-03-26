@@ -1,4 +1,4 @@
-﻿const MainApp = {
+const MainApp = {
     initialized: false,
     CART_STORAGE_KEY: 'upf_cart_v1',
     MOBILE_BREAKPOINT_QUERY: '(max-width: 768px)',
@@ -171,33 +171,19 @@
         };
 
         const getCardIndexByClass = (className) => cards.findIndex((card) => card.classList.contains(className));
-        const taken = new Set();
-        const pickIndex = (preferred, fallback) => {
-            if (Number.isInteger(preferred) && preferred >= 0 && preferred < cards.length && !taken.has(preferred)) {
-                taken.add(preferred);
-                return preferred;
-            }
+        let frontIndex = getCardIndexByClass('stacked-card--front');
+        if (!Number.isInteger(frontIndex) || frontIndex < 0 || frontIndex >= cards.length) {
+            frontIndex = 0;
+        }
 
-            for (const index of fallback) {
-                if (!taken.has(index)) {
-                    taken.add(index);
-                    return index;
-                }
-            }
-
-            return 0;
-        };
-
-        const initialFront = getCardIndexByClass('stacked-card--front');
-        const initialLeft = getCardIndexByClass('stacked-card--left');
-        const initialRight = getCardIndexByClass('stacked-card--right');
-        let cardByPosition = {
-            front: pickIndex(initialFront, [0, 1, 2]),
-            left: pickIndex(initialLeft, [1, 0, 2]),
-            right: pickIndex(initialRight, [2, 1, 0])
-        };
+        const getCardByPosition = () => ({
+            front: frontIndex,
+            left: (frontIndex - 1 + cards.length) % cards.length,
+            right: (frontIndex + 1) % cards.length
+        });
 
         const applyPositions = () => {
+            const cardByPosition = getCardByPosition();
             cards.forEach((card, index) => {
                 card.classList.remove('stacked-card--front', 'stacked-card--left', 'stacked-card--right');
                 card.style.display = 'none';
@@ -228,10 +214,9 @@
             if (!desktopQuery.matches || isAnimating) return;
             isAnimating = true;
 
-            const { front, left, right } = cardByPosition;
-            cardByPosition = direction === 'next'
-                ? { front: right, left: front, right: left }
-                : { front: left, left: right, right: front };
+            frontIndex = direction === 'next'
+                ? (frontIndex + 1) % cards.length
+                : (frontIndex - 1 + cards.length) % cards.length;
 
             applyPositions();
             window.setTimeout(() => {

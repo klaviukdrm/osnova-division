@@ -13,6 +13,8 @@
     { "source": "/uhodakorystuvacha/", "destination": "/uhodakorystuvacha.html" },
     { "source": "/politykakonfidenciynosti", "destination": "/politykakonfidenciynosti.html" },
     { "source": "/politykakonfidenciynosti/", "destination": "/politykakonfidenciynosti.html" },
+    { "source": "/oferta", "destination": "/oferta.html" },
+    { "source": "/oferta/", "destination": "/oferta.html" },
     { "source": "/product/:slug", "destination": "/api/product-page?slug=:slug" },
     { "source": "/product/:slug/", "destination": "/api/product-page?slug=:slug" },
     { "source": "/product/:slug*", "destination": "/api/product-page?slug=:slug*" },

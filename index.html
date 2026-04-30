@@ -207,6 +207,20 @@
             </div>
 
             <div id="catalog-categories" class="flex flex-wrap justify-center gap-3 mb-12"></div>
+            <div id="catalog-search-wrap" class="mb-8">
+                <label for="catalog-search-input" class="sr-only">Пошук товару</label>
+                <div class="catalog-search-field">
+                    <i class="fa-solid fa-magnifying-glass catalog-search-icon" aria-hidden="true"></i>
+                    <input
+                        id="catalog-search-input"
+                        type="search"
+                        class="catalog-search-input w-full"
+                        placeholder="Пошук товару за назвою"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                </div>
+            </div>
 
             <div id="catalog-pagination-top" class="hidden mb-8 flex flex-wrap justify-center items-center gap-2"></div>
             <div id="catalog-grid" class="grid md:grid-cols-2 xl:grid-cols-4 gap-8"></div>

@@ -87,6 +87,7 @@ const Catalog = {
         categories: [],
         products: [],
         activeCategory: null,
+        searchQuery: '',
         page: 1,
         currentItem: null,
         currentModalSize: '',
@@ -864,12 +865,67 @@ const Catalog = {
         this.state.page = 1;
 
         this.renderCategories();
+        this.syncSearchInput();
         this.renderProducts();
     },
 
+    normalizeSearchValue(value) {
+        return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[`'’ʼ]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    getSearchTokens(value) {
+        const normalized = this.normalizeSearchValue(value);
+        if (!normalized) return [];
+        return normalized.split(' ').filter(Boolean);
+    },
+
+    matchesSearchQuery(item) {
+        const tokens = this.getSearchTokens(this.state.searchQuery);
+        if (!tokens.length) return true;
+
+        const haystack = this.normalizeSearchValue([
+            item?.title,
+            item?.category,
+            item?.displayCategory,
+            item?.subcategory
+        ].join(' '));
+
+        return tokens.every((token) => haystack.includes(token));
+    },
+
     getFilteredProducts() {
-        if (!this.state.activeCategory) return this.state.products;
-        return this.state.products.filter((item) => item.category === this.state.activeCategory);
+        const byCategory = !this.state.activeCategory
+            ? this.state.products
+            : this.state.products.filter((item) => item.category === this.state.activeCategory);
+
+        return byCategory.filter((item) => this.matchesSearchQuery(item));
+    },
+
+    syncSearchInput() {
+        const input = document.getElementById('catalog-search-input');
+        if (!input) return;
+        const nextValue = String(this.state.searchQuery || '');
+        if (input.value !== nextValue) {
+            input.value = nextValue;
+        }
+    },
+
+    setupSearchInput() {
+        const input = document.getElementById('catalog-search-input');
+        if (!input) return;
+
+        this.syncSearchInput();
+        input.addEventListener('input', (event) => {
+            this.state.searchQuery = String(event?.target?.value || '');
+            this.state.page = 1;
+            this.renderProducts();
+        });
     },
 
     getCardKey(item) {
@@ -1102,11 +1158,17 @@ const Catalog = {
         const filteredList = this.getFilteredProducts();
         if (!filteredList.length) {
             empty.classList.remove('hidden');
+            if (this.getSearchTokens(this.state.searchQuery).length) {
+                empty.textContent = 'Нічого не знайдено за цим запитом.';
+            } else {
+                empty.textContent = 'Поки що немає товарів. Додай їх у CMS.';
+            }
             grid.innerHTML = '';
             this.renderPagination(0);
             return;
         }
 
+        empty.textContent = 'Поки що немає товарів. Додай їх у CMS.';
         const totalPages = Math.max(1, Math.ceil(filteredList.length / this.ITEMS_PER_PAGE));
         if (!Number.isFinite(this.state.page) || this.state.page < 1) {
             this.state.page = 1;
@@ -2137,6 +2199,7 @@ const Catalog = {
         this.setupModalEvents();
         this.setupCartModalEvents();
         this.setupOrderModalEvents();
+        this.setupSearchInput();
         const demoCategories = this.DEFAULT_CATEGORIES.slice();
         const demoProducts = this.generateDemoProducts(demoCategories);
         this.setCatalogData(demoCategories, demoProducts);

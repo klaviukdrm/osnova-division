@@ -87,6 +87,7 @@ const Catalog = {
         categories: [],
         products: [],
         activeCategory: null,
+        searchQuery: '',
         page: 1,
         currentItem: null,
         currentModalSize: '',
@@ -867,9 +868,41 @@ const Catalog = {
         this.renderProducts();
     },
 
+    normalizeSearchQuery(value) {
+        return String(value || '')
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    setupCatalogSearch() {
+        const input = document.getElementById('catalog-search-input');
+        if (!input || input.dataset.boundSearch === '1') return;
+
+        input.dataset.boundSearch = '1';
+        input.value = this.state.searchQuery || '';
+
+        input.addEventListener('input', () => {
+            const nextQuery = String(input.value || '');
+            if (nextQuery === this.state.searchQuery) return;
+            this.state.searchQuery = nextQuery;
+            this.state.page = 1;
+            this.renderProducts();
+        });
+    },
+
     getFilteredProducts() {
-        if (!this.state.activeCategory) return this.state.products;
-        return this.state.products.filter((item) => item.category === this.state.activeCategory);
+        const baseList = this.state.activeCategory
+            ? this.state.products.filter((item) => item.category === this.state.activeCategory)
+            : this.state.products.slice();
+
+        const normalizedQuery = this.normalizeSearchQuery(this.state.searchQuery);
+        if (!normalizedQuery) return baseList;
+
+        return baseList.filter((item) => {
+            const title = this.normalizeSearchQuery(item?.title || '');
+            return title.includes(normalizedQuery);
+        });
     },
 
     getCardKey(item) {
@@ -2137,6 +2170,7 @@ const Catalog = {
         this.setupModalEvents();
         this.setupCartModalEvents();
         this.setupOrderModalEvents();
+        this.setupCatalogSearch();
         const demoCategories = this.DEFAULT_CATEGORIES.slice();
         const demoProducts = this.generateDemoProducts(demoCategories);
         this.setCatalogData(demoCategories, demoProducts);

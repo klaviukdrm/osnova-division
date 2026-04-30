@@ -261,8 +261,6 @@ function buildProductHtml(product, baseUrl) {
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">${escapeHtml(category)}</p>
                     <h1 class="text-3xl md:text-5xl font-bold section-title">${escapeHtml(title)}</h1>
                     <p id="product-price-label" class="text-3xl font-semibold text-emerald-600">${escapeHtml(priceLabel)}</p>
-                    <p class="text-lg text-slate-600 leading-relaxed" style="white-space: pre-line;">${escapeHtml(description)}</p>
-
                     ${availableSizes.length ? `
                     <div class="pt-1">
                         <p class="product-card-v2__meta-label mb-2">Розмір</p>
@@ -290,6 +288,8 @@ function buildProductHtml(product, baseUrl) {
                         </button>
                         ` : ''}
                     </div>
+
+                    <p class="text-lg text-slate-600 leading-relaxed" style="white-space: pre-line;">${escapeHtml(description)}</p>
                 </div>
             </article>
         </section>

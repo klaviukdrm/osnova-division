@@ -558,12 +558,36 @@ const Catalog = {
         return basePrice + this.getSizeSurcharge(item, selectedSize);
     },
 
-    getCartItemKey(item) {
-        const sizeKey = item?.selectedSize ? `::size:${item.selectedSize}` : '';
-        if (item?.customKey) {
-            return `custom::${item.customKey}${sizeKey}`;
+    getProductIdentityKey(item) {
+        if (!item || typeof item !== 'object') {
+            return '';
         }
-        return `${item?.category || ''}::${item?.title || ''}${sizeKey}`;
+
+        if (item.customKey) {
+            return `custom:${String(item.customKey).trim()}`;
+        }
+
+        const idValue = item.id ?? item.productId ?? item.apiId;
+        const normalizedId = String(idValue ?? '').trim();
+        if (normalizedId) {
+            return `id:${normalizedId}`;
+        }
+
+        const slug = String(item.slug || '').trim().toLowerCase();
+        if (slug) {
+            return `slug:${slug}`;
+        }
+
+        const category = String(item.category || '').trim().toLowerCase();
+        const title = String(item.title || '').trim().toLowerCase();
+        return `${category}::${title}`;
+    },
+
+    getCartItemKey(item) {
+        const baseKey = this.getProductIdentityKey(item);
+        const sizeCode = this.normalizeSizeCode(item?.selectedSize);
+        const sizeKey = sizeCode ? `::size:${sizeCode}` : '';
+        return `${baseKey}${sizeKey}`;
     },
 
     getFavoriteKey(item) {
@@ -874,11 +898,10 @@ const Catalog = {
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[`'’ʼ]/g, '')
+            .replace(/[`']/g, '')
             .replace(/\s+/g, ' ')
             .trim();
     },
-
     getSearchTokens(value) {
         const normalized = this.normalizeSearchValue(value);
         if (!normalized) return [];
@@ -929,7 +952,7 @@ const Catalog = {
     },
 
     getCardKey(item) {
-        return `${item?.category || ''}::${item?.title || ''}`;
+        return this.getProductIdentityKey(item) || `${item?.category || ''}::${item?.title || ''}`;
     },
 
     getCardImageIndex(item, galleryLength) {
@@ -2239,6 +2262,8 @@ const Catalog = {
 };
 
 window.Catalog = Catalog;
+
+
 
 
 

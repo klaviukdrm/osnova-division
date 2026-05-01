@@ -1568,7 +1568,7 @@ const Catalog = {
         if (shippingInput && !shippingInput.value) shippingInput.value = '';
         if (commentInput && !commentInput.value) commentInput.value = '';
         if (orderHint) {
-            orderHint.textContent = '\u041f\u0456\u0441\u043b\u044f \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043d\u044f \u043c\u0438 \u0437\u0432\u2019\u044f\u0436\u0435\u043c\u043e\u0441\u044f \u0437 \u0432\u0430\u043c\u0438 \u0434\u043b\u044f \u0443\u0442\u043e\u0447\u043d\u0435\u043d\u043d\u044f \u0434\u0435\u0442\u0430\u043b\u0435\u0439 \u0437\u0430\u043c\u043e\u0432\u043b\u0435\u043d\u043d\u044f.';
+            orderHint.textContent = '';
         }
 
         window.UI?.openModal('order-modal');

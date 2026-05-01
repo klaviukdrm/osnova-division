@@ -37,6 +37,11 @@ module.exports = async (req, res) => {
             changefreq: 'weekly',
             priority: '1.0'
         },
+        {
+            loc: `${baseUrl}/editor.html?panel=media`,
+            changefreq: 'weekly',
+            priority: '0.8'
+        },
         ...productPages
     ];
 

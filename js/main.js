@@ -336,10 +336,6 @@
                 if (label) {
                     label.textContent = 'Каталог';
                 }
-                const icon = navCreateBtn.querySelector('i');
-                if (icon) {
-                    icon.className = 'fa-solid fa-store';
-                }
             }
 
             navCreateBtn.addEventListener('click', (event) => {

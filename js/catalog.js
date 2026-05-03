@@ -874,7 +874,45 @@ const Catalog = {
                     </div>
                 </article>
             `;
-        }).join('');
+        }).join('') + `
+            <div class="mt-4 pt-4 border-t border-slate-200">
+                <style>
+                    details.faq-anim[open] .faq-content {
+                        animation: faqSmoothOpen 0.4s ease-out forwards;
+                    }
+                    @keyframes faqSmoothOpen {
+                        0% { opacity: 0; max-height: 0; }
+                        100% { opacity: 1; max-height: 500px; }
+                    }
+                </style>
+                <details class="faq-anim group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                    <summary class="font-semibold text-slate-900 cursor-pointer select-none p-4 hover:bg-blue-700 hover:text-white transition-colors duration-300 outline-none flex items-center justify-between list-none [&::-webkit-details-marker]:hidden">
+                        <span>ЧАСТІ ЗАПИТАННЯ</span>
+                        <i class="fa-solid fa-chevron-down transition-all duration-300 group-open:rotate-180 text-slate-400 group-hover:text-white"></i>
+                    </summary>
+                    <div class="faq-content overflow-hidden">
+                        <div class="p-4 pt-3 space-y-4 text-sm text-slate-700">
+                            <div>
+                                <p class="font-bold text-slate-900">Чи можна накладним платежем?</p>
+                                <p class="mt-1">Ні, тільки повна передплата.</p>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-900">Скільки часу на відправку?</p>
+                                <p class="mt-1">3-5 робочих днів.</p>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-900">Як підібрати розмір?</p>
+                                <p class="mt-1">Зайдіть у розмірну сітку для коректного вибору.</p>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-900">Як зрозуміті що замовлення прийняте?</p>
+                                <p class="mt-1">Якщо пройшла оплата то замовлення прийшло до нас, і буде відправлено</p>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        `;
     },
 
     setCatalogData(categories, products) {
@@ -1669,6 +1707,14 @@ const Catalog = {
 
         if (itemsList) {
             itemsList.addEventListener('click', (event) => {
+                // Плавний автоскрол при відкритті "Частих запитань"
+                const detailsTarget = event.target.closest('details.faq-anim');
+                if (detailsTarget && !detailsTarget.open) {
+                    window.setTimeout(() => {
+                        detailsTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 350); // Чекаємо 350мс, поки відпрацює CSS анімація розкриття
+                }
+
                 const actionEl = event.target.closest('[data-cart-action]');
                 if (!actionEl) return;
 
@@ -2262,9 +2308,3 @@ const Catalog = {
 };
 
 window.Catalog = Catalog;
-
-
-
-
-
-

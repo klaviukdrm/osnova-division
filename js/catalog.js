@@ -914,7 +914,6 @@
                             <img src="${image}" alt="${item.title || 'Товар'}" class="w-full h-full object-contain">
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs uppercase tracking-[0.2em] text-slate-400">${this.getDisplayCategory(item)}</p>
                             <h4 class="text-lg font-semibold text-slate-900 leading-tight mt-1">${item.title || 'Товар'}</h4>
                             ${item.selectedSize ? `<p class="text-xs text-slate-500 mt-1">Розмір: ${item.selectedSize}</p>` : ''}
                             <p class="text-sm text-slate-600 mt-1">${this.formatPrice(price)} x ${quantity}</p>

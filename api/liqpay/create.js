@@ -31,10 +31,11 @@ module.exports = async (req, res) => {
     const publicKey = process.env.LIQPAY_PUBLIC_KEY;
     const privateKey = process.env.LIQPAY_PRIVATE_KEY;
     const serverUrl = String(process.env.LIQPAY_SERVER_URL || '').trim();
+    const envResultUrl = String(process.env.LIQPAY_RESULT_URL || '').trim();
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || '';
     const fallbackUrl = host ? `${protocol}://${host}/` : '';
-    const resultUrl = req.headers.referer || fallbackUrl;
+    const resultUrl = envResultUrl || req.headers.referer || fallbackUrl;
 
     if (!publicKey || !privateKey) {
         res.status(500).json({ error: 'LiqPay keys are not configured on server.' });

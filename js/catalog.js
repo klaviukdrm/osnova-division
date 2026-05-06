@@ -1,4 +1,4 @@
-﻿const Catalog = {
+const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
@@ -956,7 +956,7 @@
                             </div>
                             <div>
                                 <p class="font-bold text-slate-900">Скільки часу на відправку?</p>
-                                <p class="mt-1">3-5 робочих днів.</p>
+                                <p class="mt-1">Протягом 2-5 робочих днів.</p>
                             </div>
                             <div>
                                 <p class="font-bold text-slate-900">Як підібрати розмір?</p>
@@ -964,7 +964,7 @@
                             </div>
                             <div>
                                 <p class="font-bold text-slate-900">Як зрозуміті що замовлення прийняте?</p>
-                                <p class="mt-1">Якщо пройшла оплата то замовлення прийшло до нас, і буде відправлено</p>
+                                <p class="mt-1">Якщо оплата пройшла успішно то ваше замовлення прийшло до нас, та буде відправлено.</p>
                             </div>
                         </div>
                     </div>

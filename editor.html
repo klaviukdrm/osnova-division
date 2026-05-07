@@ -223,10 +223,20 @@
                                     </div>
                                 </div>
 
-                                <div id="product-size-selector-wrap" class="mb-5">
-                                    <p class="text-sm text-slate-500 mb-2">Розмір</p>
-                                    <div id="product-size-selector" class="product-card-v2__sizes" aria-label="Вибір розміру"></div>
-                                    <p class="text-xs text-slate-500 mt-2">Макет розміру L</p>
+                                <div class="mb-5">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div id="product-size-selector-wrap">
+                                            <p class="text-sm text-slate-500 mb-2">Розмір</p>
+                                            <div id="product-size-selector" class="product-card-v2__sizes" aria-label="Вибір розміру"></div>
+                                            <p class="text-xs text-slate-500 mt-2">Макет розміру L</p>
+                                        </div>
+
+                                        <div id="order-color-selector-wrap" class="hidden">
+                                            <p class="text-sm text-slate-500 mb-2">Колір</p>
+                                            <div id="order-color-selector" class="product-color-selector" aria-label="Вибір кольору"></div>
+                                        </div>
+                                    </div>
+
                                     <button id="editor-size-chart-btn" type="button" class="liquid-glass-btn mt-3 w-full px-6 py-3 rounded-2xl bg-slate-700 text-white font-semibold transition">
                                         Розмірна сітка
                                     </button>

@@ -365,6 +365,8 @@ const Editor = {
             previewZoneInfo: document.getElementById('preview-zone-info'),
             productColorSelectorWrap: document.getElementById('product-color-selector-wrap'),
             productColorSelector: document.getElementById('product-color-selector'),
+            orderColorSelectorWrap: document.getElementById('order-color-selector-wrap'),
+            orderColorSelector: document.getElementById('order-color-selector'),
             productSizeSelectorWrap: document.getElementById('product-size-selector-wrap'),
             productSizeSelector: document.getElementById('product-size-selector'),
             editorSizeChartBtn: document.getElementById('editor-size-chart-btn'),
@@ -488,6 +490,14 @@ const Editor = {
 
         if (this.elements.productColorSelector) {
             this.elements.productColorSelector.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-variant-id]');
+                if (!button) return;
+                this.selectProductVariant(button.getAttribute('data-variant-id'));
+            });
+        }
+
+        if (this.elements.orderColorSelector) {
+            this.elements.orderColorSelector.addEventListener('click', (event) => {
                 const button = event.target.closest('[data-variant-id]');
                 if (!button) return;
                 this.selectProductVariant(button.getAttribute('data-variant-id'));
@@ -943,30 +953,33 @@ const Editor = {
     },
 
     renderProductColorSelector() {
-        if (!this.elements.productColorSelector || !this.elements.productColorSelectorWrap) return;
-
         const product = this.getSelectedProduct();
         const variants = Array.isArray(product.variants) ? product.variants : [];
 
-        if (!variants.length) {
-            this.elements.productColorSelector.innerHTML = '';
-            this.elements.productColorSelectorWrap.classList.add('hidden');
-            return;
-        }
+        const renderTarget = (wrap, container) => {
+            if (!wrap || !container) return;
+            if (!variants.length) {
+                container.innerHTML = '';
+                wrap.classList.add('hidden');
+                return;
+            }
+            wrap.classList.remove('hidden');
+            container.innerHTML = variants.map((variant) => `
+                <button
+                    type="button"
+                    class="product-color-btn"
+                    data-variant-id="${variant.id}"
+                    aria-pressed="false"
+                    title="${variant.label}"
+                >
+                    <span class="product-color-btn__swatch" style="background:${variant.swatch};"></span>
+                    <span class="product-color-btn__label">${variant.label}</span>
+                </button>
+            `).join('');
+        };
 
-        this.elements.productColorSelectorWrap.classList.remove('hidden');
-        this.elements.productColorSelector.innerHTML = variants.map((variant) => `
-            <button
-                type="button"
-                class="product-color-btn"
-                data-variant-id="${variant.id}"
-                aria-pressed="false"
-                title="${variant.label}"
-            >
-                <span class="product-color-btn__swatch" style="background:${variant.swatch};"></span>
-                <span class="product-color-btn__label">${variant.label}</span>
-            </button>
-        `).join('');
+        renderTarget(this.elements.productColorSelectorWrap, this.elements.productColorSelector);
+        renderTarget(this.elements.orderColorSelectorWrap, this.elements.orderColorSelector);
 
         this.syncProductVariantButtons();
     },
@@ -997,15 +1010,20 @@ const Editor = {
     },
 
     syncProductVariantButtons() {
-        if (!this.elements.productColorSelector) return;
         const selectedVariant = this.getSelectedVariant();
         const selectedVariantId = selectedVariant?.id;
 
-        this.elements.productColorSelector.querySelectorAll('[data-variant-id]').forEach((button) => {
-            const isActive = button.getAttribute('data-variant-id') === selectedVariantId;
-            button.classList.toggle('is-active', isActive);
-            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
+        const syncTarget = (container) => {
+            if (!container) return;
+            container.querySelectorAll('[data-variant-id]').forEach((button) => {
+                const isActive = button.getAttribute('data-variant-id') === selectedVariantId;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        };
+
+        syncTarget(this.elements.productColorSelector);
+        syncTarget(this.elements.orderColorSelector);
     },
 
     selectProductVariant(variantId) {

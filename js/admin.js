@@ -5,6 +5,7 @@ const AdminPanel = {
     DEFAULT_IMAGE_PATH: 'images/muzhskaya-futbolka-belaya-1005.png',
     isAuthenticated: false,
     selectedFileDataUrl: '',
+    selectedThumbDataUrl: '',
     selectedFileName: '',
     descriptionAutoMode: true,
     categoryOptions: [
@@ -385,13 +386,16 @@ const AdminPanel = {
         });
     },
 
-    async optimizeImageDataUrl(file) {
+    async optimizeImageDataUrl(file, options = {}) {
+        const maxSide = Number(options.maxSide) > 0 ? Number(options.maxSide) : this.MAX_IMAGE_SIDE;
+        const quality = Number(options.quality);
+        const jpegQuality = Number.isFinite(quality) ? Math.max(0.45, Math.min(0.96, quality)) : this.JPEG_QUALITY;
         const rawDataUrl = await this.fileToDataUrl(file);
 
         try {
             const image = await this.loadImageFromDataUrl(rawDataUrl);
-            const maxSide = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
-            const scale = maxSide > this.MAX_IMAGE_SIDE ? this.MAX_IMAGE_SIDE / maxSide : 1;
+            const imageMaxSide = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
+            const scale = imageMaxSide > maxSide ? maxSide / imageMaxSide : 1;
             const targetWidth = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
             const targetHeight = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
 
@@ -401,7 +405,7 @@ const AdminPanel = {
             const ctx = canvas.getContext('2d');
             if (!ctx) return rawDataUrl;
             ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-            return canvas.toDataURL('image/jpeg', this.JPEG_QUALITY);
+            return canvas.toDataURL('image/jpeg', jpegQuality);
         } catch (_) {
             return rawDataUrl;
         }
@@ -421,18 +425,28 @@ const AdminPanel = {
         const file = this.elements.imageFileInput?.files?.[0];
         if (!file) {
             this.selectedFileDataUrl = '';
+            this.selectedThumbDataUrl = '';
             this.selectedFileName = '';
             this.setImagePreview(this.elements.imageUrlInput?.value?.trim() || '');
             return;
         }
 
         try {
-            const dataUrl = await this.optimizeImageDataUrl(file);
+            const dataUrl = await this.optimizeImageDataUrl(file, {
+                maxSide: this.MAX_IMAGE_SIDE,
+                quality: this.JPEG_QUALITY
+            });
+            const thumbDataUrl = await this.optimizeImageDataUrl(file, {
+                maxSide: 640,
+                quality: 0.76
+            });
             this.selectedFileDataUrl = dataUrl;
+            this.selectedThumbDataUrl = thumbDataUrl;
             this.selectedFileName = file.name;
             this.setImagePreview(dataUrl);
         } catch (error) {
             this.selectedFileDataUrl = '';
+            this.selectedThumbDataUrl = '';
             this.selectedFileName = '';
             this.setImagePreview('');
             window.UI?.showToast?.(error.message, { tone: 'warning' });
@@ -452,7 +466,8 @@ const AdminPanel = {
             body: JSON.stringify({
                 category,
                 fileName: this.selectedFileName || 'product-image.jpg',
-                dataUrl: this.selectedFileDataUrl
+                dataUrl: this.selectedFileDataUrl,
+                thumbDataUrl: this.selectedThumbDataUrl
             })
         });
 
@@ -481,6 +496,7 @@ const AdminPanel = {
     resetProductForm() {
         this.elements.productForm?.reset();
         this.selectedFileDataUrl = '';
+        this.selectedThumbDataUrl = '';
         this.selectedFileName = '';
         this.descriptionAutoMode = true;
         this.populateCategorySelect();

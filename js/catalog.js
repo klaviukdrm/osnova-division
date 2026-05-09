@@ -816,10 +816,11 @@ const Catalog = {
             const parsed = JSON.parse(raw);
             const slug = String(parsed?.slug || '').trim().toLowerCase();
             const size = String(parsed?.size || '').trim();
+            const fit = String(parsed?.fit || '').trim();
             const quantity = this.normalizeQuantity(parsed?.quantity);
 
             if (!slug) return null;
-            return { slug, size, quantity };
+            return { slug, size, fit, quantity };
         } catch (_) {
             return null;
         }
@@ -897,20 +898,26 @@ const Catalog = {
 
         if (!product) return false;
 
-        const availableSizes = this.getAvailableSizes(product);
+        if (pending.fit) {
+            this.setSelectedFit(product, pending.fit);
+        }
+        const currentFit = this.getSelectedFit(product);
+
+        const availableSizes = this.getAvailableSizes(product, currentFit);
         let selectedSize = '';
 
         if (availableSizes.length) {
             const requestedSize = String(pending.size || '').trim();
             selectedSize = availableSizes.includes(requestedSize)
                 ? requestedSize
-                : this.getSelectedSize(product, availableSizes);
-            this.setSelectedSize(product, selectedSize);
+                : this.getSelectedSize(product, availableSizes, currentFit);
+            this.setSelectedSize(product, selectedSize, currentFit);
         }
 
         this.addToCart({
             ...product,
-            selectedSize
+            selectedSize,
+            selectedFit: currentFit
         }, pending.quantity);
 
         this.clearPendingProductOrder();

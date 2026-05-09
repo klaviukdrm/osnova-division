@@ -538,6 +538,7 @@ function buildProductHtml(product, baseUrl) {
                     window.sessionStorage.setItem('upf_order_from_product', JSON.stringify({
                         slug,
                         size: selectedSize,
+                        fit: fitMode,
                         quantity: 1
                     }));
                     window.sessionStorage.setItem('openCartOnHome', '1');

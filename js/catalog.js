@@ -958,6 +958,7 @@ const Catalog = {
             const subtotal = price * quantity;
             const itemKey = encodeURIComponent(this.getCartItemKey(item));
             const image = this.getPrimaryImage(item);
+            const fitLabel = item.selectedFit === 'oversize' ? ' (oversize)' : '';
 
             return `
                 <article class="rounded-3xl border border-slate-200 p-4 md:p-5">
@@ -967,7 +968,7 @@ const Catalog = {
                         </div>
                         <div class="flex-1 min-w-0">
                             <h4 class="text-lg font-semibold text-slate-900 leading-tight mt-1">${item.title || 'Товар'}</h4>
-                            ${item.selectedSize ? `<p class="text-xs text-slate-500 mt-1">Розмір: ${item.selectedSize}</p>` : ''}
+                            ${item.selectedSize ? `<p class="text-xs text-slate-500 mt-1">Розмір: ${item.selectedSize}${fitLabel}</p>` : ''}
                             <p class="text-sm text-slate-600 mt-1">${this.formatPrice(price)} x ${quantity}</p>
                         </div>
                         <p class="text-base md:text-lg font-semibold text-slate-900 shrink-0">${this.formatPrice(subtotal)}</p>
@@ -2244,7 +2245,7 @@ const Catalog = {
                         title: entry.item?.title || '',
                         category: this.getDisplayCategory(entry.item),
                         source: entry.item?.source || '',
-                        size: entry.item?.selectedSize || '',
+                        size: entry.item?.selectedSize ? `${entry.item.selectedSize}${entry.item.selectedFit === 'oversize' ? ' (oversize)' : ''}` : '',
                         price: this.getProductPrice(entry.item),
                         quantity: this.normalizeQuantity(entry.quantity),
                         image: entry.item?.image || '',

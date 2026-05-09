@@ -193,7 +193,18 @@ const Catalog = {
     toThumbFromImagePath(imagePath) {
         const normalized = this.normalizeCatalogImagePath(imagePath);
         if (!normalized) return '';
-        if (/^(https?:)?\/\//i.test(normalized) || normalized.startsWith('data:')) {
+        if (/^(https?:)?\/\//i.test(normalized)) {
+            const supabasePublicMatch = normalized.match(/^(https?:\/\/[^/]+\/storage\/v1\/object\/public\/[^/]+)\/(.+)$/i);
+            if (supabasePublicMatch && supabasePublicMatch[1] && supabasePublicMatch[2]) {
+                const base = supabasePublicMatch[1];
+                const objectPath = supabasePublicMatch[2];
+                if (!objectPath.startsWith('thumbs/')) {
+                    return `${base}/thumbs/${objectPath}`;
+                }
+            }
+            return normalized;
+        }
+        if (normalized.startsWith('data:')) {
             return normalized;
         }
         if (normalized.startsWith('images/thumbs/')) {
@@ -1380,6 +1391,7 @@ const Catalog = {
                 const galleryLength = previewGallery.length || 1;
                 const imageIndex = this.getCardImageIndex(item, galleryLength);
                 const activeImage = previewGallery[imageIndex] || this.getPrimaryPreviewImage(item);
+                const fullFallbackImage = this.getPrimaryImage(item);
                 const meta = this.getCardMeta(item, startIndex + index);
                 const selectedFit = this.getSelectedFit(item);
                 const availableSizes = this.getAvailableSizes(item, selectedFit);
@@ -1388,7 +1400,7 @@ const Catalog = {
                 return `
             <article class="product-card product-card-v2 bg-white rounded-3xl overflow-hidden border border-slate-200 text-left transition" data-index="${index}">
                 <div class="product-card-v2__media" data-action="open-product-page" data-index="${index}">
-                    <img src="${activeImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+                    <img src="${activeImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackDone==='1'){return;} this.dataset.fallbackDone='1'; this.src='${fullFallbackImage}';">
 
                     ${galleryLength > 1 ? `
                     <div class="product-card-v2__nav">

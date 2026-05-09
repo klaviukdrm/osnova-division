@@ -62,6 +62,12 @@
                     <h1 id="product-title" class="text-3xl md:text-5xl font-bold section-title">Назва товару</h1>
                     <p id="product-price" class="text-3xl font-semibold text-emerald-600">0 грн</p>
                     <p id="product-description" class="text-lg text-slate-600 leading-relaxed" style="white-space: pre-line;">Опис товару.</p>
+                    <div id="product-size-controls" class="hidden pt-1">
+                        <p class="product-card-v2__meta-label mb-2">Розмір</p>
+                        <div id="product-fit-toggle" class="product-card-v2__fit-toggle mb-2"></div>
+                        <div id="product-size-options" class="product-card-v2__sizes"></div>
+                        <button id="product-size-chart-btn" type="button" class="liquid-glass-btn mt-3 px-5 py-2 rounded-2xl bg-slate-700 text-white font-semibold transition">Розмірна сітка</button>
+                    </div>
                     <div class="pt-2">
                         <a id="product-open-catalog" href="/index.html#products" class="inline-flex liquid-glass-btn px-6 py-3 rounded-2xl bg-blue-700 text-white font-semibold">
                             Відкрити каталог
@@ -71,6 +77,22 @@
             </article>
         </section>
     </main>
+
+    <div id="product-size-chart-modal" class="fixed inset-0 z-[64] hidden">
+        <button type="button" id="product-size-chart-backdrop" class="absolute inset-0 bg-slate-900/75" aria-label="Закрити"></button>
+        <div class="relative max-w-4xl mx-auto mt-8 mb-8 bg-white rounded-3xl shadow-2xl p-5 md:p-7 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <button id="product-size-chart-close" type="button" class="absolute top-4 right-4 w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:border-blue-700 transition" aria-label="Закрити">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="pr-12">
+                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">РОЗМІРНА СІТКА</p>
+                <h3 id="product-size-chart-title" class="text-2xl md:text-3xl font-bold section-title mt-2">Таблиця розмірів</h3>
+            </div>
+            <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 md:p-3">
+                <img id="product-size-chart-image" src="" alt="Розмірна сітка" class="w-full h-auto rounded-xl object-contain bg-white">
+            </div>
+        </div>
+    </div>
 
     <script src="/js/catalog.js"></script>
     <script src="/js/product-page.js"></script>

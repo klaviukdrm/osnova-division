@@ -81,57 +81,6 @@ function buildObjectPath({ category, fileName, mimeType }) {
     return `${folder}/${timestamp}-${random}-${stem}.${extension}`;
 }
 
-function buildThumbObjectPath(objectPath) {
-    const clean = String(objectPath || '').replace(/^\/+/, '');
-    return `thumbs/${clean}`;
-}
-
-function encodeObjectPath(path) {
-    return String(path || '')
-        .split('/')
-        .map((part) => encodeURIComponent(part))
-        .join('/');
-}
-
-async function uploadToSupabaseStorage({ config, objectPath, mimeType, buffer }) {
-    const encodedObjectPath = encodeObjectPath(objectPath);
-    const uploadUrl = `${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
-
-    const uploadResponse = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-            apikey: config.anonKey,
-            Authorization: `Bearer ${config.anonKey}`,
-            'Content-Type': mimeType,
-            'x-upsert': 'true'
-        },
-        body: buffer
-    });
-
-    const text = await uploadResponse.text();
-    let payload;
-    try {
-        payload = text ? JSON.parse(text) : null;
-    } catch (_) {
-        payload = text;
-    }
-
-    if (!uploadResponse.ok) {
-        const message = typeof payload === 'string'
-            ? payload
-            : (payload?.message || payload?.error || `Supabase Storage error ${uploadResponse.status}`);
-        const error = new Error(message);
-        error.status = uploadResponse.status;
-        throw error;
-    }
-
-    const publicUrl = `${config.url}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
-    return {
-        path: objectPath,
-        publicUrl
-    };
-}
-
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
@@ -185,42 +134,46 @@ module.exports = async (req, res) => {
         fileName: body?.fileName,
         mimeType
     });
-    const thumbParsed = parseDataUrl(body?.thumbDataUrl);
+    const encodedObjectPath = objectPath.split('/').map((part) => encodeURIComponent(part)).join('/');
+    const uploadUrl = `${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
 
     try {
-        const fullUpload = await uploadToSupabaseStorage({
-            config,
-            objectPath,
-            mimeType,
-            buffer
+        const uploadResponse = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                apikey: config.anonKey,
+                Authorization: `Bearer ${config.anonKey}`,
+                'Content-Type': mimeType,
+                'x-upsert': 'true'
+            },
+            body: buffer
         });
 
-        let thumbPath = '';
-        let thumbPublicUrl = '';
-        if (thumbParsed && ALLOWED_MIME_TYPES.has(thumbParsed.mimeType)) {
-            const thumbBuffer = Buffer.from(thumbParsed.base64Data, 'base64');
-            if (thumbBuffer.length && thumbBuffer.length <= MAX_UPLOAD_SIZE_BYTES) {
-                const uploadedThumb = await uploadToSupabaseStorage({
-                    config,
-                    objectPath: buildThumbObjectPath(objectPath),
-                    mimeType: thumbParsed.mimeType,
-                    buffer: thumbBuffer
-                });
-                thumbPath = uploadedThumb.path;
-                thumbPublicUrl = uploadedThumb.publicUrl;
-            }
+        const text = await uploadResponse.text();
+        let payload;
+        try {
+            payload = text ? JSON.parse(text) : null;
+        } catch (_) {
+            payload = text;
         }
 
+        if (!uploadResponse.ok) {
+            const message = typeof payload === 'string'
+                ? payload
+                : (payload?.message || payload?.error || `Supabase Storage error ${uploadResponse.status}`);
+            sendJson(res, uploadResponse.status, { error: `Не вдалося завантажити файл: ${message}` });
+            return;
+        }
+
+        const publicUrl = `${config.url}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
         sendJson(res, 200, {
             ok: true,
             bucket: config.bucket,
-            path: fullUpload.path,
-            publicUrl: fullUpload.publicUrl,
-            thumbPath,
-            thumbPublicUrl
+            path: objectPath,
+            publicUrl
         });
     } catch (error) {
         console.error('Failed to upload image to Supabase Storage.', error);
-        sendJson(res, error?.status || 502, { error: 'Помилка при завантаженні у Supabase Storage.' });
+        sendJson(res, 502, { error: 'Помилка при завантаженні у Supabase Storage.' });
     }
 };

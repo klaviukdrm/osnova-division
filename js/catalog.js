@@ -15,11 +15,20 @@ const Catalog = {
     HIGH_APPAREL_PRICE: 750,
     PLUS_SIZE_SURCHARGE: 200,
     PLUS_SIZE_CODE: '3XL',
+    OVERSIZE_SURCHARGE: 200,
+    FIT_REGULAR: 'regular',
+    FIT_OVERSIZE: 'oversize',
+    OVERSIZE_SIZE_OPTIONS: ['S/M', 'L/XL'],
     SIZE_CHART_CONFIG: {
         default: {
             title: 'Таблиця розмірів для футболок',
             image: 'images/Screenshot_214%20(1).png',
             alt: 'Розмірна сітка для футболок'
+        },
+        oversize: {
+            title: 'Таблиця розмірів для oversize футболок',
+            image: 'images/photo_2026-05-09_12-29-27.jpg',
+            alt: 'Розмірна сітка для oversize футболок'
         },
         hoodie: {
             title: 'Таблиця розмірів для худі',
@@ -95,6 +104,7 @@ const Catalog = {
         currentModalSize: '',
         imageIndexes: {},
         selectedSizes: {},
+        selectedFits: {},
         cartItems: [],
         favoriteKeys: new Set(),
         modalImageLoadToken: 0,
@@ -539,7 +549,13 @@ const Catalog = {
         return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
     },
 
-    isApparelProduct(item) {
+    normalizeFitMode(value) {
+        return String(value || '').trim().toLowerCase() === this.FIT_OVERSIZE
+            ? this.FIT_OVERSIZE
+            : this.FIT_REGULAR;
+    },
+
+    isTshirtItem(item) {
         const haystack = [
             item?.category,
             item?.displayCategory,
@@ -548,9 +564,35 @@ const Catalog = {
         return haystack.includes('футбол');
     },
 
+    getFitStorageKey(item) {
+        return this.getCardKey(item);
+    },
+
+    getSelectedFit(item) {
+        if (!this.isTshirtItem(item)) return this.FIT_REGULAR;
+        const key = this.getFitStorageKey(item);
+        const saved = this.normalizeFitMode(this.state.selectedFits[key]);
+        this.state.selectedFits[key] = saved;
+        return saved;
+    },
+
+    setSelectedFit(item, fit) {
+        if (!this.isTshirtItem(item)) return;
+        const key = this.getFitStorageKey(item);
+        this.state.selectedFits[key] = this.normalizeFitMode(fit);
+    },
+
+    isOversizeSize(sizeValue) {
+        const normalized = this.normalizeSizeCode(sizeValue);
+        return this.OVERSIZE_SIZE_OPTIONS.some((entry) => this.normalizeSizeCode(entry) === normalized);
+    },
+
     getSizeSurcharge(item, selectedSize = '') {
-        if (!this.isApparelProduct(item)) return 0;
+        if (!this.isTshirtItem(item)) return 0;
         const sizeCode = this.normalizeSizeCode(selectedSize || item?.selectedSize);
+        if (this.isOversizeSize(sizeCode)) {
+            return this.OVERSIZE_SURCHARGE;
+        }
         return sizeCode === this.PLUS_SIZE_CODE ? this.PLUS_SIZE_SURCHARGE : 0;
     },
 
@@ -589,7 +631,10 @@ const Catalog = {
         const baseKey = this.getProductIdentityKey(item);
         const sizeCode = this.normalizeSizeCode(item?.selectedSize);
         const sizeKey = sizeCode ? `::size:${sizeCode}` : '';
-        return `${baseKey}${sizeKey}`;
+        const fitKey = this.isTshirtItem(item)
+            ? `::fit:${this.normalizeFitMode(item?.selectedFit || this.getSelectedFit(item))}`
+            : '';
+        return `${baseKey}${fitKey}${sizeKey}`;
     },
 
     getFavoriteKey(item) {
@@ -1064,11 +1109,12 @@ const Catalog = {
         this.state.imageIndexes[key] = ((nextIndex % galleryLength) + galleryLength) % galleryLength;
     },
 
-    getSelectedSize(item, availableSizes = []) {
+    getSelectedSize(item, availableSizes = [], fit = this.getSelectedFit(item)) {
         const sizes = Array.isArray(availableSizes) ? availableSizes.filter(Boolean) : [];
         if (!sizes.length) return '';
 
-        const key = this.getCardKey(item);
+        const fitMode = this.normalizeFitMode(fit);
+        const key = `${this.getCardKey(item)}::fit:${fitMode}`;
         const current = this.state.selectedSizes[key];
         if (current && sizes.includes(current)) {
             return current;
@@ -1079,9 +1125,10 @@ const Catalog = {
         return fallback;
     },
 
-    setSelectedSize(item, size) {
+    setSelectedSize(item, size, fit = this.getSelectedFit(item)) {
         if (!item || !size) return;
-        const key = this.getCardKey(item);
+        const fitMode = this.normalizeFitMode(fit);
+        const key = `${this.getCardKey(item)}::fit:${fitMode}`;
         this.state.selectedSizes[key] = size;
     },
 
@@ -1121,8 +1168,11 @@ const Catalog = {
         };
     },
 
-    getAvailableSizes(item) {
-        const sizes = this.getCardMeta(item, 0).sizes || [];
+    getAvailableSizes(item, fit = this.getSelectedFit(item)) {
+        const fitMode = this.normalizeFitMode(fit);
+        const sizes = (this.isTshirtItem(item) && fitMode === this.FIT_OVERSIZE)
+            ? this.OVERSIZE_SIZE_OPTIONS
+            : (this.getCardMeta(item, 0).sizes || []);
         const normalized = sizes.filter((size) => typeof size === 'string' && size.trim());
         if (normalized.length === 1 && normalized[0].toUpperCase() === 'ONE SIZE') {
             return [];
@@ -1132,10 +1182,33 @@ const Catalog = {
 
     renderModalSizes(item) {
         const selectorWrap = document.getElementById('modal-size-selector');
+        const fitWrap = document.getElementById('modal-fit-toggle');
         const optionsWrap = document.getElementById('modal-size-options');
-        if (!selectorWrap || !optionsWrap) return;
+        if (!selectorWrap || !optionsWrap || !fitWrap) return;
 
-        const sizes = this.getAvailableSizes(item);
+        const currentFit = this.getSelectedFit(item);
+        const hasFitToggle = this.isTshirtItem(item);
+        fitWrap.classList.toggle('hidden', !hasFitToggle);
+        if (hasFitToggle) {
+            fitWrap.innerHTML = `
+                <button
+                    type="button"
+                    class="product-card-v2__fit-btn ${currentFit === this.FIT_REGULAR ? 'is-active' : ''}"
+                    data-modal-fit="${this.FIT_REGULAR}"
+                    aria-pressed="${currentFit === this.FIT_REGULAR}"
+                >regular</button>
+                <button
+                    type="button"
+                    class="product-card-v2__fit-btn ${currentFit === this.FIT_OVERSIZE ? 'is-active' : ''}"
+                    data-modal-fit="${this.FIT_OVERSIZE}"
+                    aria-pressed="${currentFit === this.FIT_OVERSIZE}"
+                >oversize</button>
+            `;
+        } else {
+            fitWrap.innerHTML = '';
+        }
+
+        const sizes = this.getAvailableSizes(item, currentFit);
         if (!sizes.length) {
             this.state.currentModalSize = '';
             selectorWrap.classList.add('hidden');
@@ -1147,9 +1220,10 @@ const Catalog = {
         if (!selected || !sizes.includes(selected)) {
             selected = item?.selectedSize && sizes.includes(item.selectedSize)
                 ? item.selectedSize
-                : this.getSelectedSize(item, sizes);
+                : this.getSelectedSize(item, sizes, currentFit);
         }
         this.state.currentModalSize = selected;
+        this.setSelectedSize(item, selected, currentFit);
 
         selectorWrap.classList.remove('hidden');
         optionsWrap.innerHTML = sizes.map((size) => `
@@ -1307,7 +1381,9 @@ const Catalog = {
                 const imageIndex = this.getCardImageIndex(item, galleryLength);
                 const activeImage = previewGallery[imageIndex] || this.getPrimaryPreviewImage(item);
                 const meta = this.getCardMeta(item, startIndex + index);
-                const selectedSize = this.getSelectedSize(item, meta.sizes);
+                const selectedFit = this.getSelectedFit(item);
+                const availableSizes = this.getAvailableSizes(item, selectedFit);
+                const selectedSize = this.getSelectedSize(item, availableSizes, selectedFit);
                 const displayPrice = this.getProductPrice(item, selectedSize);
                 return `
             <article class="product-card product-card-v2 bg-white rounded-3xl overflow-hidden border border-slate-200 text-left transition" data-index="${index}">
@@ -1344,8 +1420,28 @@ const Catalog = {
                     <div class="product-card-v2__meta-group">
                         <div>
                             <p class="product-card-v2__meta-label">Розміри</p>
+                            ${this.isTshirtItem(item) ? `
+                                <div class="product-card-v2__fit-toggle">
+                                    <button
+                                        type="button"
+                                        class="product-card-v2__fit-btn ${selectedFit === this.FIT_REGULAR ? 'is-active' : ''}"
+                                        data-action="select-fit"
+                                        data-index="${index}"
+                                        data-fit="${this.FIT_REGULAR}"
+                                        aria-pressed="${selectedFit === this.FIT_REGULAR}"
+                                    >regular</button>
+                                    <button
+                                        type="button"
+                                        class="product-card-v2__fit-btn ${selectedFit === this.FIT_OVERSIZE ? 'is-active' : ''}"
+                                        data-action="select-fit"
+                                        data-index="${index}"
+                                        data-fit="${this.FIT_OVERSIZE}"
+                                        aria-pressed="${selectedFit === this.FIT_OVERSIZE}"
+                                    >oversize</button>
+                                </div>
+                            ` : ''}
                             <div class="product-card-v2__sizes">
-                                ${meta.sizes.map((size) => `
+                                ${availableSizes.map((size) => `
                                     <button
                                         type="button"
                                         class="product-card-v2__size ${size === selectedSize ? 'is-active' : ''}"
@@ -1390,18 +1486,31 @@ const Catalog = {
             }
 
             if (action === 'order-product') {
-                const selectedSize = this.getSelectedSize(item, this.getCardMeta(item, startIndex + index).sizes);
+                const selectedFit = this.getSelectedFit(item);
+                const selectedSize = this.getSelectedSize(item, this.getAvailableSizes(item, selectedFit), selectedFit);
                 this.addToCart({
                     ...item,
-                    selectedSize
+                    selectedSize,
+                    selectedFit
                 }, 1);
+                return;
+            }
+
+            if (action === 'select-fit') {
+                const fitMode = this.normalizeFitMode(actionElement.getAttribute('data-fit') || this.FIT_REGULAR);
+                this.setSelectedFit(item, fitMode);
+                const sizes = this.getAvailableSizes(item, fitMode);
+                const selectedSize = this.getSelectedSize(item, sizes, fitMode);
+                this.setSelectedSize(item, selectedSize, fitMode);
+                this.renderProducts();
                 return;
             }
 
             if (action === 'select-size') {
                 const selectedSize = decodeURIComponent(actionElement.getAttribute('data-size') || '');
                 if (!selectedSize) return;
-                this.setSelectedSize(item, selectedSize);
+                const selectedFit = this.getSelectedFit(item);
+                this.setSelectedSize(item, selectedSize, selectedFit);
                 this.renderProducts();
                 return;
             }
@@ -1605,6 +1714,9 @@ const Catalog = {
         if (this.isHoodieItem(item)) {
             return this.SIZE_CHART_CONFIG.hoodie;
         }
+        if (this.isTshirtItem(item) && this.getSelectedFit(item) === this.FIT_OVERSIZE) {
+            return this.SIZE_CHART_CONFIG.oversize;
+        }
         return this.SIZE_CHART_CONFIG.default;
     },
 
@@ -1613,7 +1725,13 @@ const Catalog = {
         const titleEl = document.getElementById('size-chart-title');
         const imageEl = document.getElementById('size-chart-image');
 
-        this.state.currentSizeChartType = config === this.SIZE_CHART_CONFIG.hoodie ? 'hoodie' : 'default';
+        if (config === this.SIZE_CHART_CONFIG.hoodie) {
+            this.state.currentSizeChartType = 'hoodie';
+        } else if (config === this.SIZE_CHART_CONFIG.oversize) {
+            this.state.currentSizeChartType = 'oversize';
+        } else {
+            this.state.currentSizeChartType = 'default';
+        }
 
         if (titleEl) titleEl.textContent = config.title;
         if (imageEl) {
@@ -1692,23 +1810,45 @@ const Catalog = {
             orderButton.addEventListener('click', () => {
                 if (!this.state.currentItem) return;
                 const itemToCart = { ...this.state.currentItem };
-                const sizes = this.getAvailableSizes(itemToCart);
-                const selectedSize = this.state.currentModalSize || (sizes.length ? this.getSelectedSize(itemToCart, sizes) : '');
+                const selectedFit = this.getSelectedFit(itemToCart);
+                const sizes = this.getAvailableSizes(itemToCart, selectedFit);
+                const selectedSize = this.state.currentModalSize || (sizes.length ? this.getSelectedSize(itemToCart, sizes, selectedFit) : '');
                 if (selectedSize) {
                     itemToCart.selectedSize = selectedSize;
-                    this.setSelectedSize(itemToCart, selectedSize);
+                    this.setSelectedSize(itemToCart, selectedSize, selectedFit);
                 }
+                itemToCart.selectedFit = selectedFit;
                 this.addToCart(itemToCart, 1);
                 this.closeProductModal();
             });
         }
         modal.addEventListener('click', (event) => {
+            const fitButton = event.target.closest('[data-modal-fit]');
+            if (fitButton && this.state.currentItem) {
+                const nextFit = this.normalizeFitMode(fitButton.getAttribute('data-modal-fit') || this.FIT_REGULAR);
+                this.setSelectedFit(this.state.currentItem, nextFit);
+                const sizes = this.getAvailableSizes(this.state.currentItem, nextFit);
+                const nextSize = sizes.length ? this.getSelectedSize(this.state.currentItem, sizes, nextFit) : '';
+                this.state.currentModalSize = nextSize;
+                if (nextSize) {
+                    this.setSelectedSize(this.state.currentItem, nextSize, nextFit);
+                }
+                this.renderModalSizes(this.state.currentItem);
+                this.applySizeChartConfig(this.state.currentItem);
+                const priceEl = document.getElementById('modal-price');
+                if (priceEl) {
+                    priceEl.textContent = this.formatPrice(this.getProductPrice(this.state.currentItem, nextSize));
+                }
+                return;
+            }
+
             const sizeButton = event.target.closest('[data-modal-size]');
             if (!sizeButton || !this.state.currentItem) return;
             const nextSize = decodeURIComponent(sizeButton.getAttribute('data-modal-size') || '');
             if (!nextSize) return;
             this.state.currentModalSize = nextSize;
-            this.setSelectedSize(this.state.currentItem, nextSize);
+            const selectedFit = this.getSelectedFit(this.state.currentItem);
+            this.setSelectedSize(this.state.currentItem, nextSize, selectedFit);
             this.renderModalSizes(this.state.currentItem);
             const priceEl = document.getElementById('modal-price');
             if (priceEl) {

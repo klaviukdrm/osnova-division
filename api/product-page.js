@@ -2,6 +2,11 @@ const { getAllCatalogProducts } = require('./_lib/product-catalog');
 
 const APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 const HOODIE_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
+const OVERSIZE_SIZES = ['S/M', 'L/XL'];
+const OVERSIZE_SURCHARGE = 200;
+const OVERSIZE_SIZE_CHART_IMAGE = '/images/photo_2026-05-09_12-29-27.jpg';
+const OVERSIZE_SIZE_CHART_ALT = 'Розмірна сітка для oversize футболок';
+const OVERSIZE_SIZE_CHART_TITLE = 'Таблиця розмірів для oversize футболок';
 
 function escapeHtml(value) {
     return String(value || '')
@@ -65,6 +70,12 @@ function isHoodieProduct(product) {
     return haystack.includes('\u0445\u0443\u0434\u0456') || haystack.includes('\u0445\u0443\u0434\u0438') || haystack.includes('hoodie');
 }
 
+function isTshirtProduct(product) {
+    const haystack = `${product?.category || ''} ${product?.displayCategory || ''} ${product?.subcategory || ''} ${product?.title || ''}`
+        .toLowerCase();
+    return haystack.includes('футбол');
+}
+
 function buildNotFoundHtml(baseUrl) {
     const title = 'Товар не знайдено | Ukrainian Print Family';
     const canonical = `${baseUrl}/`;
@@ -115,8 +126,10 @@ function buildProductHtml(product, baseUrl) {
     const pageTitle = `${title} | Ukrainian Print Family`;
     const supportsSizes = isApparelProduct(product);
     const hoodieProduct = isHoodieProduct(product);
-    const availableSizes = supportsSizes ? (hoodieProduct ? HOODIE_SIZES : APPAREL_SIZES) : [];
-    const defaultSize = availableSizes[0] || '';
+    const tshirtProduct = isTshirtProduct(product);
+    const regularSizes = supportsSizes ? (hoodieProduct ? HOODIE_SIZES : APPAREL_SIZES) : [];
+    const availableSizes = regularSizes;
+    const defaultSize = regularSizes[0] || '';
     const slug = String(product?.slug || '').trim();
     const sizeChartImage = hoodieProduct
         ? '/images/setkarozmera.jpg'
@@ -264,6 +277,22 @@ function buildProductHtml(product, baseUrl) {
                     ${availableSizes.length ? `
                     <div class="pt-1">
                         <p class="product-card-v2__meta-label mb-2">Розмір</p>
+                        ${tshirtProduct ? `
+                        <div id="product-fit-options" class="product-card-v2__fit-toggle mb-2">
+                            <button
+                                type="button"
+                                class="product-card-v2__fit-btn is-active"
+                                data-product-fit="regular"
+                                aria-pressed="true"
+                            >regular</button>
+                            <button
+                                type="button"
+                                class="product-card-v2__fit-btn"
+                                data-product-fit="oversize"
+                                aria-pressed="false"
+                            >oversize</button>
+                        </div>
+                        ` : ''}
                         <div id="product-size-options" class="product-card-v2__sizes">
                             ${availableSizes.map((size, index) => `
                                 <button
@@ -362,10 +391,10 @@ function buildProductHtml(product, baseUrl) {
             </button>
             <div class="pr-12">
                 <p class="text-xs uppercase tracking-[0.25em] text-slate-400">РОЗМІРНА СІТКА</p>
-                <h3 class="text-2xl md:text-3xl font-bold section-title mt-2">${escapeHtml(sizeChartTitle)}</h3>
+                <h3 id="product-size-chart-title" class="text-2xl md:text-3xl font-bold section-title mt-2">${escapeHtml(sizeChartTitle)}</h3>
             </div>
             <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 md:p-3">
-                <img src="${escapeHtml(sizeChartImage)}" alt="${escapeHtml(sizeChartAlt)}" class="w-full h-auto rounded-xl object-contain bg-white">
+                <img id="product-size-chart-image" src="${escapeHtml(sizeChartImage)}" alt="${escapeHtml(sizeChartAlt)}" class="w-full h-auto rounded-xl object-contain bg-white">
             </div>
         </div>
     </div>
@@ -375,46 +404,122 @@ function buildProductHtml(product, baseUrl) {
     (() => {
         const orderBtn = document.getElementById('product-order-btn');
         const priceLabelEl = document.getElementById('product-price-label');
-        const sizeButtons = Array.from(document.querySelectorAll('[data-product-size]'));
-        let selectedSize = ${JSON.stringify(defaultSize)};
+        const sizeOptionsEl = document.getElementById('product-size-options');
+        const fitButtons = Array.from(document.querySelectorAll('[data-product-fit]'));
+        const tshirtProduct = ${JSON.stringify(tshirtProduct)};
+        const regularSizes = ${JSON.stringify(regularSizes)};
+        const oversizeSizes = ${JSON.stringify(tshirtProduct ? OVERSIZE_SIZES : [])};
+        let fitMode = 'regular';
+        const selectedSizeByFit = {
+            regular: ${JSON.stringify(defaultSize)},
+            oversize: oversizeSizes[0] || ''
+        };
+        let selectedSize = selectedSizeByFit.regular || '';
         const slug = ${JSON.stringify(slug)};
         const basePrice = ${JSON.stringify(Number.isFinite(priceValue) ? Math.max(0, Math.round(priceValue)) : 0)};
         const plusSizeCode = '3XL';
         const plusSizeSurcharge = 200;
+        const oversizeSurcharge = ${JSON.stringify(OVERSIZE_SURCHARGE)};
+        const sizeChartRegular = {
+            title: ${JSON.stringify(sizeChartTitle)},
+            image: ${JSON.stringify(sizeChartImage)},
+            alt: ${JSON.stringify(sizeChartAlt)}
+        };
+        const sizeChartOversize = {
+            title: ${JSON.stringify(OVERSIZE_SIZE_CHART_TITLE)},
+            image: ${JSON.stringify(OVERSIZE_SIZE_CHART_IMAGE)},
+            alt: ${JSON.stringify(OVERSIZE_SIZE_CHART_ALT)}
+        };
 
         const formatPrice = (value) => {
             const amount = Number(value || 0);
             return Math.round(amount).toLocaleString('uk-UA') + ' грн';
         };
 
+        const getCurrentSizes = () => (fitMode === 'oversize' ? oversizeSizes : regularSizes);
+
+        const renderSizeButtons = () => {
+            if (!sizeOptionsEl) return;
+            const list = getCurrentSizes();
+            sizeOptionsEl.innerHTML = list.map((size) => {
+                const isActive = size === selectedSize;
+                return '<button'
+                    + ' type="button"'
+                    + ' class="product-card-v2__size ' + (isActive ? 'is-active' : '') + '"'
+                    + ' data-product-size="' + size + '"'
+                    + ' aria-pressed="' + (isActive ? 'true' : 'false') + '"'
+                    + '>' + size + '</button>';
+            }).join('');
+        };
+
+        const syncFitButtons = () => {
+            fitButtons.forEach((button) => {
+                const value = String(button.getAttribute('data-product-fit') || '').trim().toLowerCase();
+                const isActive = value === fitMode;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        };
+
         const updateDisplayedPrice = () => {
             if (!priceLabelEl || !Number.isFinite(basePrice)) return;
-            const total = selectedSize === plusSizeCode
-                ? basePrice + plusSizeSurcharge
-                : basePrice;
+            let total = basePrice;
+            if (fitMode === 'oversize') {
+                total += oversizeSurcharge;
+            } else if (selectedSize === plusSizeCode) {
+                total += plusSizeSurcharge;
+            }
             priceLabelEl.textContent = formatPrice(total);
         };
 
-        if (sizeButtons.length) {
-            sizeButtons.forEach((button) => {
+        if (sizeOptionsEl) {
+            sizeOptionsEl.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-product-size]');
+                if (!button) return;
+                const value = String(button.getAttribute('data-product-size') || '').trim();
+                if (!value) return;
+                selectedSize = value;
+                selectedSizeByFit[fitMode] = value;
+                renderSizeButtons();
+                updateDisplayedPrice();
+            });
+        }
+
+        if (tshirtProduct && fitButtons.length) {
+            fitButtons.forEach((button) => {
                 button.addEventListener('click', () => {
-                    selectedSize = String(button.getAttribute('data-product-size') || '').trim();
-                    sizeButtons.forEach((item) => {
-                        const isActive = item === button;
-                        item.classList.toggle('is-active', isActive);
-                        item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-                    });
+                    const value = String(button.getAttribute('data-product-fit') || '').trim().toLowerCase();
+                    if (value !== 'regular' && value !== 'oversize') return;
+                    fitMode = value;
+                    const list = getCurrentSizes();
+                    selectedSize = selectedSizeByFit[fitMode] || list[0] || '';
+                    selectedSizeByFit[fitMode] = selectedSize;
+                    syncFitButtons();
+                    renderSizeButtons();
                     updateDisplayedPrice();
                 });
             });
         }
 
+        renderSizeButtons();
+        syncFitButtons();
         updateDisplayedPrice();
 
         const sizeChartBtn = document.getElementById('product-size-chart-btn');
         const sizeChartModal = document.getElementById('product-size-chart-modal');
+        const sizeChartTitleEl = document.getElementById('product-size-chart-title');
+        const sizeChartImageEl = document.getElementById('product-size-chart-image');
+        const applySizeChartContent = () => {
+            const config = (tshirtProduct && fitMode === 'oversize') ? sizeChartOversize : sizeChartRegular;
+            if (sizeChartTitleEl) sizeChartTitleEl.textContent = config.title;
+            if (sizeChartImageEl) {
+                sizeChartImageEl.setAttribute('src', config.image);
+                sizeChartImageEl.setAttribute('alt', config.alt);
+            }
+        };
         if (sizeChartBtn && sizeChartModal) {
             sizeChartBtn.addEventListener('click', () => {
+                applySizeChartContent();
                 sizeChartModal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
             });

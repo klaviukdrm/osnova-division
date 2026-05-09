@@ -73,6 +73,170 @@
         }
     }
 
+    function isTshirtProduct(product, catalog) {
+        if (typeof catalog?.isTshirtItem === 'function') {
+            return Boolean(catalog.isTshirtItem(product));
+        }
+
+        const haystack = `${product?.category || ''} ${product?.displayCategory || ''} ${product?.title || ''}`.toLowerCase();
+        return haystack.includes('футбол');
+    }
+
+    function getRegularSizes(product, catalog) {
+        const fallback = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+        if (typeof catalog?.getCardMeta !== 'function') return fallback;
+
+        const raw = catalog.getCardMeta(product, 0)?.sizes;
+        if (!Array.isArray(raw)) return fallback;
+
+        const list = raw.filter((size) => typeof size === 'string' && size.trim());
+        if (!list.length) return fallback;
+        if (list.length === 1 && String(list[0]).toUpperCase() === 'ONE SIZE') return [];
+        return list;
+    }
+
+    function getSizeChartConfigForFit(catalog, fitMode) {
+        const defaultConfig = catalog?.SIZE_CHART_CONFIG?.default || {
+            title: 'Таблиця розмірів для футболок',
+            image: 'images/Screenshot_214%20(1).png',
+            alt: 'Розмірна сітка для футболок'
+        };
+
+        const oversizeConfig = catalog?.SIZE_CHART_CONFIG?.oversize || {
+            title: 'Таблиця розмірів для oversize футболок',
+            image: 'images/photo_2026-05-09_12-29-27.jpg',
+            alt: 'Розмірна сітка для oversize футболок'
+        };
+
+        return fitMode === 'oversize' ? oversizeConfig : defaultConfig;
+    }
+
+    function setupProductSizeControls(product, catalog) {
+        const controlsWrap = document.getElementById('product-size-controls');
+        const fitToggle = document.getElementById('product-fit-toggle');
+        const sizeOptions = document.getElementById('product-size-options');
+        const priceEl = document.getElementById('product-price');
+        const sizeChartButton = document.getElementById('product-size-chart-btn');
+        const sizeChartModal = document.getElementById('product-size-chart-modal');
+        const sizeChartBackdrop = document.getElementById('product-size-chart-backdrop');
+        const sizeChartClose = document.getElementById('product-size-chart-close');
+        const sizeChartTitle = document.getElementById('product-size-chart-title');
+        const sizeChartImage = document.getElementById('product-size-chart-image');
+
+        if (!controlsWrap || !fitToggle || !sizeOptions || !priceEl || !sizeChartButton) return;
+
+        const tshirt = isTshirtProduct(product, catalog);
+        if (!tshirt) {
+            controlsWrap.classList.add('hidden');
+            return;
+        }
+
+        const regularSizes = getRegularSizes(product, catalog);
+        const oversizeSizes = Array.isArray(catalog?.OVERSIZE_SIZE_OPTIONS) && catalog.OVERSIZE_SIZE_OPTIONS.length
+            ? catalog.OVERSIZE_SIZE_OPTIONS
+            : ['S/M', 'L/XL'];
+        const fallbackSurcharge = Number(catalog?.OVERSIZE_SURCHARGE);
+        const oversizeSurcharge = Number.isFinite(fallbackSurcharge) ? fallbackSurcharge : 200;
+
+        let fitMode = 'regular';
+        const selectedByFit = {
+            regular: regularSizes[0] || '',
+            oversize: oversizeSizes[0] || ''
+        };
+
+        const formatPrice = (value) => {
+            if (typeof catalog?.formatPrice === 'function') return catalog.formatPrice(value);
+            const num = Number(value || 0);
+            return `${Math.round(num)} грн`;
+        };
+
+        const updatePrice = () => {
+            const selectedSize = selectedByFit[fitMode] || '';
+            const calculated = typeof catalog?.getProductPrice === 'function'
+                ? catalog.getProductPrice({ ...product, selectedSize }, selectedSize)
+                : Number(product?.price || 0) + (fitMode === 'oversize' ? oversizeSurcharge : 0);
+            priceEl.textContent = formatPrice(calculated);
+        };
+
+        const renderFitButtons = () => {
+            fitToggle.innerHTML = `
+                <button type="button" class="product-card-v2__fit-btn ${fitMode === 'regular' ? 'is-active' : ''}" data-product-fit="regular" aria-pressed="${fitMode === 'regular'}">regular</button>
+                <button type="button" class="product-card-v2__fit-btn ${fitMode === 'oversize' ? 'is-active' : ''}" data-product-fit="oversize" aria-pressed="${fitMode === 'oversize'}">oversize</button>
+            `;
+        };
+
+        const renderSizeButtons = () => {
+            const list = fitMode === 'oversize' ? oversizeSizes : regularSizes;
+            const active = selectedByFit[fitMode] || '';
+            sizeOptions.innerHTML = list.map((size) => `
+                <button
+                    type="button"
+                    class="product-card-v2__size ${size === active ? 'is-active' : ''}"
+                    data-product-size="${encodeURIComponent(size)}"
+                    aria-pressed="${size === active}"
+                >${size}</button>
+            `).join('');
+        };
+
+        const applySizeChart = () => {
+            const config = getSizeChartConfigForFit(catalog, fitMode);
+            if (sizeChartTitle) sizeChartTitle.textContent = config.title;
+            if (sizeChartImage) {
+                sizeChartImage.src = config.image;
+                sizeChartImage.alt = config.alt;
+            }
+        };
+
+        const openSizeChartModal = () => {
+            if (!sizeChartModal) return;
+            applySizeChart();
+            sizeChartModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        };
+
+        const closeSizeChartModal = () => {
+            if (!sizeChartModal) return;
+            sizeChartModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        fitToggle.onclick = (event) => {
+            const button = event.target.closest('[data-product-fit]');
+            if (!button) return;
+            const next = String(button.getAttribute('data-product-fit') || '').trim().toLowerCase();
+            if (next !== 'regular' && next !== 'oversize') return;
+            fitMode = next;
+            renderFitButtons();
+            renderSizeButtons();
+            updatePrice();
+        };
+
+        sizeOptions.onclick = (event) => {
+            const button = event.target.closest('[data-product-size]');
+            if (!button) return;
+            const value = decodeURIComponent(button.getAttribute('data-product-size') || '');
+            if (!value) return;
+            selectedByFit[fitMode] = value;
+            renderSizeButtons();
+            updatePrice();
+        };
+
+        sizeChartButton.onclick = () => openSizeChartModal();
+        if (sizeChartClose) sizeChartClose.onclick = () => closeSizeChartModal();
+        if (sizeChartBackdrop) sizeChartBackdrop.onclick = () => closeSizeChartModal();
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && sizeChartModal && !sizeChartModal.classList.contains('hidden')) {
+                closeSizeChartModal();
+            }
+        });
+
+        controlsWrap.classList.remove('hidden');
+        renderFitButtons();
+        renderSizeButtons();
+        updatePrice();
+    }
+
     function renderProduct(product, catalog) {
         const loading = document.getElementById('product-page-loading');
         const notFound = document.getElementById('product-page-not-found');
@@ -109,6 +273,8 @@
         if (openCatalog) {
             openCatalog.setAttribute('href', '/index.html#products');
         }
+
+        setupProductSizeControls(product, catalog);
     }
 
     async function loadApiProducts(catalog) {

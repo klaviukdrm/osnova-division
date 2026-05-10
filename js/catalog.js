@@ -1984,6 +1984,25 @@ const Catalog = {
             if (titleEl && titleEl.textContent.toUpperCase().includes('ФОРМУВАННЯ ЗАМОВЛЕННЯ')) {
                 titleEl.textContent = 'Оформити покупку';
             }
+
+            orderModal.querySelectorAll('p, span').forEach((el) => {
+                if (el.textContent.trim().toUpperCase() === 'ФОРМУВАННЯ ЗАМОВЛЕННЯ') {
+                    el.style.display = 'none';
+                }
+            });
+
+            const itemsCountEl = document.getElementById('order-items-count');
+            const totalPriceEl = document.getElementById('order-total-price');
+            if (itemsCountEl && totalPriceEl && form) {
+                let parent = itemsCountEl.parentElement;
+                while (parent && parent !== orderModal) {
+                    if (parent.contains(totalPriceEl) && !parent.contains(form)) {
+                        parent.style.display = 'none';
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+            }
         }
 
         if (form && !document.getElementById('order-region-tabs')) {

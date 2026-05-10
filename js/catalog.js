@@ -2377,8 +2377,9 @@ const Catalog = {
                     }
 
                     const isImage = String(selectedFile.type || '').toLowerCase().startsWith('image/');
-                    if (!isImage) {
-                        window.UI?.showToast?.('Дозволено завантажувати тільки зображення (скріншот/квитанцію).', { tone: 'warning' });
+                    const isPdf = String(selectedFile.type || '').toLowerCase() === 'application/pdf';
+                    if (!isImage && !isPdf) {
+                        window.UI?.showToast?.('Дозволено завантажувати тільки зображення або PDF (скріншот/квитанцію).', { tone: 'warning' });
                         resetInvoiceReceiptState();
                         return;
                     }
@@ -2392,7 +2393,7 @@ const Catalog = {
 
                     try {
                         const dataUrl = await readFileAsDataUrl(selectedFile);
-                        if (!dataUrl.startsWith('data:image/')) {
+                        if (!dataUrl.startsWith('data:image/') && !dataUrl.startsWith('data:application/pdf')) {
                             throw new Error('Непідтримуваний формат файлу.');
                         }
                         receiptImage = dataUrl;

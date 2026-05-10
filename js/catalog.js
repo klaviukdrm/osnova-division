@@ -1979,6 +1979,64 @@ const Catalog = {
         if (closeButton) closeButton.addEventListener('click', () => this.closeOrderModal());
         if (backdrop) backdrop.addEventListener('click', () => this.closeOrderModal());
 
+        if (orderModal) {
+            const titleEl = orderModal.querySelector('h3');
+            if (titleEl && titleEl.textContent.toUpperCase().includes('ФОРМУВАННЯ ЗАМОВЛЕННЯ')) {
+                titleEl.textContent = 'Оформити покупку';
+            }
+        }
+
+        if (form && !document.getElementById('order-region-tabs')) {
+            const activeTabCls = 'flex-1 py-3 text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200';
+            const inactiveTabCls = 'flex-1 py-3 text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200';
+
+            const tabsHtml = `
+                <div id="order-region-tabs" class="flex gap-2 mb-6">
+                    <button type="button" id="tab-ukraine" class="${activeTabCls}">УКРАЇНА</button>
+                    <button type="button" id="tab-worldwide" class="${inactiveTabCls}">WORLDWIDE</button>
+                </div>
+                <div id="worldwide-content" class="hidden text-center py-6">
+                    <div class="w-16 h-16 mx-auto bg-slate-800 text-blue-400 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                        <i class="fa-solid fa-earth-americas text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-100 mb-2">Worldwide Shipping</h4>
+                    <p class="text-sm text-slate-400 mb-6 max-w-xs mx-auto leading-relaxed">To order to another country, please contact our Telegram bot or Instagram. Our manager will help you with international shipping details.</p>
+                    <div class="flex flex-col gap-3">
+                        <a href="https://t.me/Ukrainian_Print_Familybot" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-[#0088cc] text-white font-bold rounded-xl hover:bg-[#0077b5] transition-colors duration-200">
+                            <i class="fa-brands fa-telegram text-xl"></i>
+                            Open Telegram Bot
+                        </a>
+                        <a href="https://www.instagram.com/ukrainian_print_family" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold rounded-xl hover:opacity-90 transition-opacity duration-200">
+                            <i class="fa-brands fa-instagram text-xl"></i>
+                            Open Instagram
+                        </a>
+                    </div>
+                </div>
+            `;
+            form.insertAdjacentHTML('beforebegin', tabsHtml);
+
+            const tabUa = document.getElementById('tab-ukraine');
+            const tabWw = document.getElementById('tab-worldwide');
+            const wwContent = document.getElementById('worldwide-content');
+
+            const switchTab = (mode) => {
+                if (mode === 'ua') {
+                    tabUa.className = activeTabCls;
+                    tabWw.className = inactiveTabCls;
+                    form.style.display = '';
+                    wwContent.style.display = 'none';
+                } else {
+                    tabWw.className = activeTabCls;
+                    tabUa.className = inactiveTabCls;
+                    form.style.display = 'none';
+                    wwContent.style.display = 'block';
+                }
+            };
+
+            tabUa.addEventListener('click', () => switchTab('ua'));
+            tabWw.addEventListener('click', () => switchTab('ww'));
+        }
+
         const extractOrderPhoneDigits = (value) => {
             let digits = String(value || '').replace(/\D/g, '');
             if (digits.startsWith('380')) {

@@ -1,4 +1,4 @@
-﻿﻿﻿const MainApp = {
+const MainApp = {
     initialized: false,
     CART_STORAGE_KEY: 'upf_cart_v1',
     MOBILE_BREAKPOINT_QUERY: '(max-width: 768px)',

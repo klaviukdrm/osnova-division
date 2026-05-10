@@ -1416,7 +1416,6 @@ const Catalog = {
                 </div>
 
                 <div class="product-card-v2__body p-6 space-y-3">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">${this.getDisplayCategory(item)}</p>
                     <p class="font-semibold text-lg leading-snug text-slate-900">
                         <a href="${this.getProductUrl(item)}" class="hover:text-blue-700 transition">${item.title || 'Товар'}</a>
                     </p>
@@ -1664,10 +1663,13 @@ const Catalog = {
         const thumbsEl = document.getElementById('modal-thumbs');
 
         if (titleEl) titleEl.textContent = title;
-        if (categoryEl) categoryEl.textContent = category;
+        if (categoryEl) categoryEl.style.display = 'none';
         if (priceEl) priceEl.textContent = this.formatPrice(this.getProductPrice(item, this.state.currentModalSize));
         if (descriptionEl) descriptionEl.textContent = description;
-        if (detailCategoryEl) detailCategoryEl.textContent = category;
+        if (detailCategoryEl) {
+            const parentCard = detailCategoryEl.closest('.preview-detail-card');
+            if (parentCard) parentCard.style.display = 'none';
+        }
         if (detailNoteEl) detailNoteEl.textContent = 'Оформлення цього товару без переходу в редактор.';
         if (mainImageEl) {
             mainImageEl.alt = title;

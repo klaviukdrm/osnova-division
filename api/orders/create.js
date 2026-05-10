@@ -1,4 +1,4 @@
-const { sendTelegramMessage, sendTelegramMediaGroup, sendTelegramPhoto } = require('../_lib/telegram');
+const { sendTelegramMessage, sendTelegramMediaGroup, sendTelegramPhoto, sendTelegramDocument } = require('../_lib/telegram');
 const {
     generateOrderId,
     parseOrderPayload,
@@ -59,10 +59,14 @@ module.exports = async (req, res) => {
 
         if (order.receiptImage) {
             const captionLimit = 1024;
+            const isPdf = String(order.receiptImage).startsWith('data:application/pdf');
+            const sendMethod = isPdf ? sendTelegramDocument : sendTelegramPhoto;
+            const receiptFilename = body.receiptName || null;
+
             if (text.length <= captionLimit) {
-                await sendTelegramPhoto(order.receiptImage, text);
+                await sendMethod(order.receiptImage, text, receiptFilename);
             } else {
-                await sendTelegramPhoto(order.receiptImage, `\uD83E\uDDFE \u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0456\u044f \u0434\u043e \u0437\u0430\u043c\u043e\u0432\u043b\u0435\u043d\u043d\u044f ${orderId}`);
+                await sendMethod(order.receiptImage, `\uD83E\uDDFE \u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0456\u044f \u0434\u043e \u0437\u0430\u043c\u043e\u0432\u043b\u0435\u043d\u043d\u044f ${orderId}`, receiptFilename);
                 await sendTelegramMessage(text);
             }
         } else {

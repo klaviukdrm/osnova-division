@@ -217,7 +217,7 @@ function parseImageDataUrl(imageDataUrl) {
     return parsed;
 }
 
-async function sendTelegramPhoto(photo, caption = '') {
+async function sendTelegramPhoto(photo, caption = '', customFilename = null) {
     const config = getTelegramConfig();
     if (!config.valid) {
         const error = new Error(config.error);
@@ -270,7 +270,7 @@ async function sendTelegramPhoto(photo, caption = '') {
 
     parts.push({
         name: 'photo',
-        filename: `order-preview.${parsed.extension}`,
+        filename: customFilename || `order-preview.${parsed.extension}`,
         contentType: parsed.mimeType,
         data: parsed.data
     });
@@ -286,7 +286,7 @@ async function sendTelegramPhoto(photo, caption = '') {
     return response.data.result;
 }
 
-async function sendTelegramDocument(documentFile, caption = '') {
+async function sendTelegramDocument(documentFile, caption = '', customFilename = null) {
     const config = getTelegramConfig();
     if (!config.valid) {
         const error = new Error(config.error);
@@ -335,7 +335,7 @@ async function sendTelegramDocument(documentFile, caption = '') {
 
     parts.push({
         name: 'document',
-        filename: `order-file.${parsed.extension}`,
+        filename: customFilename || `order-file.${parsed.extension}`,
         contentType: parsed.mimeType,
         data: parsed.data
     });

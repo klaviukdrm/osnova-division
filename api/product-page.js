@@ -271,7 +271,6 @@ function buildProductHtml(product, baseUrl) {
                     <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="product-page-image w-full rounded-3xl object-cover">
                 </div>
                 <div class="space-y-5">
-                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">${escapeHtml(category)}</p>
                     <h1 class="text-3xl md:text-5xl font-bold section-title">${escapeHtml(title)}</h1>
                     <p id="product-price-label" class="text-3xl font-semibold text-emerald-600">${escapeHtml(priceLabel)}</p>
                     ${availableSizes.length ? `

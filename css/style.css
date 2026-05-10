@@ -3618,7 +3618,8 @@ body.admin-page textarea::placeholder {
 
 /* Mobile checkout modal fix: stable scrolling + visible payment buttons */
 @media (max-width: 768px) {
-    #order-modal {
+    #order-modal,
+    #invoice-modal {
         overflow: hidden;
         -webkit-overflow-scrolling: touch;
         padding:
@@ -3627,7 +3628,8 @@ body.admin-page textarea::placeholder {
             calc(8px + env(safe-area-inset-bottom, 0px));
     }
 
-    #order-modal > .relative {
+    #order-modal > .relative,
+    #invoice-modal > .relative {
         width: 100%;
         margin: 0 auto !important;
         max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
@@ -3635,7 +3637,7 @@ body.admin-page textarea::placeholder {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
         touch-action: pan-y;
-        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     #order-form {

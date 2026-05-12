@@ -358,5 +358,3 @@ module.exports = async (req, res) => {
     res.setHeader('Allow', 'GET, POST, DELETE');
     sendJson(res, 405, { error: 'Method not allowed' });
 };
-
-

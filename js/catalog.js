@@ -100,6 +100,7 @@ const Catalog = {
         activeCategory: null,
         searchQuery: '',
         page: 1,
+        restoredPage: null,
         currentItem: null,
         currentModalSize: '',
         imageIndexes: {},
@@ -1145,6 +1146,7 @@ const Catalog = {
         input.addEventListener('input', (event) => {
             this.state.searchQuery = String(event?.target?.value || '');
             this.state.page = 1;
+            this.state.restoredPage = null;
             this.saveCatalogState();
             this.renderProducts();
         });
@@ -1323,6 +1325,7 @@ const Catalog = {
             button.addEventListener('click', () => {
                 this.state.activeCategory = decodeURIComponent(button.getAttribute('data-category'));
                 this.state.page = 1;
+                this.state.restoredPage = null;
                 this.saveCatalogState();
                 this.renderCategories();
                 this.renderProducts();
@@ -1396,6 +1399,7 @@ const Catalog = {
                     }
 
                     this.state.page = nextPage;
+                    this.state.restoredPage = null;
                     this.saveCatalogState();
                     this.renderProducts();
                     window.UI?.smoothScrollTo?.('products');
@@ -1424,17 +1428,27 @@ const Catalog = {
 
         empty.textContent = 'Поки що немає товарів. Додай їх у CMS.';
         const totalPages = Math.max(1, Math.ceil(filteredList.length / this.ITEMS_PER_PAGE));
-        let pageChanged = false;
-        if (!Number.isFinite(this.state.page) || this.state.page < 1) {
-            this.state.page = 1;
-            pageChanged = true;
-        }
-        if (this.state.page > totalPages) {
-            this.state.page = totalPages;
-            pageChanged = true;
-        }
-        if (pageChanged) {
-            this.saveCatalogState();
+
+        if (this.state.restoredPage) {
+            if (this.state.restoredPage <= totalPages) {
+                this.state.page = this.state.restoredPage;
+                this.state.restoredPage = null;
+            } else {
+                this.state.page = totalPages;
+            }
+        } else {
+            let pageChanged = false;
+            if (!Number.isFinite(this.state.page) || this.state.page < 1) {
+                this.state.page = 1;
+                pageChanged = true;
+            }
+            if (this.state.page > totalPages) {
+                this.state.page = totalPages;
+                pageChanged = true;
+            }
+            if (pageChanged) {
+                this.saveCatalogState();
+            }
         }
 
         const startIndex = (this.state.page - 1) * this.ITEMS_PER_PAGE;
@@ -2619,7 +2633,10 @@ const Catalog = {
                 const parsed = JSON.parse(rawState);
                 if (parsed) {
                     if (parsed.activeCategory) this.state.activeCategory = parsed.activeCategory;
-                    if (parsed.page) this.state.page = parsed.page;
+                    if (parsed.page) {
+                        this.state.page = parsed.page;
+                        this.state.restoredPage = parsed.page;
+                    }
                     if (parsed.searchQuery !== undefined) this.state.searchQuery = parsed.searchQuery;
                 }
             }
@@ -2657,9 +2674,19 @@ const Catalog = {
 
         const loadPromise = this.loadProductsFromApi();
         if (loadPromise && typeof loadPromise.finally === 'function') {
-            loadPromise.finally(finalizePendingFlow);
+            loadPromise.finally(() => {
+                finalizePendingFlow();
+                if (this.state.restoredPage) {
+                    this.state.restoredPage = null;
+                    this.saveCatalogState();
+                }
+            });
         } else {
             finalizePendingFlow();
+            if (this.state.restoredPage) {
+                this.state.restoredPage = null;
+                this.saveCatalogState();
+            }
         }
     }
 };

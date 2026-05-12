@@ -234,6 +234,16 @@ const Catalog = {
         };
     },
 
+    saveCatalogState() {
+        try {
+            window.sessionStorage.setItem('upf_catalog_state', JSON.stringify({
+                page: this.state.page,
+                activeCategory: this.state.activeCategory,
+                searchQuery: this.state.searchQuery
+            }));
+        } catch (e) {}
+    },
+
     applyFetchedProducts(sourceProducts) {
         const mappedProducts = sourceProducts
             .map((product) => ({
@@ -1073,6 +1083,7 @@ const Catalog = {
 
         if (!this.state.activeCategory || !nextCategories.includes(this.state.activeCategory)) {
             this.state.activeCategory = nextCategories[0] || null;
+            this.saveCatalogState();
         }
 
         this.renderCategories();
@@ -1134,6 +1145,7 @@ const Catalog = {
         input.addEventListener('input', (event) => {
             this.state.searchQuery = String(event?.target?.value || '');
             this.state.page = 1;
+            this.saveCatalogState();
             this.renderProducts();
         });
     },    
@@ -1311,6 +1323,7 @@ const Catalog = {
             button.addEventListener('click', () => {
                 this.state.activeCategory = decodeURIComponent(button.getAttribute('data-category'));
                 this.state.page = 1;
+                this.saveCatalogState();
                 this.renderCategories();
                 this.renderProducts();
             });
@@ -1383,7 +1396,9 @@ const Catalog = {
                     }
 
                     this.state.page = nextPage;
+                    this.saveCatalogState();
                     this.renderProducts();
+                    window.UI?.smoothScrollTo?.('products');
                 });
             });
         });
@@ -1409,11 +1424,17 @@ const Catalog = {
 
         empty.textContent = 'Поки що немає товарів. Додай їх у CMS.';
         const totalPages = Math.max(1, Math.ceil(filteredList.length / this.ITEMS_PER_PAGE));
+        let pageChanged = false;
         if (!Number.isFinite(this.state.page) || this.state.page < 1) {
             this.state.page = 1;
+            pageChanged = true;
         }
         if (this.state.page > totalPages) {
             this.state.page = totalPages;
+            pageChanged = true;
+        }
+        if (pageChanged) {
+            this.saveCatalogState();
         }
 
         const startIndex = (this.state.page - 1) * this.ITEMS_PER_PAGE;
@@ -2591,6 +2612,19 @@ const Catalog = {
         this.setupCartModalEvents();
         this.setupOrderModalEvents();
         this.setupSearchInput();
+
+        try {
+            const rawState = window.sessionStorage.getItem('upf_catalog_state');
+            if (rawState) {
+                const parsed = JSON.parse(rawState);
+                if (parsed) {
+                    if (parsed.activeCategory) this.state.activeCategory = parsed.activeCategory;
+                    if (parsed.page) this.state.page = parsed.page;
+                    if (parsed.searchQuery !== undefined) this.state.searchQuery = parsed.searchQuery;
+                }
+            }
+        } catch (e) {}
+
         const demoCategories = this.DEFAULT_CATEGORIES.slice();
         const demoProducts = this.generateDemoProducts(demoCategories);
         this.setCatalogData(demoCategories, demoProducts);

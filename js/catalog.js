@@ -234,9 +234,67 @@ const Catalog = {
         };
     },
 
+    applyFetchedProducts(sourceProducts) {
+        const mappedProducts = sourceProducts
+            .map((product) => ({
+                ...this.mapApiProductToCatalog(product),
+                source: 'api'
+            }))
+            .filter((product) => product?.title && Number.isFinite(Number(product?.price)));
+
+        if (!mappedProducts.length) {
+            return false;
+        }
+
+        const existingProducts = Array.isArray(this.state.products)
+            ? this.state.products.filter((product) => product?.source !== 'api')
+            : [];
+        const mergedProducts = [...existingProducts, ...mappedProducts];
+
+        const categoryOrder = [
+            this.BASE_APPAREL_LABEL,
+            'Худі'
+        ];
+        const uniqueCategories = [];
+        const seen = new Set();
+        const baseCategories = Array.isArray(this.state.categories) && this.state.categories.length
+            ? [...this.state.categories]
+            : this.DEFAULT_CATEGORIES.slice();
+
+        [...baseCategories, ...mergedProducts.map((product) => String(product?.category || '').trim())].forEach((category) => {
+            if (!category || seen.has(category)) return;
+            seen.add(category);
+            uniqueCategories.push(category);
+        });
+        
+        // Update catalog data with fetched products
+        this.setCatalogData(uniqueCategories, mergedProducts);
+        return true;
+    },
+
     async loadProductsFromApi() {
+        const cacheKey = `upf_catalog_all_v2`;
+
+        let hasCached = false;
+        let cachedDataStr = null;
+
+        // 1. Спроба завантажити з кешу (Миттєве відображення)
         try {
-            const response = await fetch('/api/products', {
+            cachedDataStr = window.localStorage.getItem(cacheKey);
+            if (cachedDataStr) {
+                const parsed = JSON.parse(cachedDataStr);
+                if (parsed && Array.isArray(parsed.products)) {
+                    this.applyFetchedProducts(parsed.products);
+                    hasCached = true;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to parse catalog cache', e);
+        }
+
+        // 2. Фоновий запит до API (Перевірка оновлень)
+        try {
+            const response = await fetch(`/api/products`, {
                 method: 'GET',
                 headers: { Accept: 'application/json' },
                 cache: 'no-store'
@@ -248,48 +306,28 @@ const Catalog = {
 
             const payload = await response.json();
             const sourceProducts = Array.isArray(payload?.products) ? payload.products : [];
+
             if (!sourceProducts.length) {
                 return false;
             }
 
-            const mappedProducts = sourceProducts
-                .map((product) => ({
-                    ...this.mapApiProductToCatalog(product),
-                    source: 'api'
-                }))
-                .filter((product) => product?.title && Number.isFinite(Number(product?.price)));
+            const freshDataStr = JSON.stringify({ products: sourceProducts });
 
-            if (!mappedProducts.length) {
-                return false;
+            // Якщо дані з сервера ідентичні кешованим, не перемальовуємо UI щоб уникнути блимання
+            if (hasCached && freshDataStr === cachedDataStr) {
+                return true;
             }
 
-            const existingProducts = Array.isArray(this.state.products)
-                ? this.state.products.filter((product) => product?.source !== 'api')
-                : [];
-            const mergedProducts = [...existingProducts, ...mappedProducts];
+            // Зберігаємо нові дані в кеш
+            try {
+                window.localStorage.setItem(cacheKey, freshDataStr);
+            } catch(e) {}
 
-            const categoryOrder = [
-                this.BASE_APPAREL_LABEL,
-                'Худі'
-            ];
-            const uniqueCategories = [];
-            const seen = new Set();
-            const baseCategories = Array.isArray(this.state.categories) && this.state.categories.length
-                ? [...this.state.categories]
-                : this.DEFAULT_CATEGORIES.slice();
-
-            [...baseCategories, ...mergedProducts.map((product) => String(product?.category || '').trim())].forEach((category) => {
-                if (!category || seen.has(category)) return;
-                seen.add(category);
-                uniqueCategories.push(category);
-            });
-
-            const orderedCategories = [...categoryOrder];
-            this.setCatalogData(orderedCategories, mergedProducts);
+            this.applyFetchedProducts(sourceProducts);
             return true;
         } catch (error) {
             console.warn('Failed to load products from API. Keeping fallback catalog.', error);
-            return false;
+            return hasCached;
         }
     },
 
@@ -460,6 +498,7 @@ const Catalog = {
         if (apparelProducts.length) {
             items.push(...apparelProducts);
         }
+
         return items;
     },
 
@@ -1035,7 +1074,6 @@ const Catalog = {
         if (!this.state.activeCategory || !nextCategories.includes(this.state.activeCategory)) {
             this.state.activeCategory = nextCategories[0] || null;
         }
-        this.state.page = 1;
 
         this.renderCategories();
         this.syncSearchInput();
@@ -1098,7 +1136,7 @@ const Catalog = {
             this.state.page = 1;
             this.renderProducts();
         });
-    },
+    },    
 
     getCardKey(item) {
         return this.getProductIdentityKey(item) || `${item?.category || ''}::${item?.title || ''}`;

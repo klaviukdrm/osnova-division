@@ -297,6 +297,7 @@ const MainApp = {
         this.setupHeroStackedShowcase();
         this.setupLegalDocsModal();
         this.setupMobileHeaderVisibility();
+        this.setupLanguageToggle();
         this.syncCartBadges();
 
         if (new URLSearchParams(window.location.search).get('success_preview') === '1') {
@@ -396,6 +397,44 @@ const MainApp = {
         }
     },
 
+    setupLanguageToggle() {
+        const langContainer = document.getElementById('nav-lang-btn');
+        if (!langContainer) return;
+
+        let storedLang = window.localStorage.getItem('upf_lang');
+        if (!storedLang) {
+            storedLang = 'ua';
+            window.localStorage.setItem('upf_lang', 'ua');
+        }
+        langContainer.setAttribute('data-active-lang', storedLang);
+
+        const uaBtn = langContainer.querySelector('[data-lang="ua"]');
+        const enBtn = langContainer.querySelector('[data-lang="en"]');
+
+        if (uaBtn && enBtn) {
+            if (storedLang === 'en') {
+                uaBtn.className = "nav-lang-cell relative z-10 flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-extrabold [text-shadow:0_0_12px_#22d3ee,0_0_24px_#22d3ee] sm:text-slate-400 sm:[text-shadow:none] sm:font-medium hover:text-white transition";
+                enBtn.className = "nav-lang-cell is-active relative z-10 hidden sm:block flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-bold transition";
+            } else {
+                uaBtn.className = "nav-lang-cell is-active relative z-10 hidden sm:block flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-bold transition";
+                enBtn.className = "nav-lang-cell relative z-10 flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-extrabold [text-shadow:0_0_12px_#22d3ee,0_0_24px_#22d3ee] sm:text-slate-400 sm:[text-shadow:none] sm:font-medium hover:text-white transition";
+            }
+        }
+
+        const langCells = langContainer.querySelectorAll('.nav-lang-cell');
+        langCells.forEach(cell => {
+            const newCell = cell.cloneNode(true);
+            cell.parentNode.replaceChild(newCell, cell);
+
+            newCell.addEventListener('click', (e) => {
+                const targetLang = e.currentTarget.getAttribute('data-lang');
+                if (targetLang === storedLang) return;
+                window.localStorage.setItem('upf_lang', targetLang);
+                window.location.reload();
+            });
+        });
+    },
+
     setupFloatingCartButtons() {
         document.querySelectorAll('[data-open-cart-fab]').forEach((button) => {
             if (button.dataset.cartFabReady === '1') return;
@@ -428,7 +467,44 @@ const MainApp = {
         const contentEl = modal.querySelector('[data-legal-content]');
         if (!titleEl || !contentEl) return;
 
-        const docs = {
+        const lang = window.localStorage.getItem('upf_lang') || 'ua';
+        const isEn = lang === 'en';
+
+        const docs = isEn ? {
+            delivery: {
+                title: 'Delivery and Payment',
+                paragraphs: [
+                    'We deliver orders across Ukraine via Nova Poshta and Ukrposhta. Dispatch time is usually within 2-5 business days after confirmation.',
+                    'Payment is available in two ways: by bank details or online via LiqPay (Google Pay / Apple Pay).',
+                    'After placing an order, the manager may additionally clarify delivery details.'
+                ]
+            },
+            terms: {
+                title: 'Terms of Use',
+                paragraphs: [
+                    'By placing an order on the site, you agree to the rules for processing and fulfilling the order.',
+                    'The client is responsible for the correctness of contact details, delivery address, and the content of the provided design.',
+                    'The store reserves the right to refuse printing materials that violate the law or the rights of third parties.'
+                ]
+            },
+            privacy: {
+                title: 'Privacy Policy',
+                paragraphs: [
+                    '1. We collect only the data necessary for delivery (Name, phone, NP number).',
+                    '2. Your data is used exclusively to process the order.',
+                    '3. We do not pass information to third parties, except for logistics services.',
+                    '4. By clicking "Place Order", you agree to these rules.'
+                ]
+            },
+            returns: {
+                title: 'Return Policy',
+                paragraphs: [
+                    'Returns or exchanges are only possible in case of problems on our side: manufacturing defect, picking error, or discrepancy between the product and the confirmed order.',
+                    'If a product of good quality is made according to your custom order (print, size, color), returns or exchanges due to "wrong size", "didn\'t like it", or other personal reasons are not carried out.',
+                    'In case of a warranty claim, contact us via the contacts on the site and provide a photo/video of the problem for verification.'
+                ]
+            }
+        } : {
             delivery: {
                 title: 'Доставка і оплата',
                 paragraphs: [
@@ -513,5 +589,376 @@ const MainApp = {
     }
 };
 
+const Translator = {
+    dict: {
+        'Кошик': 'Cart',
+        'Контакти': 'Contacts',
+        'Створити дизайн': 'Create Design',
+        'Каталог': 'Catalog',
+        'До каталогу': 'To Catalog',
+        'На головну': 'Home',
+        'Обирай готовий виріб,': 'Choose a ready-made product,',
+        'дивись реальні роботи,': 'see real works,',
+        'переходь у кастомізацію': 'go to customization',
+        'Тут зібраний саме каталог готових надрукованих речей. Якщо потрібно зробити свій макет — відкрий конструктор на окремій сторінці.': 'Here is a catalog of ready-made items. If you want a custom design, open the constructor.',
+        'Готові надруковані вироби в наявності': 'Ready-made printed products in stock',
+        'Відкрити конструктор': 'Open Constructor',
+        'ПЕРЕГЛЯНУТИ КАТАЛОГ': 'VIEW CATALOG',
+        'Готові надруковані вироби': 'Ready-made printed products',
+        'Пошук товару за назвою': 'Search product by name',
+        'Поки що немає товарів. Додай їх у CMS.': 'No products yet.',
+        'Друк на одязі та сувенірах під замовлення': 'Custom printing on clothes and souvenirs',
+        'Ukrainian Print Family виготовляє футболки, чашки та худі з принтом і друкує індивідуальні макети під замовлення. На сайті можна обрати готовий дизайн або перейти в конструктор і оформити замовлення онлайн за кілька хвилин.': 'Ukrainian Print Family produces printed t-shirts, mugs, and hoodies to order. You can choose a ready-made design or use the constructor to place an order online.',
+        'Каталог готових виробів': 'Ready-made Catalog',
+        'У каталозі доступні футболки, чашки та худі з уже підготовленими принтами.': 'T-shirts, mugs, and hoodies with ready prints are available in the catalog.',
+        'Конструктор макетів': 'Design Constructor',
+        'Завантажуй власне фото, додавай текст і підбирай основу для персонального друку.': 'Upload your photo, add text, and choose a base for custom printing.',
+        'Швидке оформлення': 'Fast Checkout',
+        'Після вибору товару замовлення оформлюється онлайн, а деталі підтверджує менеджер.': 'Orders are placed online, and details are confirmed by a manager.',
+        'Часті питання': 'FAQ',
+        'Які вироби можна замовити?': 'What products can I order?',
+        'У каталозі доступні футболки, чашки та худі з готовим друком. Якщо потрібен персональний варіант, можна перейти в конструктор.': 'T-shirts, mugs, and hoodies with ready prints are available. For a custom item, use the constructor.',
+        'Чи можна завантажити власний макет?': 'Can I upload my own design?',
+        'Так, на сторінці конструктора можна завантажити своє зображення, додати текст і підготувати макет перед оформленням замовлення.': 'Yes, in the constructor you can upload an image, add text, and prepare your design before ordering.',
+        'Які строки виготовлення замовлення?': 'What are the production times?',
+        'Стандартний термін виготовлення — 3-5 робочих днів після підтвердження замовлення.': 'Standard production time is 3-5 business days after order confirmation.',
+        'Інструменти конструктора': 'Constructor Tools',
+        'Основа': 'Base',
+        'Фото': 'Photo',
+        'Текст': 'Text',
+        'Основа для друку': 'Printing Base',
+        'Колір основи': 'Base Color',
+        'Текст принту': 'Print Text',
+        'Колір тексту': 'Text Color',
+        'Розмір тексту': 'Text Size',
+        'Формат друку': 'Print Format',
+        'Редагування фото': 'Edit Photo',
+        'Завантажити / змінити фото': 'Upload / change photo',
+        'Масштаб': 'Scale',
+        'Орієнтація принта': 'Print Orientation',
+        'Повернути на 90°': 'Rotate 90°',
+        'Скинути': 'Reset',
+        'Видалити': 'Remove',
+        'Працює drag and drop: перетягни фото прямо в зону друку.': 'Drag and drop works: drag the photo directly into the print zone.',
+        'Відкрити інструменти': 'Open Tools',
+        'Завантажити фото': 'Upload photo',
+        'або перетягни файл у зону друку': 'or drag & drop file into print area',
+        'Ціна від': 'Price from',
+        'Зберегти': 'Save',
+        'В кошик': 'To Cart',
+        'Додати в кошик': 'Add to Cart',
+        'Розмір': 'Size',
+        'Колір': 'Color',
+        'Розмірна сітка': 'Size Guide',
+        'Формати друку': 'Print Formats',
+        'Параметри основи': 'Base Parameters',
+        'Матеріал': 'Material',
+        'Друк': 'Printing',
+        'Термін': 'Lead Time',
+        'Макс. зона:': 'Max area:',
+        'Залишай відступ від краю, щоб друк виглядав акуратно.': 'Leave a margin from the edge so the print looks neat.',
+        'Який формат краще обрати для футболки?': 'Which format is best for a t-shirt?',
+        'Для великого центрального принта зазвичай підходить A2 або A3, для логотипів і невеликих написів — A4 або A5.': 'A2 or A3 is usually suitable for a large central print, A4 or A5 for logos and small inscriptions.',
+        'Що робити, якщо макет виходить за межі?': 'What if the design goes out of bounds?',
+        'Зменш масштаб фото або обери інший формат друку, щоб важливі елементи не обрізалися під час друку.': 'Reduce the photo scale or choose a different print format so important elements are not cropped.',
+        'Активний формат': 'Active format',
+        'Максимум': 'Maximum',
+        'КОШИК': 'CART',
+        'Ваші товари': 'Your Items',
+        'Кошик порожній': 'Cart is Empty',
+        'Додайте товари з каталогу, і вони з\'являться тут.': 'Add items from the catalog, and they will appear here.',
+        'Додайте товари, і вони з\'являться тут.': 'Add items, and they will appear here.',
+        'Разом': 'Total',
+        'Очистити': 'Clear',
+        'Замовити': 'Order',
+        'ФОРМУВАННЯ ЗАМОВЛЕННЯ': 'ORDER FORMATION',
+        'Оформити покупку': 'Checkout',
+        'Позицій': 'Items',
+        'Сума': 'Total Amount',
+        'ПІБ': 'Full Name',
+        'Місто або населений пункт': 'City or Town',
+        'Номер НП або Укрпошти': 'Nova Poshta / Ukrposhta number',
+        'Телефон': 'Phone',
+        'Опис (необов\'язково)': 'Description (optional)',
+        'Оплата за реквізитами': 'Pay by Details',
+        'ОПЛАТА ЗА РЕКВІЗИТАМИ': 'PAYMENT BY DETAILS',
+        'Реквізити для оплати': 'Payment Details',
+        'Квитанція / скріншот оплати': 'Payment receipt / screenshot',
+        'Файл не вибрано': 'No file chosen',
+        'Оформити замовлення': 'Place Order',
+        'Сума до сплати:': 'Total to pay:',
+        'Після підтвердження ми зв\'яжемося з вами для уточнення деталей замовлення.': 'After confirmation, we will contact you to clarify the order details.',
+        'Швидкі посилання': 'Quick Links',
+        'Зв\'язатися з нами': 'Contact Us',
+        'Каталог готових надрукованих виробів та конструктор для персональних замовлень.': 'Catalog of ready-made printed products and a constructor for custom orders.',
+        'Сторінка конструктора для персоналізації друку на одязі та посуді.': 'Constructor page for personalizing prints on clothes and dishware.',
+        'Доставка і оплата': 'Delivery & Payment',
+        'Угода користувача': 'Terms of Use',
+        'Умови повернення': 'Return Policy',
+        'Політика конфіденційності': 'Privacy Policy',
+        'Договір оферти': 'Offer Agreement',
+        'Таблиця розмірів': 'Size Chart',
+        'Порівняння форматів друку': 'Print Formats Comparison',
+        'Технічна схема форматів': 'Technical formats scheme',
+        'Інформація': 'Information',
+        'Товар не знайдено': 'Product Not Found',
+        'Можливо, посилання застаріло або товар було видалено.': 'Perhaps the link is outdated or the product was deleted.',
+        'Перейти в каталог': 'Go to Catalog',
+        'Категорія': 'Category',
+        'Опція': 'Option',
+        'Відкрити каталог': 'Open Catalog',
+        'ФОП РАХУНОК (IBAN):': 'Business Account (IBAN):',
+        'ФОП РАХУНОК:': 'Business Account:',
+        'КАРТА ФОП РАХУНКУ:': 'Business Card:',
+        'КАРТА:': 'Card:',
+        'ЄДРПОУ:': 'Company Code (EDRPOU):',
+        'Компактний формат для мінімалістичних акцентів.': 'Compact format for minimalist accents.',
+        'Невеликий формат для акуратного принта.': 'Small format for a neat print.',
+        'Акуратний варіант для невеликих написів і знаків.': 'Neat option for small inscriptions and signs.',
+        'Комфортний формат для логотипів і середніх макетів.': 'Comfortable format for logos and medium designs.',
+        'Стандартна зона для центрального принта.': 'Standard zone for a central print.',
+        'Максимальна фронтальна зона для великих ілюстрацій.': 'Maximum frontal zone for large illustrations.',
+        'Панорамний принт по всій видимій площині чашки.': 'Panoramic print across the entire visible surface of the mug.',
+        'КАТАЛОГ': 'CATALOG',
+        'КОНСТРУКТОР': 'CONSTRUCTOR',
+        'РОЗМІРНА СІТКА': 'SIZE GUIDE',
+        'ФОРМАТИ ДРУКУ': 'PRINT FORMATS',
+        'Скачати у форматі DOCX': 'Download in DOCX format',
+        'Умови повернення та обміну': 'Return and Exchange Policy',
+        'Публічний договір (оферта)': 'Public Contract (Offer)',
+        'Готова біла футболка з принтом': 'Ready white t-shirt with print',
+        'Базова футболка для друку': 'Basic t-shirt for printing',
+        'Щільна тканина, зручний крій і рівна фронтальна зона для чіткого принта.': 'Thick fabric, comfortable fit and flat front area for a clear print.',
+        'Чорна базова футболка': 'Black basic t-shirt',
+        'Керамічні чашки': 'Ceramic mugs',
+        'Класична кераміка з насиченим друком, зручна для щоденного використання.': 'Classic ceramics with rich printing, comfortable for daily use.',
+        'Базове худі для друку': 'Basic hoodie for printing',
+        'Щільне худі, зручний крій і рівна фронтальна зона для чіткого принта.': 'Thick hoodie, comfortable fit and flat front area for a clear print.',
+        'Чорне базове худі': 'Black basic hoodie',
+        'Футболки': 'T-shirts',
+        'Худі': 'Hoodies',
+        'Чашки': 'Mugs',
+        'Термочашки': 'Thermo mugs',
+        'Подарункові набори': 'Gift sets',
+        'Сумки-шопери': 'Shopper bags',
+        'Назад': 'Back',
+        'Вперед': 'Next',
+        'ЧАСТІ ЗАПИТАННЯ': 'FAQ',
+        'Чи можна накладним платежем?': 'Is cash on delivery available?',
+        'Ні, тільки повна передплата.': 'No, full prepayment only.',
+        'Скільки часу на відправку?': 'How long does shipping take?',
+        'Протягом 2-5 робочих днів.': 'Within 2-5 business days.',
+        'Як підібрати розмір?': 'How to choose the size?',
+        'Зайдіть у розмірну сітку для коректного вибору.': 'Check the size chart to make the right choice.',
+        'Як зрозуміті що замовлення прийняте?': 'How to know if the order is accepted?',
+        'Якщо оплата пройшла успішно то ваше замовлення прийшло до нас, та буде відправлено.': 'If the payment is successful, your order has reached us and will be shipped.',
+        'Додано в кошик': 'Added to cart',
+        'Товар прибрано з кошика': 'Item removed from cart',
+        'Кошик очищено': 'Cart cleared',
+        'Прибрано з обраного': 'Removed from favorites',
+        'Додано в обране': 'Added to favorites',
+        'Спочатку натисни "Зберегти"': 'Click "Save" first',
+        'Макет збережено': 'Design saved',
+        'Не вдалося зберегти макет. Спробуйте ще раз.': 'Failed to save design. Try again.',
+        'Зачекай, фото ще обробляється...': 'Wait, photo is processing...',
+        'Додайте хоча б один товар у кошик.': 'Add at least one item to the cart.',
+        'Кошик порожній. Додайте товари перед оформленням.': 'Cart is empty. Add items before checkout.',
+        'Додайте скріншот або квитанцію про оплату перед оформленням замовлення.': 'Add a screenshot or payment receipt before placing the order.',
+        'Не вдалося оформити замовлення. Спробуйте ще раз.': 'Failed to place the order. Try again.',
+        'Не вдалося перейти до LiqPay. Спробуйте ще раз.': 'Failed to proceed to LiqPay. Try again.',
+        'Не вдалося скопіювати. Скопіюйте реквізити вручну.': 'Failed to copy. Copy the details manually.',
+        'Дозволено завантажувати тільки зображення або PDF (скріншот/квитанцію).': 'Only images or PDF (screenshot/receipt) are allowed.',
+        'Файл занадто великий. Максимум 12 МБ.': 'File is too large. Maximum 12 MB.',
+        'Не вдалося обробити файл. Спробуйте інше зображення.': 'Failed to process file. Try another image.',
+        'Помилка оплати. Спробуйте ще раз.': 'Payment error. Try again.',
+        'Кошик збережено, але частину файлів старих макетів прибрано': 'Cart saved, but some files from old designs were removed',
+        'Кошик збережено у спрощеному режимі для великих файлів': 'Cart saved in simplified mode for large files',
+        'Не вдалося додати в кошик': 'Failed to add to cart',
+        'Велике фото оптимізовано для стабільної роботи редактора': 'Large photo optimized for stable editor performance',
+        'Файл занадто великий. Спробуй фото до 80 МБ.': 'File is too large. Try a photo up to 80 MB.',
+        'Не вдалося завантажити фото. Спробуй інший файл.': 'Failed to upload photo. Try another file.',
+        'Оформлюємо...': 'Processing...',
+        'Зберігаємо...': 'Saving...',
+        'Переходимо до LiqPay...': 'Redirecting to LiqPay...',
+        'Скопійовано': 'Copied',
+        'Дякуємо за замовлення!': 'Thank you for your order!',
+        'Ваше замовлення буде відправлено протягом 2-5 робочих днів.': 'Your order will be shipped within 2-5 business days.',
+        'По усім питанням пишіть в бота': 'For any questions, write to our bot',
+        'Або телефонуйте за номером': 'Or call us at',
+        'Чудово, на головну': 'Great, back to home',
+        'Макет розміру L': 'Size L mockup',
+        'Біла': 'White',
+        'Чорна': 'Black',
+        'Білий': 'White',
+        'Чорний': 'Black',
+        '100% бавовна, 180 г/м²': '100% cotton, 180 g/m²',
+        'Бавовна/поліестер, 320 г/м²': 'Cotton/polyester, 320 g/m²',
+        'Кераміка': 'Ceramics',
+        'Біла кераміка': 'White ceramics',
+        'DTG, DTF та термоперенос': 'DTG, DTF and thermal transfer',
+        'Сублімація та UV DTF': 'Sublimation and UV DTF',
+        '3-5 робочих днів': '3-5 business days',
+        'до 42 x 59.4 см': 'up to 42 x 59.4 cm',
+        'до 20 x 8.5 см': 'up to 20 x 8.5 cm',
+        'Залишай 2-3 см від краю без важливих елементів — так дизайн виглядатиме чисто після друку.': 'Leave 2-3 cm from the edge without important elements so the design looks clean after printing.',
+        'Для чашки не став важливі елементи впритул до ручки — залишай безпечний зазор по краях.': 'For a mug, do not place important elements close to the handle — leave a safe gap around the edges.',
+        'Базова футболка': 'Basic t-shirt',
+        'Керамічна чашка': 'Ceramic mug',
+        'Реальне фото': 'Real photo',
+        'Редагування виробу': 'Edit Product',
+        'для кастомного друку': 'for custom printing',
+        'Біла футболка': 'White t-shirt',
+        'Чорна футболка': 'Black t-shirt',
+        'Біле худі': 'White hoodie',
+        'Чорне худі': 'Black hoodie',
+        'Перетягуй фото прямо на макеті': 'Drag the photo directly onto the mockup',
+        'Чи можна завантажити своє фото?': 'Can I upload my own photo?',
+        'Так, натисни «Завантажити фото» або просто перетягни файл прямо в зону друку на макеті.': 'Yes, click "Upload photo" or simply drag the file directly into the print area on the mockup.',
+        'Футболка з власним принтом': 'T-shirt with custom print',
+        'Худі з власним принтом': 'Hoodie with custom print',
+        'Чашка з власним принтом': 'Mug with custom print',
+        'Термочашка з власним принтом': 'Thermo mug with custom print',
+        'Товар з власним принтом': 'Product with custom print',
+        'Панорама 360': 'Panorama 360',
+        'Розмір:': 'Size:',
+        'Нічого не знайдено за цим запитом.': 'Nothing found for this query.',
+        'Оформлення цього товару без переходу в редактор.': 'Ordering this product without going to the editor.',
+        'Футболка з надруком': 'Printed t-shirt',
+        'Футболка з двостороннім надруком': 'Double-sided printed t-shirt',
+        'Худі з надруком': 'Printed hoodie',
+        'Худі oversize': 'Oversize hoodie',
+        'Худі з двостороннім надруком': 'Double-sided printed hoodie',
+        'Керамічна чашка з надруком': 'Printed ceramic mug',
+        'Чашка з двостороннім надруком': 'Double-sided printed mug',
+        'Термочашка з надруком': 'Printed thermo mug',
+        'Подарунковий набір': 'Gift set',
+        'Подарунковий набір з футболкою': 'Gift set with t-shirt',
+        'Подарунковий набір з чашкою': 'Gift set with mug',
+        'Сумка-шопер з надруком': 'Printed shopper bag',
+        'Сумка-шопер з власним принтом': 'Shopper bag with custom print',
+        'Ціна уточнюється': 'Price to be specified',
+        'Завантажуємо товар...': 'Loading product...',
+        'Таблиця розмірів для футболок': 'T-shirt size chart',
+        'Таблиця розмірів для oversize футболок': 'Oversize t-shirt size chart',
+        'Таблиця розмірів для худі': 'Hoodie size chart'
+    },
+    placeholders: {
+        'Пошук товару за назвою': 'Search product by name',
+        'Вкажіть ПІБ': 'Enter Full Name',
+        'Наприклад: Хмельницький': 'e.g. Kyiv',
+        'Наприклад: НП 27 / Укрпошта 01001': 'e.g. Post Office 27',
+        'Додаткові побажання': 'Additional wishes',
+        'Напиши свій текст...': 'Type your text...'
+    },
+    formatPrice(uah) {
+        const priceMap = {
+            650: 13, 750: 15, 850: 17, 950: 19,
+            1350: 26, 1450: 28, 1550: 30, 1650: 32
+        };
+        if (priceMap[uah]) return `${priceMap[uah]} €`;
+        return `${Math.round(uah / 50)} €`;
+    },
+    applyNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            let text = node.nodeValue;
+            let changed = false;
+            const trimmed = text.trim();
+            if (Translator.dict[trimmed]) {
+                text = text.replace(trimmed, Translator.dict[trimmed]);
+                changed = true;
+            }
+            if (/(\d[\d\s\u00A0]*)\s*грн/g.test(text)) {
+                text = text.replace(/(\d[\d\s\u00A0]*)\s*грн/g, (match, p1) => Translator.formatPrice(parseInt(p1.replace(/[^\d]/g, ''), 10)));
+                changed = true;
+            }
+            if (/(\d[\d\s\u00A0]*)\s*₴/g.test(text)) {
+                text = text.replace(/(\d[\d\s\u00A0]*)\s*₴/g, (match, p1) => Translator.formatPrice(parseInt(p1.replace(/[^\d]/g, ''), 10)));
+                changed = true;
+            }
+            if (/\(\+200 грн за 3XL\)/.test(text)) {
+                text = text.replace(/\(\+200 грн за 3XL\)/g, '(+4 € for 3XL)');
+                changed = true;
+            }
+            if (/разом з футболкою/.test(text)) {
+                text = text.replace(/разом з футболкою/g, 'with t-shirt');
+                changed = true;
+            }
+            if (/разом з худі/.test(text)) {
+                text = text.replace(/разом з худі/g, 'with hoodie');
+                changed = true;
+            }
+            if (/(\d+(?:\.\d+)?)\s*мм/g.test(text)) {
+                text = text.replace(/(\d+(?:\.\d+)?)\s*мм/g, '$1 mm');
+                changed = true;
+            }
+            if (/(\d+(?:\.\d+)?)\s*см/g.test(text)) {
+                text = text.replace(/(\d+(?:\.\d+)?)\s*см/g, '$1 cm');
+                changed = true;
+            }
+            if (changed) node.nodeValue = text;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.hasAttribute('placeholder')) {
+                const ph = node.getAttribute('placeholder');
+                if (Translator.placeholders[ph]) node.setAttribute('placeholder', Translator.placeholders[ph]);
+            }
+            if (node.hasAttribute('alt')) {
+                const alt = node.getAttribute('alt');
+                if (Translator.dict[alt]) node.setAttribute('alt', Translator.dict[alt]);
+            }
+            if (node.hasAttribute('aria-label')) {
+                const al = node.getAttribute('aria-label');
+                if (Translator.dict[al]) node.setAttribute('aria-label', Translator.dict[al]);
+            }
+        }
+    },
+    init() {
+        let storedLang = window.localStorage.getItem('upf_lang');
+        if (!storedLang) {
+            storedLang = 'ua';
+            window.localStorage.setItem('upf_lang', 'ua');
+        }
+        if (storedLang !== 'en') return;
+
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        const nodesToTranslate = [];
+        while ((node = walker.nextNode())) nodesToTranslate.push(node);
+        
+        nodesToTranslate.forEach(Translator.applyNode);
+        document.querySelectorAll('[placeholder], [alt], [aria-label]').forEach(Translator.applyNode);
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'characterData') {
+                    Translator.applyNode(mutation.target);
+                } else if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(addedNode => {
+                        if (addedNode.nodeType === Node.TEXT_NODE) {
+                            Translator.applyNode(addedNode);
+                        } else if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                            const innerWalker = document.createTreeWalker(addedNode, NodeFilter.SHOW_TEXT, null, false);
+                            let innerNode;
+                            while ((innerNode = innerWalker.nextNode())) Translator.applyNode(innerNode);
+                            if (addedNode.hasAttribute('placeholder') || addedNode.hasAttribute('alt') || addedNode.hasAttribute('aria-label')) Translator.applyNode(addedNode);
+                            addedNode.querySelectorAll('[placeholder], [alt], [aria-label]').forEach(Translator.applyNode);
+                        }
+                    });
+                } else if (mutation.type === 'attributes') {
+                    Translator.applyNode(mutation.target);
+                }
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true, subtree: true, characterData: true,
+            attributes: true, attributeFilter: ['placeholder', 'alt', 'aria-label']
+        });
+    }
+};
+
+window.Translator = Translator;
 window.MainApp = MainApp;
-document.addEventListener('DOMContentLoaded', () => MainApp.init(), { once: true });
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.Translator) window.Translator.init();
+    MainApp.init();
+}, { once: true });

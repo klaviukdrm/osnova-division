@@ -847,7 +847,16 @@ const Translator = {
         'Завантажуємо товар...': 'Loading product...',
         'Таблиця розмірів для футболок': 'T-shirt size chart',
         'Таблиця розмірів для oversize футболок': 'Oversize t-shirt size chart',
-        'Таблиця розмірів для худі': 'Hoodie size chart'
+        'Таблиця розмірів для худі': 'Hoodie size chart',
+        'Конструктор': 'Constructor',
+        'Опис товару відсутній.': 'Product description is missing.',
+        'Розмірна сітка для худі': 'Hoodie size chart',
+        'Розмірна сітка для футболок': 'T-shirt size chart',
+        'Розмірна сітка для oversize футболок': 'Oversize t-shirt size chart',
+        'Без тексту': 'No text',
+        'Товар': 'Product',
+        'Закрити': 'Close',
+        'Не вдалося ініціювати оплату через LiqPay.': 'Failed to initiate LiqPay payment.'
     },
     placeholders: {
         'Пошук товару за назвою': 'Search product by name',
@@ -874,16 +883,16 @@ const Translator = {
                 text = text.replace(trimmed, Translator.dict[trimmed]);
                 changed = true;
             }
+            if (/\(\+200 грн за 3XL\)/.test(text)) {
+                text = text.replace(/\(\+200 грн за 3XL\)/g, '(+4 € for 3XL)');
+                changed = true;
+            }
             if (/(\d[\d\s\u00A0]*)\s*грн/g.test(text)) {
                 text = text.replace(/(\d[\d\s\u00A0]*)\s*грн/g, (match, p1) => Translator.formatPrice(parseInt(p1.replace(/[^\d]/g, ''), 10)));
                 changed = true;
             }
             if (/(\d[\d\s\u00A0]*)\s*₴/g.test(text)) {
                 text = text.replace(/(\d[\d\s\u00A0]*)\s*₴/g, (match, p1) => Translator.formatPrice(parseInt(p1.replace(/[^\d]/g, ''), 10)));
-                changed = true;
-            }
-            if (/\(\+200 грн за 3XL\)/.test(text)) {
-                text = text.replace(/\(\+200 грн за 3XL\)/g, '(+4 € for 3XL)');
                 changed = true;
             }
             if (/разом з футболкою/.test(text)) {
@@ -900,6 +909,10 @@ const Translator = {
             }
             if (/(\d+(?:\.\d+)?)\s*см/g.test(text)) {
                 text = text.replace(/(\d+(?:\.\d+)?)\s*см/g, '$1 cm');
+                changed = true;
+            }
+            if (/(\d+(?:\.\d+)?)\s*мл/g.test(text)) {
+                text = text.replace(/(\d+(?:\.\d+)?)\s*мл/g, '$1 ml');
                 changed = true;
             }
             if (changed) node.nodeValue = text;

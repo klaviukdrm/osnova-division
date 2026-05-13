@@ -1,6 +1,7 @@
 const { getAllCatalogProducts } = require('./_lib/product-catalog');
 
 const APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+const BASE_APPAREL_LABEL = 'Футболка з надруком'; // Визначено для тестового товару
 const HOODIE_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const OVERSIZE_SIZES = ['S/M', 'L/XL'];
 const OVERSIZE_SURCHARGE = 200;
@@ -548,6 +549,9 @@ function buildProductHtml(product, baseUrl) {
         }
     })();
     </script>
+    <script src="/js/ui-helpers.js"></script>
+    <script src="/js/catalog.js"></script>
+    <script src="/js/main.js"></script>
 </body>
 </html>`;
 }

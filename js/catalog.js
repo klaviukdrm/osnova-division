@@ -1,4 +1,4 @@
-const Catalog = {
+﻿﻿const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
@@ -242,7 +242,7 @@ const Catalog = {
                 activeCategory: this.state.activeCategory,
                 searchQuery: this.state.searchQuery
             }));
-        } catch (e) {}
+        } catch (_) {}
     },
 
     applyFetchedProducts(sourceProducts) {
@@ -332,7 +332,7 @@ const Catalog = {
             // Зберігаємо нові дані в кеш
             try {
                 window.localStorage.setItem(cacheKey, freshDataStr);
-            } catch(e) {}
+            } catch (_) {}
 
             this.applyFetchedProducts(sourceProducts);
             return true;
@@ -1017,8 +1017,8 @@ const Catalog = {
                             <img src="${image}" alt="${item.title || 'Товар'}" class="w-full h-full object-contain">
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="text-lg font-semibold text-slate-900 leading-tight mt-1">${item.title || 'Товар'}</h4>
-                            ${item.selectedSize ? `<p class="text-xs text-slate-500 mt-1">Розмір: ${item.selectedSize}${fitLabel}</p>` : ''}
+                            <h4 class="text-lg font-semibold text-slate-900 leading-tight mt-1">${(item.title || 'Товар').includes(' • ') ? `<span>${item.title.split(' • ')[0]}</span> • <span>${item.title.split(' • ').slice(1).join(' • ')}</span>` : item.title || 'Товар'}</h4>
+                            ${item.selectedSize ? `<p class="text-xs text-slate-500 mt-1"><span>Розмір:</span> ${item.selectedSize}${fitLabel}</p>` : ''}
                             <p class="text-sm text-slate-600 mt-1">${this.formatPrice(price)} x ${quantity}</p>
                         </div>
                         <p class="text-base md:text-lg font-semibold text-slate-900 shrink-0">${this.formatPrice(subtotal)}</p>
@@ -2640,7 +2640,7 @@ const Catalog = {
                     if (parsed.searchQuery !== undefined) this.state.searchQuery = parsed.searchQuery;
                 }
             }
-        } catch (e) {}
+        } catch (_) {}
 
         const demoCategories = this.DEFAULT_CATEGORIES.slice();
         const demoProducts = this.generateDemoProducts(demoCategories);

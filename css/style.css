@@ -3655,3 +3655,45 @@ body.admin-page textarea::placeholder {
         min-height: 48px;
     }
 }
+
+/* Language Toggle overrides to match header buttons */
+#nav-lang-btn {
+    background: linear-gradient(180deg, var(--fx-surface-2) 0%, #081325 100%) !important;
+    border-color: #29466f !important;
+}
+
+#nav-lang-btn:hover {
+    border-color: var(--fx-accent) !important;
+    background: linear-gradient(180deg, #132b4c 0%, #0d213d 100%) !important;
+}
+
+@media (min-width: 640px) {
+    .nav-lang-slider {
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.45) 0%, rgba(29, 78, 216, 0.8) 100%) !important;
+        box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.5) !important;
+    }
+    #nav-lang-btn[data-active-lang="ua"] .nav-lang-slider {
+        transform: translateX(0);
+    }
+    #nav-lang-btn[data-active-lang="en"] .nav-lang-slider {
+        transform: translateX(calc(100% + 1px));
+    }
+
+    .nav-lang-cell {
+        position: relative;
+        z-index: 1;
+        color: var(--fx-text-soft) !important;
+        font-weight: 500 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        transition: color 0.4s ease, text-shadow 0.4s ease !important;
+    }
+    .nav-lang-cell:hover {
+        color: #ffffff !important;
+    }
+    .nav-lang-cell.is-active {
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 10px rgba(96, 165, 250, 0.8) !important;
+    }
+}

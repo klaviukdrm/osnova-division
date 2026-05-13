@@ -99,19 +99,25 @@
             </a>
 
             <div class="flex flex-nowrap items-center gap-x-2 w-full sm:w-auto sm:ml-auto justify-end">
-                <button id="nav-cart-btn" type="button" class="relative overflow-visible flex items-center gap-x-2 px-4 py-2 sm:px-6 sm:py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl font-medium text-sm transition">
-                    <i class="fa-solid fa-cart-shopping"></i>
+                <button id="nav-cart-btn" type="button" class="relative overflow-visible flex items-center gap-x-2 px-4 py-3 sm:px-6 sm:py-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl font-medium text-sm sm:text-[15px] sm:leading-[20px] transition">
+                    <i class="fa-solid fa-cart-shopping sm:text-[17px]"></i>
                     <span class="hidden sm:inline">Кошик</span>
                     <span id="nav-cart-count" data-cart-count class="hidden min-w-[1.3rem] h-5 px-1.5 rounded-full bg-blue-700 text-white text-xs font-semibold leading-5 text-center">0</span>
                 </button>
-                <a id="nav-contacts-btn" href="#contacts" class="liquid-glass-btn flex items-center gap-x-2 px-4 py-2 sm:px-5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-semibold text-sm transition shadow-lg shadow-blue-700/20">
-                    <i class="fa-solid fa-phone"></i>
+                <a id="nav-contacts-btn" href="#contacts" class="liquid-glass-btn hidden sm:flex items-center gap-x-2 px-4 py-3 sm:px-5 sm:py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-semibold text-sm sm:text-[15px] sm:leading-[20px] transition shadow-lg shadow-blue-700/20">
+                    <i class="fa-solid fa-phone sm:text-[17px]"></i>
                     <span class="hidden sm:inline">Контакти</span>
                 </a>
-                <a id="nav-create-btn" href="editor.html?panel=media" class="liquid-glass-btn px-5 py-2 sm:px-8 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-semibold flex items-center gap-x-2 transition shadow-lg shadow-blue-700/20">
-                    <i class="fa-solid fa-pen-to-square"></i>
+                <a id="nav-create-btn" href="editor.html?panel=media" class="liquid-glass-btn px-6 py-3 sm:px-8 sm:py-3.5 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl font-semibold text-sm sm:text-[15px] sm:leading-[20px] flex items-center gap-x-2 transition shadow-lg shadow-blue-700/20">
+                    <i class="fa-solid fa-pen-to-square sm:text-[17px]"></i>
                     <span class="hidden sm:inline">Створити дизайн</span>
                 </a>
+                <div id="nav-lang-btn" data-active-lang="ua" class="liquid-glass-btn relative flex items-center overflow-hidden text-sm sm:text-[15px] sm:leading-[20px] font-medium transition">
+                    <div class="nav-lang-slider hidden sm:block absolute top-0 left-0 h-full z-0 transition-transform duration-300 ease-out w-[calc(50%-0.5px)]"></div>
+                    <button type="button" data-lang="ua" class="nav-lang-cell is-active relative z-10 hidden sm:block flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-bold transition">UA</button>
+                    <div class="hidden sm:block w-px h-4 bg-slate-600 relative z-10"></div>
+                    <button type="button" data-lang="en" class="nav-lang-cell relative z-10 flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-extrabold [text-shadow:0_0_12px_#22d3ee,0_0_24px_#22d3ee] sm:text-slate-400 sm:[text-shadow:none] sm:font-medium hover:text-white transition">EN</button>
+                </div>
             </div>
         </div>
     </nav>

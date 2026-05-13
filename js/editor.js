@@ -1151,11 +1151,11 @@ const Editor = {
         this.elements.printArea.style.setProperty('--print-h', `${format.height ?? product.printArea.height}%`);
         this.elements.printArea.style.setProperty('--print-radius', `${format.radius ?? product.printArea.radius}px`);
 
-        this.elements.printAreaBadge.textContent = `${format.label} • ${format.widthMm} x ${format.heightMm} мм`;
+        this.elements.printAreaBadge.innerHTML = `<span>${format.label}</span> • ${format.widthMm} x ${format.heightMm} мм`;
         this.elements.printDimensions.textContent = `${format.widthMm} x ${format.heightMm} мм`;
         this.elements.formatNote.textContent = format.note;
-        this.elements.previewFormatPill.innerHTML = `<i class="fa-solid fa-ruler-combined"></i>${format.label} • ${format.widthMm} x ${format.heightMm} мм`;
-        this.elements.productFormatSummary.textContent = `${format.label} — ${format.note}`;
+        this.elements.previewFormatPill.innerHTML = `<i class="fa-solid fa-ruler-combined"></i><span>${format.label}</span> • ${format.widthMm} x ${format.heightMm} мм`;
+        this.elements.productFormatSummary.innerHTML = `<span>${format.label}</span> — <span>${format.note}</span>`;
         this.syncUploadPromptMode(format);
         this.syncFormatButtons();
         this.updateProductMeta(product);
@@ -1181,9 +1181,9 @@ const Editor = {
 
         this.elements.selectedProductDescription.textContent = product.description;
         this.elements.selectedProductChip.textContent = previewProductLabel;
-        this.elements.selectedProductName.textContent = `${previewProductLabel} для кастомного друку`;
+        this.elements.selectedProductName.innerHTML = `<span>${previewProductLabel}</span> <span>для кастомного друку</span>`;
         this.elements.previewDetailProduct.textContent = previewProductLabel;
-        this.elements.previewProductPill.innerHTML = `<i class="fa-solid ${product.icon}"></i>${previewProductLabel}`;
+        this.elements.previewProductPill.innerHTML = `<i class="fa-solid ${product.icon}"></i><span>${previewProductLabel}</span>`;
         this.elements.previewZoneInfo.textContent = product.maxPrintHint;
         this.elements.productColorName.textContent = visual.colorLabel;
         this.elements.productColorSwatch.style.background = visual.swatch;

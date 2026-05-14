@@ -134,7 +134,7 @@
         const regularSizes = getRegularSizes(product, catalog);
         const oversizeSizes = Array.isArray(catalog?.OVERSIZE_SIZE_OPTIONS) && catalog.OVERSIZE_SIZE_OPTIONS.length
             ? catalog.OVERSIZE_SIZE_OPTIONS
-            : ['S/M', 'L/XL'];
+            : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
         const fallbackSurcharge = Number(catalog?.OVERSIZE_SURCHARGE);
         const oversizeSurcharge = Number.isFinite(fallbackSurcharge) ? fallbackSurcharge : 200;
 
@@ -340,4 +340,5 @@
         initProductPage();
     }
 })();
+
 

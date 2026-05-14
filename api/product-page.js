@@ -1,13 +1,13 @@
 const { getAllCatalogProducts } = require('./_lib/product-catalog');
 
 const APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
-const BASE_APPAREL_LABEL = 'Р¤СѓС‚Р±РѕР»РєР° Р· РЅР°РґСЂСѓРєРѕРј'; // Р’РёР·РЅР°С‡РµРЅРѕ РґР»СЏ С‚РµСЃС‚РѕРІРѕРіРѕ С‚РѕРІР°СЂСѓ
+const BASE_APPAREL_LABEL = '\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0437 \u043d\u0430\u0434\u0440\u0443\u043a\u043e\u043c';
 const HOODIE_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const OVERSIZE_SIZES = ['S/M', 'L/XL'];
 const OVERSIZE_SURCHARGE = 200;
 const OVERSIZE_SIZE_CHART_IMAGE = '/images/photo_2026-05-09_12-29-27.jpg';
-const OVERSIZE_SIZE_CHART_ALT = 'Р РѕР·РјС–СЂРЅР° СЃС–С‚РєР° РґР»СЏ oversize С„СѓС‚Р±РѕР»РѕРє';
-const OVERSIZE_SIZE_CHART_TITLE = 'РўР°Р±Р»РёС†СЏ СЂРѕР·РјС–СЂС–РІ РґР»СЏ oversize С„СѓС‚Р±РѕР»РѕРє';
+const OVERSIZE_SIZE_CHART_ALT = '\u0420\u043e\u0437\u043c\u0456\u0440\u043d\u0430 \u0441\u0456\u0442\u043a\u0430 \u0434\u043b\u044f oversize \u0444\u0443\u0442\u0431\u043e\u043b\u043e\u043a';
+const OVERSIZE_SIZE_CHART_TITLE = '\u0422\u0430\u0431\u043b\u0438\u0446\u044f \u0440\u043e\u0437\u043c\u0456\u0440\u0456\u0432 \u0434\u043b\u044f oversize \u0444\u0443\u0442\u0431\u043e\u043b\u043e\u043a';
 
 function escapeHtml(value) {
     return String(value || '')
@@ -74,11 +74,11 @@ function isHoodieProduct(product) {
 function isTshirtProduct(product) {
     const haystack = `${product?.category || ''} ${product?.displayCategory || ''} ${product?.subcategory || ''} ${product?.title || ''}`
         .toLowerCase();
-    return haystack.includes('С„СѓС‚Р±РѕР»');
+    return haystack.includes('\u0444\u0443\u0442\u0431\u043e\u043b');
 }
 
 function buildNotFoundHtml(baseUrl) {
-    const title = 'РўРѕРІР°СЂ РЅРµ Р·РЅР°Р№РґРµРЅРѕ | Ukrainian Print Family';
+    const title = '\u0422\u043e\u0432\u0430\u0440 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e | Ukrainian Print Family';
     const canonical = `${baseUrl}/`;
 
     return `<!DOCTYPE html>
@@ -87,7 +87,7 @@ function buildNotFoundHtml(baseUrl) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapeHtml(title)}</title>
-    <meta name="description" content="РўРѕРІР°СЂ РЅРµ Р·РЅР°Р№РґРµРЅРѕ.">
+    <meta name="description" content="\u0422\u043e\u0432\u0430\u0440 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="${escapeHtml(canonical)}">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -102,10 +102,10 @@ function buildNotFoundHtml(baseUrl) {
 <body class="tail-container bg-white text-slate-900">
     <main class="min-h-screen flex items-center justify-center px-6">
         <div class="max-w-xl w-full rounded-3xl border border-slate-200 bg-white p-8 text-center">
-            <h1 class="text-3xl font-bold section-title">РўРѕРІР°СЂ РЅРµ Р·РЅР°Р№РґРµРЅРѕ</h1>
-            <p class="text-slate-600 mt-3">РњРѕР¶Р»РёРІРѕ, С†РµР№ С‚РѕРІР°СЂ РІРёРґР°Р»РµРЅРѕ Р°Р±Рѕ РїРѕСЃРёР»Р°РЅРЅСЏ Р·Р°СЃС‚Р°СЂС–Р»Рѕ.</p>
+            <h1 class="text-3xl font-bold section-title">\u0422\u043e\u0432\u0430\u0440 \u043d\u0435 \u0437\u043d\u0430\u0439\u0434\u0435\u043d\u043e</h1>
+            <p class="text-slate-600 mt-3">\u041c\u043e\u0436\u043b\u0438\u0432\u043e, \u0446\u0435\u0439 \u0442\u043e\u0432\u0430\u0440 \u0432\u0438\u0434\u0430\u043b\u0435\u043d\u043e \u0430\u0431\u043e \u043f\u043e\u0441\u0438\u043b\u0430\u043d\u043d\u044f \u0437\u0430\u0441\u0442\u0430\u0440\u0456\u043b\u043e.</p>
             <a href="/index.html#products" class="inline-flex mt-6 liquid-glass-btn px-5 py-3 rounded-2xl bg-blue-700 text-white font-semibold">
-                Р”Рѕ РєР°С‚Р°Р»РѕРіСѓ
+                \u0414\u043e \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0443
             </a>
         </div>
     </main>
@@ -114,11 +114,13 @@ function buildNotFoundHtml(baseUrl) {
 }
 
 function buildProductHtml(product, baseUrl) {
-    const title = String(product?.title || 'РўРѕРІР°СЂ').trim();
-    const description = String(product?.description || `РЎС‚РѕСЂС–РЅРєР° С‚РѕРІР°СЂСѓ В«${title}В».`).trim();
-    const category = String(product?.displayCategory || product?.category || 'РљР°С‚Р°Р»РѕРі').trim();
+    const title = String(product?.title || '\u0422\u043e\u0432\u0430\u0440').trim();
+    const description = String(product?.description || `\u0421\u0442\u043e\u0440\u0456\u043d\u043a\u0430 \u0442\u043e\u0432\u0430\u0440\u0443 \u00ab${title}\u00bb.`).trim();
+    const category = String(product?.displayCategory || product?.category || '\u041a\u0430\u0442\u0430\u043b\u043e\u0433').trim();
     const priceValue = Number(product?.price);
-    const priceLabel = Number.isFinite(priceValue) ? `${priceValue.toLocaleString('uk-UA')} РіСЂРЅ` : 'Р¦С–РЅР° СѓС‚РѕС‡РЅСЋС”С‚СЊСЃСЏ';
+    const priceLabel = Number.isFinite(priceValue)
+        ? `${priceValue.toLocaleString('uk-UA')} \u0433\u0440\u043d`
+        : '\u0426\u0456\u043d\u0430 \u0443\u0442\u043e\u0447\u043d\u044e\u0454\u0442\u044c\u0441\u044f';
     const image = ensureAbsolutePath((Array.isArray(product?.gallery) && product.gallery[0]) || product?.image || '');
     const canonical = `${baseUrl}/product/${encodeURIComponent(String(product?.slug || ''))}`;
     const absoluteImage = image
@@ -257,10 +259,10 @@ function buildProductHtml(product, baseUrl) {
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
             <a href="/index.html#products" class="inline-flex items-center gap-2 liquid-glass-btn px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-800">
                 <i class="fa-solid fa-arrow-left"></i>
-                Р”Рѕ РєР°С‚Р°Р»РѕРіСѓ
+                \u0414\u043e \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0443
             </a>
             <a href="/index.html" class="flex items-center gap-2 text-slate-900 font-semibold">
-                <img src="/images/photo_2025-09-24_14-16-02.jpg" alt="Р›РѕРіРѕС‚РёРї" class="w-8 h-8 rounded-xl object-cover border border-slate-200">
+                <img src="/images/photo_2025-09-24_14-16-02.jpg" alt="\u041b\u043e\u0433\u043e\u0442\u0438\u043f" class="w-8 h-8 rounded-xl object-cover border border-slate-200">
                 <span>Ukrainian Print Family</span>
             </a>
         </div>
@@ -277,7 +279,7 @@ function buildProductHtml(product, baseUrl) {
                     <p id="product-price-label" class="text-3xl font-semibold text-emerald-600">${escapeHtml(priceLabel)}</p>
                     ${availableSizes.length ? `
                     <div class="pt-1">
-                        <p class="product-card-v2__meta-label mb-2">Р РѕР·РјС–СЂ</p>
+                        <p class="product-card-v2__meta-label mb-2">\u0420\u043e\u0437\u043c\u0456\u0440</p>
                         ${tshirtProduct ? `
                         <div id="product-fit-options" class="product-card-v2__fit-toggle mb-2">
                             <button
@@ -330,25 +332,25 @@ function buildProductHtml(product, baseUrl) {
             <div>
                 <div class="flex items-center gap-x-3 mb-6">
                     <div class="w-8 h-8 bg-white rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
-                        <img src="/images/photo_2025-09-24_14-16-02.jpg" alt="Р›РѕРіРѕС‚РёРї Ukrainian Print Family" class="w-full h-full object-cover">
+                        <img src="/images/photo_2025-09-24_14-16-02.jpg" alt="\u041b\u043e\u0433\u043e\u0442\u0438\u043f Ukrainian Print Family" class="w-full h-full object-cover">
                     </div>
                     <span class="text-2xl font-bold">Ukrainian Print Family</span>
                 </div>
-                <p class="text-slate-400 leading-relaxed">РЎС‚РѕСЂС–РЅРєР° РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° РґР»СЏ РїРµСЂСЃРѕРЅР°Р»С–Р·Р°С†С–С— РґСЂСѓРєСѓ РЅР° РѕРґСЏР·С– С‚Р° РїРѕСЃСѓРґС–.</p>
+                <p class="text-slate-400 leading-relaxed">\u0421\u0442\u043e\u0440\u0456\u043d\u043a\u0430 \u043a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440\u0430 \u0434\u043b\u044f \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b\u0456\u0437\u0430\u0446\u0456\u0457 \u0434\u0440\u0443\u043a\u0443 \u043d\u0430 \u043e\u0434\u044f\u0437\u0456 \u0442\u0430 \u043f\u043e\u0441\u0443\u0434\u0456.</p>
             </div>
 
             <div>
-                <p class="font-medium mb-4">РЁРІРёРґРєС– РїРѕСЃРёР»Р°РЅРЅСЏ</p>
+                <p class="font-medium mb-4">\u0428\u0432\u0438\u0434\u043a\u0456 \u043f\u043e\u0441\u0438\u043b\u0430\u043d\u043d\u044f</p>
                 <div class="space-y-2 text-slate-400 text-sm">
-                    <a href="/index.html#products" class="block hover:text-white transition">РљР°С‚Р°Р»РѕРі</a>
-                    <a href="/editor.html" class="block hover:text-white transition">РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ</a>
-                    <a href="#contacts" class="block hover:text-white transition">РљРѕРЅС‚Р°РєС‚Рё</a>
+                    <a href="/index.html#products" class="block hover:text-white transition">\u041a\u0430\u0442\u0430\u043b\u043e\u0433</a>
+                    <a href="/editor.html" class="block hover:text-white transition">\u041a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440</a>
+                    <a href="#contacts" class="block hover:text-white transition">\u041a\u043e\u043d\u0442\u0430\u043a\u0442\u0438</a>
                 </div>
             </div>
 
             <div>
-                <p class="font-medium mb-4">Р—РІ'СЏР·Р°С‚РёСЃСЏ Р· РЅР°РјРё</p>
-                <p class="text-slate-400">РҐРјРµР»СЊРЅРёС†СЊРєРёР№, РЈРєСЂР°С—РЅР°</p>
+                <p class="font-medium mb-4">\u0417\u0432'\u044f\u0437\u0430\u0442\u0438\u0441\u044f \u0437 \u043d\u0430\u043c\u0438</p>
+                <p class="text-slate-400">\u0425\u043c\u0435\u043b\u044c\u043d\u0438\u0446\u044c\u043a\u0438\u0439, \u0423\u043a\u0440\u0430\u0457\u043d\u0430</p>
                 <p class="text-slate-400">+380986677359</p>
                 <p class="text-slate-400">dreamprint777@ukr.net</p>
                 <a href="https://t.me/Ukrainian_Print_Familybot" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-2xl border border-slate-600 hover:border-sky-400 text-slate-200 hover:text-white transition">
@@ -370,28 +372,28 @@ function buildProductHtml(product, baseUrl) {
 
         <div class="max-w-7xl mx-auto px-6 mt-10">
             <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-400">
-                <a href="/index.html#contacts" class="hover:text-white transition">Р”РѕСЃС‚Р°РІРєР° С– РѕРїР»Р°С‚Р°</a>
-                <span class="text-slate-600">вЂў</span>
-                <a href="/index.html#contacts" class="hover:text-white transition">РЈРіРѕРґР° РєРѕСЂРёСЃС‚СѓРІР°С‡Р°</a>
-                <span class="text-slate-600">вЂў</span>
-                <a href="/index.html#contacts" class="hover:text-white transition">РџРѕР»С–С‚РёРєР° РєРѕРЅС„С–РґРµРЅС†С–Р№РЅРѕСЃС‚С–</a>
+                <a href="/index.html#contacts" class="hover:text-white transition">\u0414\u043e\u0441\u0442\u0430\u0432\u043a\u0430 \u0456 \u043e\u043f\u043b\u0430\u0442\u0430</a>
+                <span class="text-slate-600">\u2022</span>
+                <a href="/index.html#contacts" class="hover:text-white transition">\u0423\u0433\u043e\u0434\u0430 \u043a\u043e\u0440\u0438\u0441\u0442\u0443\u0432\u0430\u0447\u0430</a>
+                <span class="text-slate-600">\u2022</span>
+                <a href="/index.html#contacts" class="hover:text-white transition">\u041f\u043e\u043b\u0456\u0442\u0438\u043a\u0430 \u043a\u043e\u043d\u0444\u0456\u0434\u0435\u043d\u0446\u0456\u0439\u043d\u043e\u0441\u0442\u0456</a>
             </div>
         </div>
 
         <div class="text-center text-xs text-slate-500 mt-20">
-            В© 2026 Ukrainian Print Family. РЈСЃС– РїСЂР°РІР° Р·Р°С…РёС‰РµРЅС–.
+            \u00A9 2026 Ukrainian Print Family. \u0423\u0441\u0456 \u043f\u0440\u0430\u0432\u0430 \u0437\u0430\u0445\u0438\u0449\u0435\u043d\u0456.
         </div>
     </footer>
 
     ${availableSizes.length ? `
     <div id="product-size-chart-modal" class="fixed inset-0 z-[64] hidden">
-        <button type="button" class="absolute inset-0 bg-slate-900/75" data-size-chart-close aria-label="Р—Р°РєСЂРёС‚Рё"></button>
+        <button type="button" class="absolute inset-0 bg-slate-900/75" data-size-chart-close aria-label="\u0417\u0430\u043a\u0440\u0438\u0442\u0438"></button>
         <div class="relative max-w-4xl mx-auto mt-8 mb-8 bg-white rounded-3xl shadow-2xl p-5 md:p-7 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <button type="button" class="absolute top-4 right-4 w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:border-blue-700 transition" data-size-chart-close aria-label="Р—Р°РєСЂРёС‚Рё">
+            <button type="button" class="absolute top-4 right-4 w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:border-blue-700 transition" data-size-chart-close aria-label="\u0417\u0430\u043a\u0440\u0438\u0442\u0438">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="pr-12">
-                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Р РћР—РњР†Р РќРђ РЎР†РўРљРђ</p>
+                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">\u0420\u041e\u0417\u041c\u0406\u0420\u041d\u0410 \u0421\u0406\u0422\u041a\u0410</p>
                 <h3 id="product-size-chart-title" class="text-2xl md:text-3xl font-bold section-title mt-2">${escapeHtml(sizeChartTitle)}</h3>
             </div>
             <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 md:p-3">
@@ -434,7 +436,7 @@ function buildProductHtml(product, baseUrl) {
 
         const formatPrice = (value) => {
             const amount = Number(value || 0);
-            return Math.round(amount).toLocaleString('uk-UA') + ' РіСЂРЅ';
+            return Math.round(amount).toLocaleString('uk-UA') + ' \u0433\u0440\u043d';
         };
 
         const getCurrentSizes = () => (fitMode === 'oversize' ? oversizeSizes : regularSizes);

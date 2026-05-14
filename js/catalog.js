@@ -637,19 +637,20 @@
         return this.OVERSIZE_SIZE_OPTIONS.some((entry) => this.normalizeSizeCode(entry) === normalized);
     },
 
-    getSizeSurcharge(item, selectedSize = '') {
+    getSizeSurcharge(item, selectedSize = '', fit = '') {
         if (!this.isTshirtItem(item)) return 0;
-        const sizeCode = this.normalizeSizeCode(selectedSize || item?.selectedSize);
-        if (this.isOversizeSize(sizeCode)) {
+        const fitMode = this.normalizeFitMode(fit || item?.selectedFit || this.getSelectedFit(item));
+        if (fitMode === this.FIT_OVERSIZE) {
             return this.OVERSIZE_SURCHARGE;
         }
+        const sizeCode = this.normalizeSizeCode(selectedSize || item?.selectedSize);
         return sizeCode === this.PLUS_SIZE_CODE ? this.PLUS_SIZE_SURCHARGE : 0;
     },
 
-    getProductPrice(item, selectedSize = '') {
+    getProductPrice(item, selectedSize = '', fit = '') {
         const price = Number(item?.price);
         const basePrice = Number.isFinite(price) ? price : 0;
-        return basePrice + this.getSizeSurcharge(item, selectedSize);
+        return basePrice + this.getSizeSurcharge(item, selectedSize, fit);
     },
 
     getProductIdentityKey(item) {

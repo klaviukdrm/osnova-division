@@ -2368,12 +2368,13 @@
             const buildOrderPayload = () => {
                 const fullNameInput = document.getElementById('order-full-name');
                 const cityInput = document.getElementById('order-city');
-                const shippingInput = document.getElementById('order-shipping');
+                const telegramInput = document.getElementById('order-shipping');
                 const phoneInput = document.getElementById('order-phone');
                 const commentInput = document.getElementById('order-comment');
                 const name = fullNameInput?.value?.trim() || 'Без ПІБ';
-                const city = cityInput?.value?.trim() || 'Без міста';
-                const shipping = shippingInput?.value?.trim() || 'Без номера доставки';
+                const city = cityInput?.value?.trim() || 'Без міста та відділення';
+                const telegram = telegramInput?.value?.trim() || '';
+                const shipping = '';
                 const phoneDigits = extractOrderPhoneDigits(phoneInput?.value || '');
                 const phone = phoneDigits.length === 9
                     ? formatOrderPhoneMask(phoneDigits)
@@ -2391,12 +2392,14 @@
                     name,
                     city,
                     shipping,
+                    telegram,
                     phone,
                     comment,
                     items: cartItems.map((entry) => ({
                         title: entry.item?.title || '',
                         category: this.getDisplayCategory(entry.item),
                         source: entry.item?.source || '',
+                        color: entry.item?.color || '',
                         size: entry.item?.selectedSize ? `${entry.item.selectedSize}${entry.item.selectedFit === 'oversize' ? ' (oversize)' : ''}` : '',
                         price: this.getProductPrice(entry.item),
                         quantity: this.normalizeQuantity(entry.quantity),

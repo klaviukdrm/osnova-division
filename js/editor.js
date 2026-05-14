@@ -2245,6 +2245,20 @@ const Editor = {
                     || Number(error?.code) === 22
                     || /quota|storage/i.test(message);
             };
+            const currentCartIndex = existingIndex >= 0 ? existingIndex : (cartItems.length - 1);
+            const isCurrentCartItem = (entry, index) => {
+                if (!entry || !entry.item) return false;
+                if (index === currentCartIndex) return true;
+
+                const entrySize = String(entry.item.selectedSize || '').trim();
+                const targetSize = String(cartItem.selectedSize || '').trim();
+                if (cartItem.customKey && entry.item.customKey) {
+                    return entry.item.customKey === cartItem.customKey && entrySize === targetSize;
+                }
+
+                const fallbackEntryKey = `${entry.item.category || ''}::${entry.item.title || ''}`;
+                return fallbackEntryKey === itemKey;
+            };
 
             try {
                 window.localStorage.setItem(cartStorageKey, payload);
@@ -2253,17 +2267,20 @@ const Editor = {
                     throw storageError;
                 }
 
-                const toCompactEntries = (entries, mode = 'keep-current-sources') => entries.map((entry) => {
+                const toCompactEntries = (entries, mode = 'keep-current-sources') => entries.map((entry, index) => {
                     const nextItem = { ...(entry?.item || {}) };
                     delete nextItem.gallery;
+                    const keepCurrentSources = isCurrentCartItem(entry, index);
 
                     if (Array.isArray(nextItem.sourceImages)) {
                         if (mode === 'keep-current-sources') {
-                            if (nextItem.customKey !== cartItem.customKey) {
+                            if (!keepCurrentSources) {
                                 delete nextItem.sourceImages;
                             }
                         } else if (mode === 'drop-all-sources') {
-                            delete nextItem.sourceImages;
+                            if (!keepCurrentSources) {
+                                delete nextItem.sourceImages;
+                            }
                         }
                     }
 

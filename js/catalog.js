@@ -27,7 +27,7 @@
         },
         oversize: {
             title: 'Таблиця розмірів для oversize футболок',
-            image: 'images/photo_2026-05-09_12-29-27.jpg',
+            image: 'images/photo_2026-05-14_11-09-43.jpg',
             alt: 'Розмірна сітка для oversize футболок'
         },
         hoodie: {
@@ -2695,3 +2695,4 @@
 };
 
 window.Catalog = Catalog;
+

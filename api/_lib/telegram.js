@@ -419,14 +419,33 @@ async function sendTelegramMediaGroupChunk(files, caption = '') {
     });
 
     const response = await postMultipart(apiUrl, parts);
-    if (!response.ok || !response.data?.ok) {
-        const reason = response.data?.description || response.raw || `HTTP ${response.statusCode}`;
-        const error = new Error(`Telegram sendMediaGroup failed: ${reason}`);
-        error.code = 'TELEGRAM_SEND_MEDIA_GROUP_FAILED';
-        throw error;
+    if (response.ok && response.data?.ok) {
+        return response.data.result;
     }
 
-    return response.data.result;
+    const reason = response.data?.description || response.raw || `HTTP ${response.statusCode}`;
+    const error = new Error(`Telegram sendMediaGroup failed: ${reason}`);
+    error.code = 'TELEGRAM_SEND_MEDIA_GROUP_FAILED';
+
+    // Fallback: if media group fails, try to deliver files one by one.
+    const fallbackResults = [];
+    let fallbackCaption = textCaption;
+    let fallbackSucceeded = false;
+
+    for (const file of preparedFiles) {
+        try {
+            const singleResult = await sendTelegramDocument(file, fallbackCaption);
+            fallbackCaption = '';
+            fallbackSucceeded = true;
+            fallbackResults.push(singleResult);
+        } catch (_) {}
+    }
+
+    if (fallbackSucceeded) {
+        return fallbackResults;
+    }
+
+    throw error;
 }
 
 async function sendTelegramMediaGroup(files, caption = '') {

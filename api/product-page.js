@@ -5,7 +5,7 @@ const BASE_APPAREL_LABEL = '\u0424\u0443\u0442\u0431\u043e\u043b\u043a\u0430 \u0
 const HOODIE_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const OVERSIZE_SIZES = ['S/M', 'L/XL'];
 const OVERSIZE_SURCHARGE = 200;
-const OVERSIZE_SIZE_CHART_IMAGE = '/images/photo_2026-05-09_12-29-27.jpg';
+const OVERSIZE_SIZE_CHART_IMAGE = '/images/photo_2026-05-14_11-09-43.jpg';
 const OVERSIZE_SIZE_CHART_ALT = '\u0420\u043e\u0437\u043c\u0456\u0440\u043d\u0430 \u0441\u0456\u0442\u043a\u0430 \u0434\u043b\u044f oversize \u0444\u0443\u0442\u0431\u043e\u043b\u043e\u043a';
 const OVERSIZE_SIZE_CHART_TITLE = '\u0422\u0430\u0431\u043b\u0438\u0446\u044f \u0440\u043e\u0437\u043c\u0456\u0440\u0456\u0432 \u0434\u043b\u044f oversize \u0444\u0443\u0442\u0431\u043e\u043b\u043e\u043a';
 
@@ -586,4 +586,5 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     res.status(200).send(buildProductHtml(product, baseUrl));
 };
+
 

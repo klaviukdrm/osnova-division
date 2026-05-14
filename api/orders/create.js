@@ -80,6 +80,9 @@ module.exports = async (req, res) => {
                 await sendTelegramMediaGroup(constructorMediaFiles, caption);
             } catch (previewError) {
                 console.warn('Failed to send constructor media group to Telegram.', previewError);
+                try {
+                    await sendTelegramMessage(`⚠️ Не вдалося надіслати файли макету до замовлення ${orderId}.`);
+                } catch (_) {}
             }
         }
 

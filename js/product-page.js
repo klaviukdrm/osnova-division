@@ -104,7 +104,7 @@
 
         const oversizeConfig = catalog?.SIZE_CHART_CONFIG?.oversize || {
             title: 'Таблиця розмірів для oversize футболок',
-            image: 'images/photo_2026-05-09_12-29-27.jpg',
+            image: 'images/photo_2026-05-14_11-09-43.jpg',
             alt: 'Розмірна сітка для oversize футболок'
         };
 
@@ -263,7 +263,7 @@
         const fullImage = (Array.isArray(product?.gallery) && product.gallery[0]) || product?.image || '';
 
         if (titleEl) titleEl.textContent = product?.title || 'Товар';
-        if (categoryEl) categoryEl.textContent = category;
+        if (categoryEl) categoryEl.style.display = 'none';
         if (priceEl) priceEl.textContent = price;
         if (descriptionEl) descriptionEl.textContent = product?.description || 'Опис товару відсутній.';
         if (imageEl) {
@@ -340,3 +340,4 @@
         initProductPage();
     }
 })();
+

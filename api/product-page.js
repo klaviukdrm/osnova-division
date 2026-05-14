@@ -310,11 +310,11 @@ function buildProductHtml(product, baseUrl) {
                     <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
                         <button id="product-order-btn" type="button" class="product-page-btn product-page-btn--green w-full">
                             <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
-                            В кошик
+                            \u0412 \u043a\u043e\u0448\u0438\u043a
                         </button>
                         ${availableSizes.length ? `
                         <button id="product-size-chart-btn" type="button" class="product-page-btn product-page-btn--orange w-full">
-                            Розміри
+                            \u0420\u043e\u0437\u043c\u0456\u0440\u0438
                         </button>
                         ` : ''}
                     </div>

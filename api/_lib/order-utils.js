@@ -50,6 +50,7 @@ function parseOrderPayload(body) {
         name: String(body?.name || '').trim(),
         city: String(body?.city || '').trim(),
         shipping: String(body?.shipping || '').trim(),
+        telegram: String(body?.telegram || '').trim(),
         phone: String(body?.phone || '').trim(),
         comment: String(body?.comment || '').trim(),
         receiptImage: String(body?.receiptImage || '').trim(),
@@ -119,25 +120,27 @@ function formatKyivTime(timestampValue) {
 function buildCreatedOrderMessage(order) {
     const itemsText = formatCreatedItems(order.items);
     const lines = [
-        '\uD83D\uDC80 \u041d\u041e\u0412\u0415 \u0417\u0410\u041c\u041e\u0412\u041b\u0415\u041d\u041d\u042f \uD83D\uDC80',
+        '🔥 НОВЕ ЗАМОВЛЕННЯ 🔥',
         '',
-        `\uD83C\uDD94 \u041d\u043e\u043c\u0435\u0440: ${order.orderId}`,
-        `\uD83D\uDC64 \u041f\u0406\u0411: ${order.name || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
-        `\uD83D\uDCDE \u0422\u0435\u043b: ${order.phone || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
-        `\uD83C\uDFD9\uFE0F \u041c\u0456\u0441\u0442\u043e: ${order.city || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
-        `\uD83D\uDCE6 \u0414\u043e\u0441\u0442\u0430\u0432\u043a\u0430: ${order.shipping || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
+        `🎟️ Номер: ${order.orderId}`,
+        `🧍 ПІБ: ${order.name || 'Не вказано'}`,
+        `📱 Телефон: ${order.phone || 'Не вказано'}`,
+        `📍 Місто + відділення: ${order.city || 'Не вказано'}`,
         '',
-        `\uD83D\uDED2\uFE0F \u0422\u043e\u0432\u0430\u0440\u0438:\n${itemsText}`,
-        `\uD83D\uDCB3 \u041e\u043f\u043b\u0430\u0442\u0430: ${mapPaymentMethodLabel(order.paymentMethod)}`,
-        '\uD83D\uDCCC \u0421\u0442\u0430\u0442\u0443\u0441: created',
-        `\uD83D\uDCB0 \u0421\u0423\u041c\u0410: ${formatCurrency(order.total)}`
+        `🛍️ Товари:\n${itemsText}`,
+        `💳 Оплата: ${mapPaymentMethodLabel(order.paymentMethod)}`,
+        '🟡 Статус: created',
+        `💵 Сума: ${formatCurrency(order.total)}`
     ];
 
+    if (order.telegram) {
+        lines.push(`💬 Telegram: ${order.telegram}`);
+    }
     if (order.comment) {
-        lines.push(`\uD83D\uDCDD \u041a\u043e\u043c\u0435\u043d\u0442\u0430\u0440: ${order.comment}`);
+        lines.push(`🗒️ Коментар: ${order.comment}`);
     }
     if (order.receiptImage) {
-        lines.push('\uD83E\uDDFE \u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0456\u044f: \u0434\u043e\u0434\u0430\u043d\u043e');
+        lines.push('🧾 Квитанція: додано');
     }
 
     return lines.join('\n');
@@ -146,20 +149,22 @@ function buildCreatedOrderMessage(order) {
 function buildInvoiceOrderMessage(order) {
     const itemsText = formatCreatedItems(order.items);
     const lines = [
-        `\uD83D\uDC80 \u041d\u041e\u0412\u0415 \u0417\u0410\u041c\u041e\u0412\u041b\u0415\u041d\u041d\u042f ${order.orderId} \uD83D\uDC80`,
+        `🔥 НОВЕ ЗАМОВЛЕННЯ ${order.orderId} 🔥`,
         '',
-        `\uD83D\uDC64 \u041f\u0406\u0411: ${order.name || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
-        `\uD83D\uDCDE \u0422\u0435\u043b: ${order.phone || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
-        `\uD83C\uDFD9\uFE0F \u041c\u0456\u0441\u0442\u043e: ${order.city || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
-        `\uD83D\uDCE6 \u041d\u041f: ${order.shipping || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e'}`,
+        `🧍 ПІБ: ${order.name || 'Не вказано'}`,
+        `📱 Телефон: ${order.phone || 'Не вказано'}`,
+        `📍 Місто + відділення: ${order.city || 'Не вказано'}`,
         '',
-        itemsText,
-        `\uD83D\uDCB0 \u0421\u0423\u041c\u0410: ${formatCurrency(order.total)}`,
-        '\uD83D\uDCB3 \u041E\u041F\u041B\u0410\u0422\u0410 \u041F\u041E \u0420\u0415\u041A\u0412\u0406\u0417\u0418\u0422\u0410\u041C'
+        `🛍️ Товари:\n${itemsText}`,
+        `💵 Сума: ${formatCurrency(order.total)}`,
+        '🏦 Оплата по реквізитам'
     ];
 
+    if (order.telegram) {
+        lines.push(`💬 Telegram: ${order.telegram}`);
+    }
     if (order.comment) {
-        lines.push(`\uD83D\uDCDD \u041a\u043e\u043c\u0435\u043d\u0442\u0430\u0440: ${order.comment}`);
+        lines.push(`🗒️ Коментар: ${order.comment}`);
     }
 
     return lines.join('\n');

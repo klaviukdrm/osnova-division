@@ -2186,6 +2186,8 @@ const Editor = {
         this.translateTextInputToUkrainian();
         const product = this.getSelectedProduct();
         const format = this.getSelectedFormat();
+        const selectedVariant = this.getSelectedVariant(product);
+        const selectedColor = String(selectedVariant?.label || this.getProductVisual(product).colorLabel || '').trim();
         const text = this.elements.textInput.value.trim() || 'Без тексту';
         const cartStorageKey = 'upf_cart_v1';
         const sourceImages = this.collectCurrentSourceImages();
@@ -2197,6 +2199,7 @@ const Editor = {
             category: 'Конструктор',
             customKey: this.savedDesignKey,
             selectedSize,
+            color: selectedColor,
             price: formatBasePrice,
             image: this.savedDesignPreview,
             sourceImages,

@@ -18,7 +18,7 @@
     OVERSIZE_SURCHARGE: 200,
     FIT_REGULAR: 'regular',
     FIT_OVERSIZE: 'oversize',
-    OVERSIZE_SIZE_OPTIONS: ['S/M', 'L/XL'],
+    OVERSIZE_SIZE_OPTIONS: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
     SIZE_CHART_CONFIG: {
         default: {
             title: 'Таблиця розмірів для футболок',
@@ -2695,4 +2695,5 @@
 };
 
 window.Catalog = Catalog;
+
 

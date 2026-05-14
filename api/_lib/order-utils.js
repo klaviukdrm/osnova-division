@@ -24,6 +24,7 @@ function parseOrderItems(items) {
             title: String(item?.title || '').trim(),
             category: String(item?.category || '').trim(),
             source: String(item?.source || '').trim().toLowerCase(),
+            color: String(item?.color || '').trim(),
             size: String(item?.size || '').trim(),
             price: Number(item?.price || 0),
             quantity: Number(item?.quantity || 0),
@@ -78,10 +79,14 @@ function formatCreatedItems(items) {
 
     const maxItems = 18;
     const lines = items.slice(0, maxItems).map((item, index) => {
+        const color = String(item?.color || '').trim();
+        const title = String(item?.title || '').trim();
+        const startsWithColor = color && title.toLowerCase().startsWith(color.toLowerCase());
+        const titledWithColor = startsWithColor ? title : `${color ? `${color} ` : ''}${title}`;
         const sizePart = item.size ? ` (${item.size})` : '';
         const qtyPart = item.quantity > 1 ? ` x${item.quantity}` : '';
         const lineTotal = Number(item.price || 0) * Number(item.quantity || 0);
-        return `${index + 1}. ${item.title}${sizePart}${qtyPart} \u2014 ${formatCurrency(lineTotal)}`;
+        return `${index + 1}. ${titledWithColor}${sizePart}${qtyPart} \u2014 ${formatCurrency(lineTotal)}`;
     });
 
     if (items.length > maxItems) {

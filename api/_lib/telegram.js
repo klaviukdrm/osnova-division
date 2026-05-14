@@ -1,5 +1,5 @@
 const https = require('https');
-const TELEGRAM_MEDIA_GROUP_LIMIT = 10;
+const TELEGRAM_MEDIA_GROUP_LIMIT = 3;
 
 function postJson(url, payload) {
     return new Promise((resolve, reject) => {
@@ -116,7 +116,7 @@ function postMultipart(url, parts) {
             }
         );
 
-        req.setTimeout(15000, () => {
+        req.setTimeout(45000, () => {
             req.destroy(new Error('Telegram multipart request timeout'));
         });
 

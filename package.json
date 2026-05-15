@@ -1,0 +1,8 @@
+{
+  "name": "ukrainian-print-family",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@vercel/functions": "^2.2.12"
+  }
+}

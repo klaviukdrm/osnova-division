@@ -81,6 +81,61 @@ function buildObjectPath({ category, fileName, mimeType }) {
     return `${folder}/${timestamp}-${random}-${stem}.${extension}`;
 }
 
+function buildThumbObjectPath(objectPath) {
+    const normalized = String(objectPath || '').trim().replace(/\\/g, '/');
+    if (!normalized) return '';
+    const parts = normalized.split('/').filter(Boolean);
+    if (parts.length < 2) {
+        return `thumbs/${normalized}`;
+    }
+    const [folder, ...rest] = parts;
+    return `${folder}/thumbs/${rest.join('/')}`;
+}
+
+function encodeObjectPath(objectPath) {
+    return String(objectPath || '')
+        .split('/')
+        .map((part) => encodeURIComponent(part))
+        .join('/');
+}
+
+async function uploadToSupabaseStorage({ config, objectPath, mimeType, buffer }) {
+    const encodedObjectPath = encodeObjectPath(objectPath);
+    const uploadUrl = `${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
+    const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+            apikey: config.anonKey,
+            Authorization: `Bearer ${config.anonKey}`,
+            'Content-Type': mimeType,
+            'x-upsert': 'true'
+        },
+        body: buffer
+    });
+
+    const text = await uploadResponse.text();
+    let payload;
+    try {
+        payload = text ? JSON.parse(text) : null;
+    } catch (_) {
+        payload = text;
+    }
+
+    if (!uploadResponse.ok) {
+        const message = typeof payload === 'string'
+            ? payload
+            : (payload?.message || payload?.error || `Supabase Storage error ${uploadResponse.status}`);
+        const error = new Error(message);
+        error.status = uploadResponse.status;
+        throw error;
+    }
+
+    return {
+        objectPath,
+        publicUrl: `${config.url}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`
+    };
+}
+
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
@@ -134,46 +189,57 @@ module.exports = async (req, res) => {
         fileName: body?.fileName,
         mimeType
     });
-    const encodedObjectPath = objectPath.split('/').map((part) => encodeURIComponent(part)).join('/');
-    const uploadUrl = `${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
+    const thumbParsed = parseDataUrl(body?.thumbDataUrl);
+    let thumbBuffer = null;
+    let thumbMimeType = '';
+    if (thumbParsed && ALLOWED_MIME_TYPES.has(thumbParsed.mimeType)) {
+        try {
+            thumbBuffer = Buffer.from(thumbParsed.base64Data, 'base64');
+            thumbMimeType = thumbParsed.mimeType;
+        } catch (_) {
+            thumbBuffer = null;
+            thumbMimeType = '';
+        }
+    }
+    if (thumbBuffer && thumbBuffer.length > MAX_UPLOAD_SIZE_BYTES) {
+        thumbBuffer = null;
+        thumbMimeType = '';
+    }
 
     try {
-        const uploadResponse = await fetch(uploadUrl, {
-            method: 'POST',
-            headers: {
-                apikey: config.anonKey,
-                Authorization: `Bearer ${config.anonKey}`,
-                'Content-Type': mimeType,
-                'x-upsert': 'true'
-            },
-            body: buffer
+        const fullUpload = await uploadToSupabaseStorage({
+            config,
+            objectPath,
+            mimeType,
+            buffer
         });
-
-        const text = await uploadResponse.text();
-        let payload;
+        let thumbPublicUrl = '';
+        let warning = '';
         try {
-            payload = text ? JSON.parse(text) : null;
+            if (thumbBuffer && thumbMimeType) {
+                const thumbObjectPath = buildThumbObjectPath(objectPath);
+                const thumbUpload = await uploadToSupabaseStorage({
+                    config,
+                    objectPath: thumbObjectPath,
+                    mimeType: thumbMimeType,
+                    buffer: thumbBuffer
+                });
+                thumbPublicUrl = thumbUpload.publicUrl;
+            }
         } catch (_) {
-            payload = text;
+            warning = 'Thumbnail upload failed.';
         }
 
-        if (!uploadResponse.ok) {
-            const message = typeof payload === 'string'
-                ? payload
-                : (payload?.message || payload?.error || `Supabase Storage error ${uploadResponse.status}`);
-            sendJson(res, uploadResponse.status, { error: `Не вдалося завантажити файл: ${message}` });
-            return;
-        }
-
-        const publicUrl = `${config.url}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${encodedObjectPath}`;
         sendJson(res, 200, {
             ok: true,
             bucket: config.bucket,
-            path: objectPath,
-            publicUrl
+            path: fullUpload.objectPath,
+            publicUrl: fullUpload.publicUrl,
+            thumbPublicUrl,
+            warning
         });
     } catch (error) {
         console.error('Failed to upload image to Supabase Storage.', error);
-        sendJson(res, 502, { error: 'Помилка при завантаженні у Supabase Storage.' });
+        sendJson(res, error.status || 502, { error: `Помилка при завантаженні у Supabase Storage: ${error.message}` });
     }
 };

@@ -165,10 +165,35 @@ const Catalog = {
         }
     },
 
+    normalizeAbsoluteImageUrl(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        if (raw.startsWith('data:')) return raw;
+
+        const withProtocol = raw.startsWith('//') ? `https:${raw}` : raw;
+        try {
+            const parsed = new URL(withProtocol, window.location.origin);
+            const encodedPathname = parsed.pathname
+                .split('/')
+                .map((segment) => {
+                    if (!segment) return segment;
+                    return encodeURIComponent(this.safeDecodeUriComponent(segment));
+                })
+                .join('/');
+            parsed.pathname = encodedPathname;
+            return parsed.toString();
+        } catch (_) {
+            return raw;
+        }
+    },
+
     normalizeCatalogImagePath(value) {
         const raw = String(value || '').trim();
         if (!raw) return '';
-        if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) {
+        if (/^(https?:)?\/\//i.test(raw)) {
+            return this.normalizeAbsoluteImageUrl(raw);
+        }
+        if (raw.startsWith('data:')) {
             return raw;
         }
 
@@ -284,7 +309,7 @@ const Catalog = {
     },
 
     async loadProductsFromApi() {
-        const cacheKey = `upf_catalog_all_v2`;
+        const cacheKey = `upf_catalog_all_v3`;
 
         let hasCached = false;
         let cachedDataStr = null;
@@ -1472,7 +1497,7 @@ const Catalog = {
                 return `
             <article class="product-card product-card-v2 bg-white rounded-3xl overflow-hidden border border-slate-200 text-left transition" data-index="${index}">
                 <div class="product-card-v2__media" data-action="open-product-page" data-index="${index}">
-                    <img src="${activeImage}" data-full-image="${activeFullImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async" onerror="if(this.dataset.fullImage&&this.src!==this.dataset.fullImage){this.src=this.dataset.fullImage;}">
+                    <img src="${activeImage}" data-full-image="${activeFullImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async" onerror="window.Catalog&&window.Catalog.handleCardImageError&&window.Catalog.handleCardImageError(this)">
 
                     ${galleryLength > 1 ? `
                     <div class="product-card-v2__nav">
@@ -1621,6 +1646,29 @@ const Catalog = {
         };
 
         this.renderPagination(filteredList.length);
+    },
+
+    handleCardImageError(imageElement) {
+        if (!imageElement) return;
+
+        const fullImage = String(imageElement.getAttribute('data-full-image') || '').trim();
+        const fallbackImage = 'images/muzhskaya-futbolka-belaya-1005.png';
+        const currentSrc = String(imageElement.getAttribute('src') || '').trim();
+        const attempt = Number.parseInt(String(imageElement.dataset.fallbackAttempt || '0'), 10) || 0;
+
+        if (attempt < 1 && fullImage && currentSrc !== fullImage) {
+            imageElement.dataset.fallbackAttempt = '1';
+            imageElement.setAttribute('src', fullImage);
+            return;
+        }
+
+        if (attempt < 2 && fallbackImage && currentSrc !== fallbackImage) {
+            imageElement.dataset.fallbackAttempt = '2';
+            imageElement.setAttribute('src', fallbackImage);
+            return;
+        }
+
+        imageElement.onerror = null;
     },
 
     getPrimaryImage(item) {

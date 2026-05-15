@@ -9,6 +9,13 @@ const {
     extractAdminPreviewItems
 } = require('../_lib/order-utils');
 
+let waitUntil = null;
+try {
+    ({ waitUntil } = require('@vercel/functions'));
+} catch (_) {
+    waitUntil = null;
+}
+
 function parseRequestBody(req) {
     if (!req || req.body === undefined || req.body === null) return {};
     if (typeof req.body === 'object') return req.body;
@@ -18,6 +25,132 @@ function parseRequestBody(req) {
         return JSON.parse(req.body);
     } catch (_) {
         return {};
+    }
+}
+
+function scheduleBackgroundTask(taskPromise) {
+    if (!taskPromise || typeof taskPromise.then !== 'function') return;
+    if (typeof waitUntil === 'function') {
+        try {
+            waitUntil(taskPromise);
+            return;
+        } catch (error) {
+            console.warn('Failed to register waitUntil task, falling back to detached promise.', error);
+        }
+    }
+
+    // Fallback for local/dev runtimes without waitUntil support.
+    void taskPromise;
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry(label, action, options = {}) {
+    const attempts = Math.max(1, Number(options.attempts || 3));
+    const baseDelayMs = Math.max(0, Number(options.baseDelayMs || 700));
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            return await action();
+        } catch (error) {
+            lastError = error;
+            if (attempt >= attempts) break;
+
+            const delayMs = baseDelayMs * attempt;
+            console.warn(`[telegram] ${label} failed on attempt ${attempt}/${attempts}. Retrying in ${delayMs}ms...`, error?.message || error);
+            await sleep(delayMs);
+        }
+    }
+
+    throw lastError;
+}
+
+function toAbsoluteMediaReference(value, siteOrigin) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^data:/i.test(raw) || /^https?:\/\//i.test(raw)) return raw;
+    if (!siteOrigin) return raw;
+
+    const normalizedPath = raw.replace(/^\.?\/+/, '');
+    return `${siteOrigin}/${normalizedPath}`;
+}
+
+function normalizeMediaReferences(values, siteOrigin) {
+    return (Array.isArray(values) ? values : [])
+        .map((value) => toAbsoluteMediaReference(value, siteOrigin))
+        .map((value) => String(value || '').trim())
+        .filter(Boolean);
+}
+
+async function notifyTelegramAboutCreatedOrder(order, orderId, siteOrigin) {
+    const createdMessage = buildCreatedOrderMessage({
+        ...order,
+        orderId,
+        paymentMethod: 'wallet'
+    });
+
+    let messageSent = false;
+    try {
+        await withRetry('send order message', () => sendTelegramMessage(createdMessage), {
+            attempts: 3,
+            baseDelayMs: 800
+        });
+        messageSent = true;
+    } catch (messageError) {
+        console.error('Failed to send base order message to Telegram.', messageError);
+    }
+
+    const previews = extractCustomPreviewItems(order.items);
+    const sourceImages = extractCustomSourceImages(order.items);
+    const constructorMediaFilesRaw = [
+        ...previews.map((item) => item.image),
+        ...sourceImages
+    ].filter(Boolean);
+    const constructorMediaFiles = normalizeMediaReferences(constructorMediaFilesRaw, siteOrigin);
+
+    const adminPreviews = extractAdminPreviewItems(order.items);
+    const adminMediaFilesRaw = adminPreviews.map((item) => item.image).filter(Boolean);
+    const adminMediaFiles = normalizeMediaReferences(adminMediaFilesRaw, siteOrigin);
+
+    let constructorSent = false;
+    if (constructorMediaFiles.length) {
+        const firstTitle = previews[0]?.title || 'Кастомний виріб';
+        const caption = `🖼 Кастомний макет до замовлення ${orderId}\n${firstTitle}\n📎 Усі файли без стиснення`;
+        try {
+            await withRetry('send constructor media', () => sendTelegramMediaGroup(constructorMediaFiles, caption), {
+                attempts: 3,
+                baseDelayMs: 1200
+            });
+            constructorSent = true;
+        } catch (previewError) {
+            console.error('Failed to send constructor media group to Telegram.', previewError);
+        }
+    }
+
+    let adminSent = false;
+    if (adminMediaFiles.length) {
+        const firstAdminTitle = adminPreviews[0]?.title || 'Адмін товар';
+        const adminCaption = `🖼 Адмін макет до замовлення ${orderId}\n${firstAdminTitle}\n📎 Прев'ю товару з каталогу`;
+        try {
+            await withRetry('send admin media', () => sendTelegramMediaGroup(adminMediaFiles, adminCaption), {
+                attempts: 3,
+                baseDelayMs: 1200
+            });
+            adminSent = true;
+        } catch (adminPreviewError) {
+            console.error('Failed to send admin product media group to Telegram.', adminPreviewError);
+        }
+    }
+
+    if (!messageSent || (constructorMediaFiles.length && !constructorSent) || (adminMediaFiles.length && !adminSent)) {
+        try {
+            await sendTelegramMessage(
+                `⚠️ Частина даних по замовленню ${orderId} не була відправлена автоматично. Перевірте логи сервера.`
+            );
+        } catch (_) {}
     }
 }
 
@@ -34,7 +167,8 @@ module.exports = async (req, res) => {
     const envResultUrl = String(process.env.LIQPAY_RESULT_URL || '').trim();
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-    const fallbackUrl = host ? `${protocol}://${host}/` : '';
+    const siteOrigin = host ? `${protocol}://${host}` : '';
+    const fallbackUrl = siteOrigin ? `${siteOrigin}/` : '';
     const resultUrl = envResultUrl || req.headers.referer || fallbackUrl;
 
     if (!publicKey || !privateKey) {
@@ -84,64 +218,22 @@ module.exports = async (req, res) => {
     };
 
     if (paymentMethod === 'wallet') {
-        // Ask LiqPay to include Apple Pay in the wallet flow.
         liqPayPayload.methods = 'apay';
-        // Keep standard fallbacks so checkout still works on devices without Apple Pay.
         liqPayPayload.paytypes = 'gpay,apay,card';
-    }
-
-    const createdMessage = buildCreatedOrderMessage({
-        ...order,
-        orderId,
-        paymentMethod: 'wallet'
-    });
-
-    try {
-        await sendTelegramMessage(createdMessage);
-
-        const previews = extractCustomPreviewItems(order.items);
-        const sourceImages = extractCustomSourceImages(order.items);
-        const constructorMediaFiles = [
-            ...previews.map((item) => item.image),
-            ...sourceImages
-        ].filter(Boolean);
-        const adminPreviews = extractAdminPreviewItems(order.items);
-        const adminMediaFiles = adminPreviews.map((item) => item.image).filter(Boolean);
-
-        if (constructorMediaFiles.length) {
-            const firstTitle = previews[0]?.title || '\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u0438\u0439 \u0432\u0438\u0440\u0456\u0431';
-            const caption = `\uD83D\uDDBC \u041a\u0430\u0441\u0442\u043e\u043c\u043d\u0438\u0439 \u043c\u0430\u043a\u0435\u0442 \u0434\u043e \u0437\u0430\u043c\u043e\u0432\u043b\u0435\u043d\u043d\u044f ${orderId}\n${firstTitle}\n\uD83D\uDCCE \u0423\u0441\u0456 \u0444\u0430\u0439\u043b\u0438 \u0431\u0435\u0437 \u0441\u0442\u0438\u0441\u043d\u0435\u043d\u043d\u044f`;
-            try {
-                await sendTelegramMediaGroup(constructorMediaFiles, caption);
-            } catch (previewError) {
-                console.warn('Failed to send constructor media group to Telegram.', previewError);
-                try {
-                    await sendTelegramMessage(`⚠️ Не вдалося надіслати файли макету до замовлення ${orderId}.`);
-                } catch (_) {}
-            }
-        }
-
-        if (adminMediaFiles.length) {
-            const firstAdminTitle = adminPreviews[0]?.title || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440';
-            const adminCaption = `\uD83D\uDDBC \u0410\u0434\u043c\u0456\u043d \u043c\u0430\u043a\u0435\u0442 \u0434\u043e \u0437\u0430\u043c\u043e\u0432\u043b\u0435\u043d\u043d\u044f ${orderId}\n${firstAdminTitle}\n\uD83D\uDCCE \u041f\u0440\u0435\u0432'\u044e \u0442\u043e\u0432\u0430\u0440\u0443 \u0437 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0443`;
-            try {
-                await sendTelegramMediaGroup(adminMediaFiles, adminCaption);
-            } catch (adminPreviewError) {
-                console.warn('Failed to send admin product media group to Telegram.', adminPreviewError);
-            }
-        }
-    } catch (error) {
-        console.error('Failed to notify Telegram about created LiqPay order.', error);
-        res.status(502).json({ error: 'Failed to send order to Telegram. Check bot/chat configuration.' });
-        return;
     }
 
     const data = Buffer.from(JSON.stringify(liqPayPayload), 'utf8').toString('base64');
     const signature = buildSignature(privateKey, data);
     const checkoutUrl = `https://www.liqpay.ua/api/3/checkout?data=${encodeURIComponent(data)}&signature=${encodeURIComponent(signature)}`;
 
+    // Return checkout URL immediately so user is redirected without waiting for Telegram uploads.
     res.status(200).json({
         orderId,
         checkoutUrl
     });
+
+    const notifyPromise = notifyTelegramAboutCreatedOrder(order, orderId, siteOrigin).catch((error) => {
+        console.error('Failed to notify Telegram about created LiqPay order.', error);
+    });
+    scheduleBackgroundTask(notifyPromise);
 };

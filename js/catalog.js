@@ -225,7 +225,7 @@
             id: product?.id,
             title,
             price: normalizedPrice,
-            image: previewImage || fullImage,
+            image: fullImage || previewImage,
             previewImage: previewImage || fullImage,
             category,
             displayCategory,
@@ -1459,9 +1459,11 @@
         grid.innerHTML = list.map((item, index) => `
             ${(() => {
                 const previewGallery = this.buildPreviewGalleryUrls(item);
+                const fullGallery = this.buildGalleryUrls(item);
                 const galleryLength = previewGallery.length || 1;
                 const imageIndex = this.getCardImageIndex(item, galleryLength);
                 const activeImage = previewGallery[imageIndex] || this.getPrimaryPreviewImage(item);
+                const activeFullImage = fullGallery[imageIndex] || this.getPrimaryImage(item);
                 const meta = this.getCardMeta(item, startIndex + index);
                 const selectedFit = this.getSelectedFit(item);
                 const availableSizes = this.getAvailableSizes(item, selectedFit);
@@ -1470,7 +1472,7 @@
                 return `
             <article class="product-card product-card-v2 bg-white rounded-3xl overflow-hidden border border-slate-200 text-left transition" data-index="${index}">
                 <div class="product-card-v2__media" data-action="open-product-page" data-index="${index}">
-                    <img src="${activeImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async">
+                    <img src="${activeImage}" data-full-image="${activeFullImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async" onerror="if(this.dataset.fullImage&&this.src!==this.dataset.fullImage){this.src=this.dataset.fullImage;}">
 
                     ${galleryLength > 1 ? `
                     <div class="product-card-v2__nav">
@@ -1622,8 +1624,8 @@
     },
 
     getPrimaryImage(item) {
-        if (item.previewImage) return item.previewImage;
         if (item.image) return item.image;
+        if (item.previewImage) return item.previewImage;
         return this.getDemoVisual(item.category, 0);
     },
 

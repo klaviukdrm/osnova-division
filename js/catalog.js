@@ -1,11 +1,9 @@
-﻿﻿const Catalog = {
+const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
     LIQPAY_PENDING_ORDER_STORAGE_KEY: 'upf_pending_liqpay_order',
     LIQPAY_PENDING_ORDER_MAX_AGE_MS: 24 * 60 * 60 * 1000,
-    CATALOG_CACHE_KEY: 'upf_catalog_all_v2',
-    CATALOG_CACHE_TTL_MS: 12 * 60 * 60 * 1000,
     ITEMS_PER_PAGE: 24,
     DEFAULT_CATEGORIES: [
         'Футболка з надруком',
@@ -189,36 +187,15 @@
                 return encodeURIComponent(this.safeDecodeUriComponent(segment));
             })
             .join('/');
+
         return query ? `${encodedPath}?${query}` : encodedPath;
     },
 
     toThumbFromImagePath(imagePath) {
         const normalized = this.normalizeCatalogImagePath(imagePath);
         if (!normalized) return '';
-        if (normalized.startsWith('data:')) {
+        if (/^(https?:)?\/\//i.test(normalized) || normalized.startsWith('data:')) {
             return normalized;
-        }
-        if (/^(https?:)?\/\//i.test(normalized)) {
-            const [baseUrl, query = ''] = normalized.split('?');
-            const marker = '/storage/v1/object/public/products/';
-            const markerIndex = baseUrl.indexOf(marker);
-            if (markerIndex === -1) {
-                return normalized;
-            }
-
-            const prefix = baseUrl.slice(0, markerIndex + marker.length);
-            const tail = baseUrl.slice(markerIndex + marker.length);
-            if (!tail) return normalized;
-            if (tail.includes('/thumbs/')) return normalized;
-
-            const slashIndex = tail.indexOf('/');
-            if (slashIndex === -1) return normalized;
-            const categorySlug = tail.slice(0, slashIndex);
-            const fileTail = tail.slice(slashIndex + 1);
-            if (!categorySlug || !fileTail) return normalized;
-
-            const thumbUrl = `${prefix}${categorySlug}/thumbs/${fileTail}`;
-            return query ? `${thumbUrl}?${query}` : thumbUrl;
         }
         if (normalized.startsWith('images/thumbs/')) {
             return normalized;
@@ -307,32 +284,23 @@
     },
 
     async loadProductsFromApi() {
+        const cacheKey = `upf_catalog_all_v2`;
+
         let hasCached = false;
-        let cachedProducts = [];
         let cachedDataStr = null;
-        let cacheSavedAt = 0;
 
         // 1. Спроба завантажити з кешу (Миттєве відображення)
         try {
-            cachedDataStr = window.localStorage.getItem(this.CATALOG_CACHE_KEY);
+            cachedDataStr = window.localStorage.getItem(cacheKey);
             if (cachedDataStr) {
                 const parsed = JSON.parse(cachedDataStr);
-                const products = Array.isArray(parsed?.products) ? parsed.products : [];
-                if (products.length) {
-                    cachedProducts = products;
-                    cacheSavedAt = Number(parsed?.savedAt || 0);
-                    this.applyFetchedProducts(products);
+                if (parsed && Array.isArray(parsed.products)) {
+                    this.applyFetchedProducts(parsed.products);
                     hasCached = true;
                 }
             }
         } catch (e) {
             console.warn('Failed to parse catalog cache', e);
-        }
-
-        const cacheAgeMs = cacheSavedAt > 0 ? (Date.now() - cacheSavedAt) : Number.POSITIVE_INFINITY;
-        const shouldRefreshFromApi = !hasCached || cacheAgeMs >= this.CATALOG_CACHE_TTL_MS;
-        if (!shouldRefreshFromApi) {
-            return true;
         }
 
         // 2. Фоновий запит до API (Перевірка оновлень)
@@ -351,27 +319,19 @@
             const sourceProducts = Array.isArray(payload?.products) ? payload.products : [];
 
             if (!sourceProducts.length) {
-                return hasCached;
+                return false;
             }
 
-            const freshDataStr = JSON.stringify({
-                products: sourceProducts,
-                savedAt: Date.now()
-            });
-            const cachedProductsStr = JSON.stringify(cachedProducts);
-            const sourceProductsStr = JSON.stringify(sourceProducts);
+            const freshDataStr = JSON.stringify({ products: sourceProducts });
 
             // Якщо дані з сервера ідентичні кешованим, не перемальовуємо UI щоб уникнути блимання
-            if (hasCached && cachedProductsStr === sourceProductsStr) {
-                try {
-                    window.localStorage.setItem(this.CATALOG_CACHE_KEY, freshDataStr);
-                } catch (_) {}
+            if (hasCached && freshDataStr === cachedDataStr) {
                 return true;
             }
 
             // Зберігаємо нові дані в кеш
             try {
-                window.localStorage.setItem(this.CATALOG_CACHE_KEY, freshDataStr);
+                window.localStorage.setItem(cacheKey, freshDataStr);
             } catch (_) {}
 
             this.applyFetchedProducts(sourceProducts);
@@ -1512,7 +1472,7 @@
                 return `
             <article class="product-card product-card-v2 bg-white rounded-3xl overflow-hidden border border-slate-200 text-left transition" data-index="${index}">
                 <div class="product-card-v2__media" data-action="open-product-page" data-index="${index}">
-                    <img src="${activeImage}" data-full-image="${activeFullImage}" data-original-src="${activeImage}" data-retry-count="0" data-tried-full="0" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async" onerror="window.Catalog?.handleCardImageError(this)">
+                    <img src="${activeImage}" data-full-image="${activeFullImage}" alt="${item.title || 'Товар'}" class="w-full h-full object-cover" loading="lazy" decoding="async" onerror="if(this.dataset.fullImage&&this.src!==this.dataset.fullImage){this.src=this.dataset.fullImage;}">
 
                     ${galleryLength > 1 ? `
                     <div class="product-card-v2__nav">
@@ -1674,67 +1634,6 @@
         return this.getPrimaryImage(item);
     },
 
-    getImageFallbackUrl() {
-        return 'images/%D0%BF%D1%83%D1%81%D1%82%D0%B0.jpg';
-    },
-
-    getImageRetryDelayMs(attempt) {
-        if (attempt <= 1) return 700;
-        if (attempt === 2) return 1800;
-        return 3200;
-    },
-
-    getCacheBustUrl(url) {
-        const raw = String(url || '').trim();
-        if (!raw) return '';
-
-        const cleaned = raw
-            .replace(/([?&])r=\d+(&)?/g, (_, prefix, hasNext) => (hasNext ? prefix : ''))
-            .replace(/[?&]$/, '');
-        const separator = cleaned.includes('?') ? '&' : '?';
-        return `${cleaned}${separator}r=${Date.now()}`;
-    },
-
-    handleCardImageError(imgEl) {
-        if (!imgEl) return;
-
-        const maxRetries = 2;
-        const retryCount = Number(imgEl.dataset.retryCount || '0');
-        const originalSrc = String(
-            imgEl.dataset.originalSrc
-            || imgEl.dataset.fullImage
-            || imgEl.currentSrc
-            || imgEl.src
-            || ''
-        ).trim();
-        const fullImage = String(imgEl.dataset.fullImage || '').trim();
-
-        if (retryCount < maxRetries && originalSrc) {
-            const nextAttempt = retryCount + 1;
-            imgEl.dataset.retryCount = String(nextAttempt);
-            const delay = this.getImageRetryDelayMs(nextAttempt);
-            window.setTimeout(() => {
-                if (!imgEl.isConnected) return;
-                imgEl.src = this.getCacheBustUrl(originalSrc);
-            }, delay);
-            return;
-        }
-
-        if (fullImage && imgEl.dataset.triedFull !== '1' && originalSrc !== fullImage) {
-            imgEl.dataset.triedFull = '1';
-            imgEl.dataset.retryCount = '0';
-            imgEl.dataset.originalSrc = fullImage;
-            window.setTimeout(() => {
-                if (!imgEl.isConnected) return;
-                imgEl.src = this.getCacheBustUrl(fullImage);
-            }, 250);
-            return;
-        }
-
-        imgEl.onerror = null;
-        imgEl.src = this.getImageFallbackUrl();
-    },
-
     buildGalleryUrls(item) {
         if (Array.isArray(item.gallery) && item.gallery.length) {
             return item.gallery.map((entry) => {
@@ -1803,39 +1702,19 @@
             mainImageEl.src = previewUrl;
         }
 
-        const maxRetries = 2;
-        const tryLoad = (attempt, urlToLoad) => {
-            const preloader = new Image();
-            preloader.decoding = 'async';
-            preloader.loading = 'eager';
-            preloader.fetchPriority = 'low';
-            preloader.onload = () => {
-                if (this.state.modalImageLoadToken !== loadToken) return;
-                mainImageEl.src = urlToLoad;
-            };
-            preloader.onerror = () => {
-                if (this.state.modalImageLoadToken !== loadToken) return;
-                if (attempt < maxRetries) {
-                    const nextAttempt = attempt + 1;
-                    const delay = this.getImageRetryDelayMs(nextAttempt);
-                    window.setTimeout(() => {
-                        if (this.state.modalImageLoadToken !== loadToken) return;
-                        const retryUrl = this.getCacheBustUrl(fullUrl);
-                        tryLoad(nextAttempt, retryUrl);
-                    }, delay);
-                    return;
-                }
-
-                if (previewUrl) {
-                    mainImageEl.src = previewUrl;
-                    return;
-                }
-                mainImageEl.src = this.getImageFallbackUrl();
-            };
-            preloader.src = urlToLoad;
+        const preloader = new Image();
+        preloader.decoding = 'async';
+        preloader.loading = 'eager';
+        preloader.fetchPriority = 'low';
+        preloader.onload = () => {
+            if (this.state.modalImageLoadToken !== loadToken) return;
+            mainImageEl.src = fullUrl;
         };
-
-        tryLoad(0, fullUrl);
+        preloader.onerror = () => {
+            if (this.state.modalImageLoadToken !== loadToken) return;
+            if (previewUrl) mainImageEl.src = previewUrl;
+        };
+        preloader.src = fullUrl;
     },
 
     openProductModal(item) {

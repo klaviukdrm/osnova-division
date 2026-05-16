@@ -130,6 +130,9 @@ function getDesignNameFromFile(fileName) {
     if (rawUpper === 'OOM%20AUTISM.JPG') {
         return 'DOOM AUTISM';
     }
+    if (rawUpper === 'OVI%20BOBUL.JPG') {
+        return 'IVO BOBUL';
+    }
 
     const decoded = raw.includes('%') ? decodeURIComponent(raw) : raw;
     const normalizedName = decoded
@@ -142,6 +145,9 @@ function getDesignNameFromFile(fileName) {
     }
     if (normalizedName.toUpperCase() === 'OOM AUTISM') {
         return 'DOOM AUTISM';
+    }
+    if (normalizedName.toUpperCase() === 'OVI BOBUL') {
+        return 'IVO BOBUL';
     }
 
     return normalizedName;
@@ -400,4 +406,3 @@ module.exports = {
     slugifyProductTitle,
     assignProductSlugs
 };
-

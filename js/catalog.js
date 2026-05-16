@@ -376,6 +376,9 @@ const Catalog = {
         if (rawUpper === 'OOM%20AUTISM.JPG') {
             return 'DOOM AUTISM';
         }
+        if (rawUpper === 'OVI%20BOBUL.JPG') {
+            return 'IVO BOBUL';
+        }
 
         const decoded = raw.includes('%') ? decodeURIComponent(raw) : raw;
         const normalizedName = decoded
@@ -388,6 +391,9 @@ const Catalog = {
         }
         if (normalizedName.toUpperCase() === 'OOM AUTISM') {
             return 'DOOM AUTISM';
+        }
+        if (normalizedName.toUpperCase() === 'OVI BOBUL') {
+            return 'IVO BOBUL';
         }
 
         return normalizedName;
@@ -1092,7 +1098,7 @@ const Catalog = {
                                 <p class="mt-1">Зайдіть у розмірну сітку для коректного вибору.</p>
                             </div>
                             <div>
-                                <p class="font-bold text-slate-900">Як зрозуміті що замовлення прийняте?</p>
+                            <p class="font-bold text-slate-900">Як зрозуміти що замовлення прийняте?</p>
                                 <p class="mt-1">Якщо оплата пройшла успішно то ваше замовлення прийшло до нас, та буде відправлено.</p>
                             </div>
                         </div>

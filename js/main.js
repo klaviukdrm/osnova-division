@@ -750,7 +750,7 @@ const Translator = {
         'Протягом 2-5 робочих днів.': 'Within 2-5 business days.',
         'Як підібрати розмір?': 'How to choose the size?',
         'Зайдіть у розмірну сітку для коректного вибору.': 'Check the size chart to make the right choice.',
-        'Як зрозуміті що замовлення прийняте?': 'How to know if the order is accepted?',
+        'Як зрозуміти що замовлення прийняте?': 'How to know if the order is accepted?',
         'Якщо оплата пройшла успішно то ваше замовлення прийшло до нас, та буде відправлено.': 'If the payment is successful, your order has reached us and will be shipped.',
         'Додано в кошик': 'Added to cart',
         'Товар прибрано з кошика': 'Item removed from cart',

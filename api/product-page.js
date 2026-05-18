@@ -252,91 +252,6 @@ function buildProductHtml(product, baseUrl) {
                 height: 100%;
             }
         }
-
-        .product-page-image-wrap {
-            position: relative;
-            background: radial-gradient(circle at 20% 20%, #f8fafc 0%, #eef2ff 38%, #e2e8f0 100%);
-        }
-
-        .product-page-image {
-            cursor: zoom-in;
-            transition: transform 0.26s ease, filter 0.26s ease;
-        }
-
-        .product-page-image-wrap:hover .product-page-image {
-            transform: scale(1.015);
-            filter: saturate(1.03);
-        }
-
-        .product-image-zoom-hint {
-            position: absolute;
-            right: 1rem;
-            bottom: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            padding: 0.45rem 0.75rem;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.72);
-            color: #ffffff;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.01em;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
-            pointer-events: none;
-        }
-
-        #product-image-lightbox {
-            opacity: 0;
-            transition: opacity 0.22s ease;
-        }
-
-        #product-image-lightbox.is-open {
-            opacity: 1;
-        }
-
-        .product-lightbox-stage {
-            transform: translateY(10px) scale(0.985);
-            transition: transform 0.24s ease;
-        }
-
-        #product-image-lightbox.is-open .product-lightbox-stage {
-            transform: translateY(0) scale(1);
-        }
-
-        .product-lightbox-image {
-            display: block;
-            max-width: min(95vw, 1480px);
-            max-height: 89vh;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            border-radius: 1rem;
-            background: rgba(255, 255, 255, 0.04);
-            box-shadow: 0 28px 90px rgba(2, 6, 23, 0.58);
-            user-select: none;
-            -webkit-user-drag: none;
-        }
-
-        #product-image-lightbox-close {
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-
-        @media (max-width: 768px) {
-            .product-image-zoom-hint {
-                right: 0.75rem;
-                bottom: 0.75rem;
-                font-size: 0.74rem;
-                padding: 0.38rem 0.62rem;
-            }
-
-            .product-lightbox-image {
-                max-width: 95vw;
-                max-height: 82vh;
-                border-radius: 0.85rem;
-            }
-        }
     </style>
 </head>
 <body class="tail-container bg-white text-slate-900 overflow-x-hidden">
@@ -357,19 +272,7 @@ function buildProductHtml(product, baseUrl) {
         <section class="max-w-7xl mx-auto px-6">
             <article class="product-page-layout grid lg:grid-cols-2 gap-10 items-start">
                 <div class="product-page-image-wrap rounded-3xl overflow-hidden">
-                    <img
-                        id="product-main-image"
-                        src="${escapeHtml(image)}"
-                        alt="${escapeHtml(title)}"
-                        class="product-page-image w-full rounded-3xl object-cover"
-                        role="button"
-                        tabindex="0"
-                        aria-label="\u0412\u0456\u0434\u043a\u0440\u0438\u0442\u0438 \u0444\u043e\u0442\u043e \u043d\u0430 \u0432\u0435\u0441\u044c \u0435\u043a\u0440\u0430\u043d"
-                    >
-                    <div class="product-image-zoom-hint">
-                        <i class="fa-solid fa-expand"></i>
-                        \u041d\u0430 \u0432\u0435\u0441\u044c \u0435\u043a\u0440\u0430\u043d
-                    </div>
+                    <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}" class="product-page-image w-full rounded-3xl object-cover">
                 </div>
                 <div class="space-y-5">
                     <h1 class="text-3xl md:text-5xl font-bold section-title">${escapeHtml(title)}</h1>
@@ -482,33 +385,6 @@ function buildProductHtml(product, baseUrl) {
         </div>
     </footer>
 
-    <div id="product-image-lightbox" class="fixed inset-0 z-[72] hidden" aria-hidden="true">
-        <button
-            type="button"
-            id="product-image-lightbox-backdrop"
-            class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm"
-            aria-label="\u0417\u0430\u043a\u0440\u0438\u0442\u0438 \u043f\u0435\u0440\u0435\u0433\u043b\u044f\u0434 \u0444\u043e\u0442\u043e"
-        ></button>
-        <div id="product-image-lightbox-shell" class="relative h-full w-full flex items-center justify-center px-3 py-6 md:px-8 md:py-8">
-            <button
-                type="button"
-                id="product-image-lightbox-close"
-                class="absolute top-4 right-4 md:top-6 md:right-6 z-[2] w-11 h-11 rounded-full border border-white/30 bg-slate-900/55 text-white flex items-center justify-center hover:bg-slate-800/75 hover:border-white/60 transition"
-                aria-label="\u0417\u0430\u043a\u0440\u0438\u0442\u0438"
-            >
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <div class="product-lightbox-stage relative max-w-full max-h-full">
-                <img
-                    id="product-image-lightbox-image"
-                    src="${escapeHtml(image)}"
-                    alt="${escapeHtml(title)}"
-                    class="product-lightbox-image"
-                >
-            </div>
-        </div>
-    </div>
-
     ${availableSizes.length ? `
     <div id="product-size-chart-modal" class="fixed inset-0 z-[64] hidden">
         <button type="button" class="absolute inset-0 bg-slate-900/75" data-size-chart-close aria-label="\u0417\u0430\u043a\u0440\u0438\u0442\u0438"></button>
@@ -530,12 +406,6 @@ function buildProductHtml(product, baseUrl) {
     <script>
     (() => {
         const orderBtn = document.getElementById('product-order-btn');
-        const productMainImage = document.getElementById('product-main-image');
-        const imageLightbox = document.getElementById('product-image-lightbox');
-        const imageLightboxShell = document.getElementById('product-image-lightbox-shell');
-        const imageLightboxBackdrop = document.getElementById('product-image-lightbox-backdrop');
-        const imageLightboxClose = document.getElementById('product-image-lightbox-close');
-        const imageLightboxImage = document.getElementById('product-image-lightbox-image');
         const priceLabelEl = document.getElementById('product-price-label');
         const sizeOptionsEl = document.getElementById('product-size-options');
         const fitButtons = Array.from(document.querySelectorAll('[data-product-fit]'));
@@ -665,66 +535,6 @@ function buildProductHtml(product, baseUrl) {
             });
         }
 
-        const openImageLightbox = () => {
-            if (!imageLightbox || !productMainImage || !imageLightboxImage) return;
-            const source = productMainImage.getAttribute('src') || '';
-            const alt = productMainImage.getAttribute('alt') || '';
-            if (!source) return;
-
-            imageLightboxImage.setAttribute('src', source);
-            imageLightboxImage.setAttribute('alt', alt);
-            imageLightbox.classList.remove('hidden');
-            imageLightbox.setAttribute('aria-hidden', 'false');
-
-            requestAnimationFrame(() => {
-                imageLightbox.classList.add('is-open');
-            });
-            document.body.classList.add('overflow-hidden');
-        };
-
-        const closeImageLightbox = () => {
-            if (!imageLightbox) return;
-            imageLightbox.classList.remove('is-open');
-            imageLightbox.setAttribute('aria-hidden', 'true');
-            window.setTimeout(() => {
-                imageLightbox.classList.add('hidden');
-            }, 220);
-
-            if (!sizeChartModal || sizeChartModal.classList.contains('hidden')) {
-                document.body.classList.remove('overflow-hidden');
-            }
-        };
-
-        if (productMainImage && imageLightbox) {
-            productMainImage.addEventListener('click', openImageLightbox);
-            productMainImage.addEventListener('keydown', (event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                openImageLightbox();
-            });
-        }
-
-        if (imageLightboxBackdrop) {
-            imageLightboxBackdrop.addEventListener('click', closeImageLightbox);
-        }
-
-        if (imageLightboxShell) {
-            imageLightboxShell.addEventListener('click', (event) => {
-                if (event.target !== imageLightboxShell) return;
-                closeImageLightbox();
-            });
-        }
-
-        if (imageLightboxClose) {
-            imageLightboxClose.addEventListener('click', closeImageLightbox);
-        }
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape') return;
-            if (!imageLightbox || imageLightbox.classList.contains('hidden')) return;
-            closeImageLightbox();
-        });
-
         if (orderBtn) {
             orderBtn.addEventListener('click', () => {
                 try {
@@ -776,3 +586,6 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     res.status(200).send(buildProductHtml(product, baseUrl));
 };
+
+
+

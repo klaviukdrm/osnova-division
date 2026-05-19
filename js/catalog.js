@@ -2486,71 +2486,6 @@ const Catalog = {
                 return await readFileAsDataUrl(finalBlob);
             };
 
-            const buildInvoiceRequestPayload = (orderPayload, receiptDataUrl = receiptImage) => ({
-                ...orderPayload,
-                paymentMethod: 'invoice',
-                receiptImage: receiptDataUrl,
-                receiptName: receiptFileName
-            });
-
-            const ensureInvoiceRequestFits = async (orderPayload) => {
-                let requestPayload = buildInvoiceRequestPayload(orderPayload);
-                let requestBody = JSON.stringify(requestPayload);
-                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                    return { requestPayload, requestBody, stillOversized: false };
-                }
-
-                const currentReceiptDataUrl = String(requestPayload.receiptImage || '');
-                if (!currentReceiptDataUrl.startsWith('data:image/')) {
-                    throw new Error('Розмір замовлення завеликий для відправлення. Для PDF бажано до 3.2 МБ або зменште обсяг макетів.');
-                }
-
-                let sourceBlob;
-                try {
-                    sourceBlob = await fetch(currentReceiptDataUrl).then((response) => response.blob());
-                } catch (_) {
-                    throw new Error('Не вдалося підготувати квитанцію до відправлення. Спробуйте інше зображення.');
-                }
-
-                const sourceFile = new File(
-                    [sourceBlob],
-                    receiptFileName || 'receipt-image.jpg',
-                    { type: sourceBlob.type || 'image/jpeg' }
-                );
-
-                const compressionTargets = [
-                    2.2, 1.8, 1.4, 1.1, 0.9, 0.75, 0.6, 0.48, 0.38
-                ].map((value) => Math.floor(value * 1024 * 1024));
-
-                let smallestDataUrl = currentReceiptDataUrl;
-                for (const targetBytes of compressionTargets) {
-                    const compressedDataUrl = await compressReceiptImage(sourceFile, targetBytes);
-                    if (compressedDataUrl.length < smallestDataUrl.length) {
-                        smallestDataUrl = compressedDataUrl;
-                    }
-
-                    requestPayload = buildInvoiceRequestPayload(orderPayload, compressedDataUrl);
-                    requestBody = JSON.stringify(requestPayload);
-                    if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                        receiptImage = compressedDataUrl;
-                        return { requestPayload, requestBody, stillOversized: false };
-                    }
-                }
-
-                requestPayload = buildInvoiceRequestPayload(orderPayload, smallestDataUrl);
-                requestBody = JSON.stringify(requestPayload);
-                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                    receiptImage = smallestDataUrl;
-                    return { requestPayload, requestBody, stillOversized: false };
-                }
-
-                // Do not block on client estimation alone: try sending and rely on real backend response.
-                requestPayload = buildInvoiceRequestPayload(orderPayload, smallestDataUrl);
-                requestBody = JSON.stringify(requestPayload);
-                receiptImage = smallestDataUrl;
-                return { requestPayload, requestBody, stillOversized: true };
-            };
-
             const copyTextToClipboard = async (value) => {
                 const text = String(value || '').trim();
                 if (!text) return false;
@@ -2652,7 +2587,56 @@ const Catalog = {
                 setPaymentButtonsState(true, 'invoice');
                 setInvoiceConfirmState(true);
                 try {
-                    const { requestBody } = await ensureInvoiceRequestFits(orderPayload);
+                    const requestPayload = {
+                        ...orderPayload,
+                        paymentMethod: 'invoice',
+                        receiptImage,
+                        receiptName: receiptFileName
+                    };
+                    const requestBody = JSON.stringify(requestPayload);
+                    if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
+                        if (
+                            requestPayload.receiptImage
+                            && String(requestPayload.receiptImage).startsWith('data:image/')
+                            && requestPayload.receiptImage === receiptImage
+                        ) {
+                            try {
+                                const responseBlob = await fetch(receiptImage).then((r) => r.blob());
+                                const fallbackName = receiptFileName || 'receipt-image.jpg';
+                                const fallbackType = responseBlob.type || 'image/jpeg';
+                                const sourceForCompression = new File([responseBlob], fallbackName, { type: fallbackType });
+                                receiptImage = await compressReceiptImage(sourceForCompression, MAX_RECEIPT_IMAGE_TARGET_BYTES);
+                                requestPayload.receiptImage = receiptImage;
+                            } catch (_) {}
+                        }
+
+                        const retryBody = JSON.stringify(requestPayload);
+                        if (getByteLength(retryBody) > MAX_ORDER_REQUEST_BYTES) {
+                            throw new Error('Файл квитанції завеликий для безпечного відправлення. Для PDF бажано до 3.2 МБ, для фото стиснення виконується автоматично.');
+                        }
+
+                        const response = await fetch('/api/orders/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: retryBody
+                        });
+
+                        const result = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            if (response.status === 413) {
+                                throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште вагу квитанції або кількість/розмір макетів у кошику.');
+                            }
+                            throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
+                        }
+
+                        window.UI?.showOrderSuccessModal?.();
+                        this.clearCart(false);
+                        closeInvoiceModal();
+                        this.closeOrderModal();
+                        form.reset();
+                        resetInvoiceReceiptState();
+                        return;
+                    }
 
                     const response = await fetch('/api/orders/create', {
                         method: 'POST',
@@ -2662,9 +2646,6 @@ const Catalog = {
 
                     const result = await response.json().catch(() => ({}));
                     if (!response.ok) {
-                        if (response.status === 413) {
-                            throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште вагу квитанції або кількість/розмір макетів у кошику.');
-                        }
                         throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
                     }
 
@@ -2955,6 +2936,7 @@ const Catalog = {
 };
 
 window.Catalog = Catalog;
+
 
 
 

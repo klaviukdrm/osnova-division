@@ -2333,6 +2333,12 @@ const Catalog = {
             const submitDefaultText = submitButton?.textContent?.trim() || 'Оплата за реквізитами';
             const walletDefaultText = walletButton?.textContent?.trim() || 'Google Pay / Apple Pay';
             const invoiceConfirmDefaultText = invoiceConfirmButton?.textContent?.trim() || 'Оформити замовлення';
+            const MAX_RECEIPT_PDF_BYTES = Math.floor(4.5 * 1024 * 1024);
+            const MAX_RECEIPT_IMAGE_NO_COMPRESS_BYTES = Math.floor(4.5 * 1024 * 1024);
+            const MAX_RECEIPT_IMAGE_INPUT_BYTES = 12 * 1024 * 1024;
+            const MAX_RECEIPT_IMAGE_TARGET_BYTES = Math.floor(2.2 * 1024 * 1024);
+            const MAX_RECEIPT_IMAGE_DIMENSION = 2200;
+            const MAX_ORDER_REQUEST_BYTES = Math.floor(4.4 * 1024 * 1024);
             let receiptImage = '';
             let receiptFileName = '';
             let isInvoicePending = false;
@@ -2379,6 +2385,106 @@ const Catalog = {
                 reader.onerror = () => reject(new Error('Не вдалося прочитати файл.'));
                 reader.readAsDataURL(file);
             });
+
+            const getByteLength = (text) => {
+                if (typeof text !== 'string') return 0;
+                if (typeof TextEncoder !== 'undefined') {
+                    return new TextEncoder().encode(text).length;
+                }
+                try {
+                    return unescape(encodeURIComponent(text)).length;
+                } catch (_) {
+                    return text.length;
+                }
+            };
+
+            const loadImageFromFile = (file) => new Promise((resolve, reject) => {
+                const objectUrl = URL.createObjectURL(file);
+                const image = new Image();
+                image.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(image);
+                };
+                image.onerror = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error('Не вдалося обробити зображення.'));
+                };
+                image.decoding = 'async';
+                image.src = objectUrl;
+            });
+
+            const canvasToBlob = (canvas, mimeType, quality) => new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        reject(new Error('Не вдалося стиснути зображення.'));
+                        return;
+                    }
+                    resolve(blob);
+                }, mimeType, quality);
+            });
+
+            const compressReceiptImage = async (file, targetBytes = MAX_RECEIPT_IMAGE_TARGET_BYTES) => {
+                const sourceImage = await loadImageFromFile(file);
+                const largestSide = Math.max(sourceImage.width || 0, sourceImage.height || 0);
+                const resizeScale = largestSide > MAX_RECEIPT_IMAGE_DIMENSION
+                    ? (MAX_RECEIPT_IMAGE_DIMENSION / largestSide)
+                    : 1;
+                const width = Math.max(1, Math.round((sourceImage.width || 1) * resizeScale));
+                const height = Math.max(1, Math.round((sourceImage.height || 1) * resizeScale));
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const context = canvas.getContext('2d', { alpha: false });
+                if (!context) {
+                    throw new Error('Не вдалося підготувати зображення.');
+                }
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, width, height);
+                context.drawImage(sourceImage, 0, 0, width, height);
+
+                const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                let quality = mimeType === 'image/png' ? undefined : 0.92;
+                let scale = 1;
+                let bestBlob = null;
+
+                for (let attempt = 0; attempt < 8; attempt += 1) {
+                    const scaledWidth = Math.max(1, Math.round(width * scale));
+                    const scaledHeight = Math.max(1, Math.round(height * scale));
+                    let exportCanvas = canvas;
+
+                    if (scaledWidth !== width || scaledHeight !== height) {
+                        exportCanvas = document.createElement('canvas');
+                        exportCanvas.width = scaledWidth;
+                        exportCanvas.height = scaledHeight;
+                        const exportCtx = exportCanvas.getContext('2d', { alpha: false });
+                        if (!exportCtx) {
+                            throw new Error('Не вдалося підготувати зображення.');
+                        }
+                        exportCtx.fillStyle = '#ffffff';
+                        exportCtx.fillRect(0, 0, scaledWidth, scaledHeight);
+                        exportCtx.drawImage(canvas, 0, 0, scaledWidth, scaledHeight);
+                    }
+
+                    const blob = await canvasToBlob(exportCanvas, mimeType, quality);
+                    if (!bestBlob || blob.size < bestBlob.size) {
+                        bestBlob = blob;
+                    }
+                    if (blob.size <= targetBytes) {
+                        bestBlob = blob;
+                        break;
+                    }
+
+                    if (mimeType === 'image/jpeg' && typeof quality === 'number' && quality > 0.58) {
+                        quality = Math.max(0.58, quality - 0.12);
+                    } else {
+                        scale = Math.max(0.6, scale * 0.88);
+                    }
+                }
+
+                const finalBlob = bestBlob || await canvasToBlob(canvas, mimeType, quality);
+                return await readFileAsDataUrl(finalBlob);
+            };
 
             const copyTextToClipboard = async (value) => {
                 const text = String(value || '').trim();
@@ -2481,15 +2587,58 @@ const Catalog = {
                 setPaymentButtonsState(true, 'invoice');
                 setInvoiceConfirmState(true);
                 try {
+                    const requestPayload = {
+                        ...orderPayload,
+                        paymentMethod: 'invoice',
+                        receiptImage,
+                        receiptName: receiptFileName
+                    };
+                    const requestBody = JSON.stringify(requestPayload);
+                    if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
+                        if (
+                            requestPayload.receiptImage
+                            && String(requestPayload.receiptImage).startsWith('data:image/')
+                            && requestPayload.receiptImage === receiptImage
+                        ) {
+                            try {
+                                const responseBlob = await fetch(receiptImage).then((r) => r.blob());
+                                const fallbackName = receiptFileName || 'receipt-image.jpg';
+                                const fallbackType = responseBlob.type || 'image/jpeg';
+                                const sourceForCompression = new File([responseBlob], fallbackName, { type: fallbackType });
+                                receiptImage = await compressReceiptImage(sourceForCompression, MAX_RECEIPT_IMAGE_TARGET_BYTES);
+                                requestPayload.receiptImage = receiptImage;
+                            } catch (_) {}
+                        }
+
+                        const retryBody = JSON.stringify(requestPayload);
+                        if (getByteLength(retryBody) > MAX_ORDER_REQUEST_BYTES) {
+                            throw new Error('Файл квитанції завеликий для безпечного відправлення. Для PDF бажано до 3.2 МБ, для фото стиснення виконується автоматично.');
+                        }
+
+                        const response = await fetch('/api/orders/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: retryBody
+                        });
+
+                        const result = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
+                        }
+
+                        window.UI?.showOrderSuccessModal?.();
+                        this.clearCart(false);
+                        closeInvoiceModal();
+                        this.closeOrderModal();
+                        form.reset();
+                        resetInvoiceReceiptState();
+                        return;
+                    }
+
                     const response = await fetch('/api/orders/create', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ...orderPayload,
-                            paymentMethod: 'invoice',
-                            receiptImage,
-                            receiptName: receiptFileName
-                        })
+                        body: requestBody
                     });
 
                     const result = await response.json().catch(() => ({}));
@@ -2588,30 +2737,62 @@ const Catalog = {
                         return;
                     }
 
-                    const isImage = String(selectedFile.type || '').toLowerCase().startsWith('image/');
-                    const isPdf = String(selectedFile.type || '').toLowerCase() === 'application/pdf';
+                    const fileType = String(selectedFile.type || '').toLowerCase();
+                    const fileName = String(selectedFile.name || '').trim();
+                    const normalizedName = fileName.toLowerCase();
+                    const isPdfByName = normalizedName.endsWith('.pdf');
+                    const isImageByName = /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif)$/i.test(normalizedName);
+                    const isPdf = fileType === 'application/pdf' || isPdfByName;
+                    const isImage = fileType.startsWith('image/')
+                        || ((fileType === 'application/octet-stream' || !fileType) && isImageByName);
+
                     if (!isImage && !isPdf) {
                         window.UI?.showToast?.('Дозволено завантажувати тільки зображення або PDF (скріншот/квитанцію).', { tone: 'warning' });
                         resetInvoiceReceiptState();
                         return;
                     }
 
-                    const maxBytes = 12 * 1024 * 1024;
-                    if (selectedFile.size > maxBytes) {
+                    if (isPdf && selectedFile.size > MAX_RECEIPT_PDF_BYTES) {
+                        window.UI?.showToast?.('PDF файл завеликий. Максимум 4.5 МБ.', { tone: 'warning' });
+                        resetInvoiceReceiptState();
+                        return;
+                    }
+
+                    if (isImage && selectedFile.size > MAX_RECEIPT_IMAGE_INPUT_BYTES) {
                         window.UI?.showToast?.('Файл занадто великий. Максимум 12 МБ.', { tone: 'warning' });
                         resetInvoiceReceiptState();
                         return;
                     }
 
                     try {
-                        const dataUrl = await readFileAsDataUrl(selectedFile);
-                        if (!dataUrl.startsWith('data:image/') && !dataUrl.startsWith('data:application/pdf')) {
+                        let normalizedDataUrl = '';
+                        if (isImage) {
+                            normalizedDataUrl = selectedFile.size > MAX_RECEIPT_IMAGE_NO_COMPRESS_BYTES
+                                ? await compressReceiptImage(selectedFile, MAX_RECEIPT_IMAGE_TARGET_BYTES)
+                                : await readFileAsDataUrl(selectedFile);
+                        } else {
+                            normalizedDataUrl = await readFileAsDataUrl(selectedFile);
+                        }
+
+                        if (normalizedDataUrl.startsWith('data:application/octet-stream;base64,')) {
+                            if (isPdf) {
+                                normalizedDataUrl = normalizedDataUrl.replace('data:application/octet-stream;base64,', 'data:application/pdf;base64,');
+                            } else if (isImage) {
+                                const mimeByExt = normalizedName.endsWith('.png') ? 'image/png'
+                                    : normalizedName.endsWith('.webp') ? 'image/webp'
+                                    : normalizedName.endsWith('.gif') ? 'image/gif'
+                                    : 'image/jpeg';
+                                normalizedDataUrl = normalizedDataUrl.replace('data:application/octet-stream;base64,', `data:${mimeByExt};base64,`);
+                            }
+                        }
+
+                        if (!normalizedDataUrl.startsWith('data:image/') && !normalizedDataUrl.startsWith('data:application/pdf')) {
                             throw new Error('Непідтримуваний формат файлу.');
                         }
-                        receiptImage = dataUrl;
-                        receiptFileName = selectedFile.name || 'receipt-image';
+                        receiptImage = normalizedDataUrl;
+                        receiptFileName = fileName || 'receipt-file';
                         if (invoiceReceiptName) {
-                            invoiceReceiptName.textContent = selectedFile.name;
+                            invoiceReceiptName.textContent = fileName || 'Файл обрано';
                         }
                         setInvoiceConfirmState(false);
                     } catch (error) {
@@ -2752,5 +2933,6 @@ const Catalog = {
 };
 
 window.Catalog = Catalog;
+
 
 

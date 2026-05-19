@@ -2334,9 +2334,9 @@ const Catalog = {
             const walletDefaultText = walletButton?.textContent?.trim() || 'Google Pay / Apple Pay';
             const invoiceConfirmDefaultText = invoiceConfirmButton?.textContent?.trim() || 'Оформити замовлення';
             const MAX_RECEIPT_PDF_BYTES = Math.floor(4.5 * 1024 * 1024);
-            const MAX_RECEIPT_IMAGE_NO_COMPRESS_BYTES = Math.floor(4.5 * 1024 * 1024);
             const MAX_RECEIPT_IMAGE_INPUT_BYTES = 12 * 1024 * 1024;
             const MAX_RECEIPT_IMAGE_TARGET_BYTES = Math.floor(2.2 * 1024 * 1024);
+            const RECEIPT_ATTACH_TARGET_BYTES = Math.floor(0.32 * 1024 * 1024);
             const MAX_RECEIPT_IMAGE_DIMENSION = 2200;
             const MAX_ORDER_REQUEST_BYTES = Math.floor(4.4 * 1024 * 1024);
             const LARGE_ORDER_RECOMMENDATION_TOTAL = 2500;
@@ -2777,9 +2777,9 @@ const Catalog = {
                     try {
                         let normalizedDataUrl = '';
                         if (isImage) {
-                            normalizedDataUrl = selectedFile.size > MAX_RECEIPT_IMAGE_NO_COMPRESS_BYTES
-                                ? await compressReceiptImage(selectedFile, MAX_RECEIPT_IMAGE_TARGET_BYTES)
-                                : await readFileAsDataUrl(selectedFile);
+                            // Normalize image receipt immediately on attach so original file size
+                            // does not impact later order submission payload limits.
+                            normalizedDataUrl = await compressReceiptImage(selectedFile, RECEIPT_ATTACH_TARGET_BYTES);
                         } else {
                             normalizedDataUrl = await readFileAsDataUrl(selectedFile);
                         }

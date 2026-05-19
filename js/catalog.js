@@ -2339,6 +2339,7 @@ const Catalog = {
             const MAX_RECEIPT_IMAGE_TARGET_BYTES = Math.floor(2.2 * 1024 * 1024);
             const MAX_RECEIPT_IMAGE_DIMENSION = 2200;
             const MAX_ORDER_REQUEST_BYTES = Math.floor(4.4 * 1024 * 1024);
+            const LARGE_ORDER_RECOMMENDATION_TOTAL = 2500;
             let receiptImage = '';
             let receiptFileName = '';
             let isInvoicePending = false;
@@ -2719,6 +2720,12 @@ const Catalog = {
                     if (!orderPayload) return;
                     if (invoiceTotalAmount) {
                         invoiceTotalAmount.textContent = `💰 Сума до сплати: ${formatInvoiceAmount(orderPayload.total)}`;
+                    }
+                    if (Number(orderPayload.total || 0) > LARGE_ORDER_RECOMMENDATION_TOTAL) {
+                        window.UI?.showToast?.(
+                            'При великих замовленнях рекомендується оплачувати через LiqPay для швидшого та надійнішого підтвердження оплати.',
+                            { tone: 'warning', duration: 10000 }
+                        );
                     }
                     resetInvoiceReceiptState();
                     this.closeOrderModal();

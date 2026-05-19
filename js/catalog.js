@@ -2497,7 +2497,7 @@ const Catalog = {
                 let requestPayload = buildInvoiceRequestPayload(orderPayload);
                 let requestBody = JSON.stringify(requestPayload);
                 if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                    return { requestPayload, requestBody };
+                    return { requestPayload, requestBody, stillOversized: false };
                 }
 
                 const currentReceiptDataUrl = String(requestPayload.receiptImage || '');
@@ -2533,7 +2533,7 @@ const Catalog = {
                     requestBody = JSON.stringify(requestPayload);
                     if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
                         receiptImage = compressedDataUrl;
-                        return { requestPayload, requestBody };
+                        return { requestPayload, requestBody, stillOversized: false };
                     }
                 }
 
@@ -2541,10 +2541,14 @@ const Catalog = {
                 requestBody = JSON.stringify(requestPayload);
                 if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
                     receiptImage = smallestDataUrl;
-                    return { requestPayload, requestBody };
+                    return { requestPayload, requestBody, stillOversized: false };
                 }
 
-                throw new Error('Замовлення завелике для відправлення одним запитом. Зменште обсяг макетів або надішліть легшу квитанцію.');
+                // Do not block on client estimation alone: try sending and rely on real backend response.
+                requestPayload = buildInvoiceRequestPayload(orderPayload, smallestDataUrl);
+                requestBody = JSON.stringify(requestPayload);
+                receiptImage = smallestDataUrl;
+                return { requestPayload, requestBody, stillOversized: true };
             };
 
             const copyTextToClipboard = async (value) => {
@@ -2658,6 +2662,9 @@ const Catalog = {
 
                     const result = await response.json().catch(() => ({}));
                     if (!response.ok) {
+                        if (response.status === 413) {
+                            throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште вагу квитанції або кількість/розмір макетів у кошику.');
+                        }
                         throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
                     }
 

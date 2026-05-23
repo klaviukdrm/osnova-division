@@ -1614,7 +1614,7 @@ const Catalog = {
                     ` : ''}
                 </div>
 
-                <div class="product-card-v2__body p-6 space-y-3">
+                <div class="product-card-v2__body p-6">
                     <p class="font-semibold text-lg leading-snug text-slate-900">
                         <a href="${this.getProductUrl(item)}" class="hover:text-blue-700 transition">${item.title || 'Товар'}</a>
                     </p>

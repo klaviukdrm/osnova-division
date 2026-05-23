@@ -7,6 +7,7 @@ const Catalog = {
     CATALOG_CACHE_KEY: 'upf_catalog_all_v4',
     CATALOG_CACHE_MAX_AGE_MS: 3 * 24 * 60 * 60 * 1000,
     ITEMS_PER_PAGE: 24,
+    MOBILE_ITEMS_PER_PAGE: 21,
     DEFAULT_CATEGORIES: [
         'Футболка з надруком',
         'Худі'
@@ -300,6 +301,15 @@ const Catalog = {
                 searchQuery: this.state.searchQuery
             }));
         } catch (_) {}
+    },
+
+    getItemsPerPage() {
+        try {
+            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                return this.MOBILE_ITEMS_PER_PAGE;
+            }
+        } catch (_) {}
+        return this.ITEMS_PER_PAGE;
     },
 
     applyFetchedProducts(sourceProducts) {
@@ -1464,8 +1474,9 @@ const Catalog = {
         ].filter(Boolean);
         if (!containers.length) return;
 
-        const totalPages = Math.max(1, Math.ceil(totalItems / this.ITEMS_PER_PAGE));
-        if (totalItems <= this.ITEMS_PER_PAGE) {
+        const itemsPerPage = this.getItemsPerPage();
+        const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+        if (totalItems <= itemsPerPage) {
             containers.forEach((container) => {
                 container.classList.add('hidden');
                 container.innerHTML = '';
@@ -1554,7 +1565,8 @@ const Catalog = {
         }
 
         empty.textContent = 'Поки що немає товарів. Додай їх у CMS.';
-        const totalPages = Math.max(1, Math.ceil(filteredList.length / this.ITEMS_PER_PAGE));
+        const itemsPerPage = this.getItemsPerPage();
+        const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage));
 
         if (this.state.restoredPage) {
             if (this.state.restoredPage <= totalPages) {
@@ -1578,8 +1590,8 @@ const Catalog = {
             }
         }
 
-        const startIndex = (this.state.page - 1) * this.ITEMS_PER_PAGE;
-        const list = filteredList.slice(startIndex, startIndex + this.ITEMS_PER_PAGE);
+        const startIndex = (this.state.page - 1) * itemsPerPage;
+        const list = filteredList.slice(startIndex, startIndex + itemsPerPage);
 
         empty.classList.add('hidden');
         grid.innerHTML = list.map((item, index) => `

@@ -58,6 +58,41 @@ function getSupabaseConfig() {
     return { url, anonKey };
 }
 
+function safeDecodeUriComponent(value) {
+    try {
+        return decodeURIComponent(value);
+    } catch (_) {
+        return value;
+    }
+}
+
+function normalizeSupabaseSignedImageUrl(parsedUrl) {
+    if (!parsedUrl || !parsedUrl.pathname) return '';
+    const signedPrefix = '/storage/v1/object/sign/';
+    const pathname = String(parsedUrl.pathname || '');
+    if (!pathname.startsWith(signedPrefix)) return '';
+
+    const signedPath = pathname.slice(signedPrefix.length);
+    const pathSegments = signedPath
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => safeDecodeUriComponent(segment));
+
+    if (pathSegments.length < 2) return '';
+
+    const [bucket, ...objectParts] = pathSegments;
+    const encodedBucket = encodeURIComponent(bucket);
+    const encodedObjectPath = objectParts
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+
+    const normalized = new URL(parsedUrl.toString());
+    normalized.pathname = `/storage/v1/object/public/${encodedBucket}/${encodedObjectPath}`;
+    normalized.search = '';
+    normalized.hash = '';
+    return normalized.toString();
+}
+
 function normalizeAbsoluteImageUrl(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -66,12 +101,15 @@ function normalizeAbsoluteImageUrl(value) {
     const withProtocol = raw.startsWith('//') ? `https:${raw}` : raw;
     try {
         const parsed = new URL(withProtocol);
+        const publicUrl = normalizeSupabaseSignedImageUrl(parsed);
+        if (publicUrl) return publicUrl;
+
         const normalizedPathname = parsed.pathname
             .split('/')
             .map((segment) => {
                 if (!segment) return segment;
                 try {
-                    return encodeURIComponent(decodeURIComponent(segment));
+                    return encodeURIComponent(safeDecodeUriComponent(segment));
                 } catch (_) {
                     return encodeURIComponent(segment);
                 }
@@ -104,11 +142,7 @@ function normalizeImagePath(value) {
         .map((segment, index) => {
             if (!segment) return segment;
             if (index === 0 && segment.toLowerCase() === 'images') return 'images';
-            try {
-                return encodeURIComponent(decodeURIComponent(segment));
-            } catch (_) {
-                return encodeURIComponent(segment);
-            }
+            return encodeURIComponent(safeDecodeUriComponent(segment));
         })
         .join('/');
 
@@ -179,7 +213,7 @@ function mapProductRow(row) {
         id,
         title: String(row?.title || '').trim(),
         price: Number.isFinite(priceNumber) ? Math.max(0, Math.round(priceNumber)) : 0,
-        image: String(row?.image || '').trim(),
+        image: normalizeImagePath(row?.image || ''),
         description: String(row?.description || '').trim(),
         category,
         subcategory

@@ -1514,6 +1514,7 @@ const Catalog = {
         containers.forEach((container) => {
             container.classList.remove('hidden');
             container.innerHTML = markup;
+            const shouldScrollToProducts = container.id !== 'catalog-pagination-top';
 
             container.querySelectorAll('[data-page]').forEach((button) => {
                 button.addEventListener('click', () => {
@@ -1526,7 +1527,9 @@ const Catalog = {
                     this.state.restoredPage = null;
                     this.saveCatalogState();
                     this.renderProducts();
-                    window.UI?.smoothScrollTo?.('products');
+                    if (shouldScrollToProducts) {
+                        window.UI?.smoothScrollTo?.('products');
+                    }
                 });
             });
         });

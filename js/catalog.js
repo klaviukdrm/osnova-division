@@ -4,6 +4,8 @@ const Catalog = {
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
     LIQPAY_PENDING_ORDER_STORAGE_KEY: 'upf_pending_liqpay_order',
     LIQPAY_PENDING_ORDER_MAX_AGE_MS: 24 * 60 * 60 * 1000,
+    CATALOG_CACHE_KEY: 'upf_catalog_all_v4',
+    CATALOG_CACHE_MAX_AGE_MS: 3 * 24 * 60 * 60 * 1000,
     ITEMS_PER_PAGE: 24,
     DEFAULT_CATEGORIES: [
         'Футболка з надруком',
@@ -165,6 +167,33 @@ const Catalog = {
         }
     },
 
+    normalizeSupabaseSignedImageUrl(parsedUrl) {
+        if (!parsedUrl || !parsedUrl.pathname) return '';
+        const signedPrefix = '/storage/v1/object/sign/';
+        const pathname = String(parsedUrl.pathname || '');
+        if (!pathname.startsWith(signedPrefix)) return '';
+
+        const signedPath = pathname.slice(signedPrefix.length);
+        const pathSegments = signedPath
+            .split('/')
+            .filter(Boolean)
+            .map((segment) => this.safeDecodeUriComponent(segment));
+
+        if (pathSegments.length < 2) return '';
+
+        const [bucket, ...objectParts] = pathSegments;
+        const encodedBucket = encodeURIComponent(bucket);
+        const encodedObjectPath = objectParts
+            .map((segment) => encodeURIComponent(segment))
+            .join('/');
+
+        const normalized = new URL(parsedUrl.toString());
+        normalized.pathname = `/storage/v1/object/public/${encodedBucket}/${encodedObjectPath}`;
+        normalized.search = '';
+        normalized.hash = '';
+        return normalized.toString();
+    },
+
     normalizeAbsoluteImageUrl(value) {
         const raw = String(value || '').trim();
         if (!raw) return '';
@@ -173,6 +202,9 @@ const Catalog = {
         const withProtocol = raw.startsWith('//') ? `https:${raw}` : raw;
         try {
             const parsed = new URL(withProtocol, window.location.origin);
+            const publicUrl = this.normalizeSupabaseSignedImageUrl(parsed);
+            if (publicUrl) return publicUrl;
+
             const encodedPathname = parsed.pathname
                 .split('/')
                 .map((segment) => {
@@ -309,19 +341,41 @@ const Catalog = {
     },
 
     async loadProductsFromApi() {
-        const cacheKey = `upf_catalog_all_v3`;
+        const cacheKey = this.CATALOG_CACHE_KEY;
+        const cacheTtlMs = this.CATALOG_CACHE_MAX_AGE_MS;
+        const legacyCacheKey = 'upf_catalog_all_v3';
 
         let hasCached = false;
-        let cachedDataStr = null;
+        let cachedProductsFingerprint = '';
 
-        // 1. Спроба завантажити з кешу (Миттєве відображення)
         try {
-            cachedDataStr = window.localStorage.getItem(cacheKey);
+            window.localStorage.removeItem(legacyCacheKey);
+        } catch (_) {}
+
+        // 1. Спроба завантажити актуальний кеш (тільки якщо він свіжий)
+        try {
+            const cachedDataStr = window.localStorage.getItem(cacheKey);
             if (cachedDataStr) {
                 const parsed = JSON.parse(cachedDataStr);
-                if (parsed && Array.isArray(parsed.products)) {
-                    this.applyFetchedProducts(parsed.products);
+                const cachedProducts = Array.isArray(parsed?.products) ? parsed.products : [];
+                const fetchedAt = Number(parsed?.fetchedAt || 0);
+                const cacheAgeMs = Date.now() - fetchedAt;
+                const isFreshCache = (
+                    cachedProducts.length > 0
+                    && Number.isFinite(fetchedAt)
+                    && fetchedAt > 0
+                    && cacheAgeMs >= 0
+                    && cacheAgeMs <= cacheTtlMs
+                );
+
+                if (isFreshCache) {
+                    this.applyFetchedProducts(cachedProducts);
                     hasCached = true;
+                    cachedProductsFingerprint = JSON.stringify(cachedProducts);
+                } else {
+                    try {
+                        window.localStorage.removeItem(cacheKey);
+                    } catch (_) {}
                 }
             }
         } catch (e) {
@@ -347,16 +401,19 @@ const Catalog = {
                 return false;
             }
 
-            const freshDataStr = JSON.stringify({ products: sourceProducts });
+            const freshProductsFingerprint = JSON.stringify(sourceProducts);
 
             // Якщо дані з сервера ідентичні кешованим, не перемальовуємо UI щоб уникнути блимання
-            if (hasCached && freshDataStr === cachedDataStr) {
+            if (hasCached && freshProductsFingerprint === cachedProductsFingerprint) {
                 return true;
             }
 
             // Зберігаємо нові дані в кеш
             try {
-                window.localStorage.setItem(cacheKey, freshDataStr);
+                window.localStorage.setItem(cacheKey, JSON.stringify({
+                    products: sourceProducts,
+                    fetchedAt: Date.now()
+                }));
             } catch (_) {}
 
             this.applyFetchedProducts(sourceProducts);

@@ -347,12 +347,20 @@ const Catalog = {
 
         let hasCached = false;
         let cachedProductsFingerprint = '';
+        let hasFreshCache = false;
+        let resolvedCachedProducts = [];
 
-        try {
-            window.localStorage.removeItem(legacyCacheKey);
-        } catch (_) {}
+        const applyCacheIfPossible = (products, meta = {}) => {
+            if (!Array.isArray(products) || !products.length) return false;
+            this.applyFetchedProducts(products);
+            hasCached = true;
+            cachedProductsFingerprint = JSON.stringify(products);
+            resolvedCachedProducts = products;
+            hasFreshCache = Boolean(meta.isFresh);
+            return true;
+        };
 
-        // 1. Спроба завантажити актуальний кеш (тільки якщо він свіжий)
+        // 1. Швидке завантаження з локального кешу (v4 -> legacy v3 fallback)
         try {
             const cachedDataStr = window.localStorage.getItem(cacheKey);
             if (cachedDataStr) {
@@ -368,18 +376,33 @@ const Catalog = {
                     && cacheAgeMs <= cacheTtlMs
                 );
 
-                if (isFreshCache) {
-                    this.applyFetchedProducts(cachedProducts);
-                    hasCached = true;
-                    cachedProductsFingerprint = JSON.stringify(cachedProducts);
-                } else {
-                    try {
-                        window.localStorage.removeItem(cacheKey);
-                    } catch (_) {}
-                }
+                applyCacheIfPossible(cachedProducts, { isFresh: isFreshCache });
             }
         } catch (e) {
             console.warn('Failed to parse catalog cache', e);
+        }
+
+        if (!hasCached) {
+            try {
+                const legacyDataStr = window.localStorage.getItem(legacyCacheKey);
+                if (legacyDataStr) {
+                    const parsedLegacy = JSON.parse(legacyDataStr);
+                    const legacyProducts = Array.isArray(parsedLegacy?.products)
+                        ? parsedLegacy.products
+                        : (Array.isArray(parsedLegacy) ? parsedLegacy : []);
+
+                    if (applyCacheIfPossible(legacyProducts, { isFresh: false })) {
+                        try {
+                            window.localStorage.setItem(cacheKey, JSON.stringify({
+                                products: legacyProducts,
+                                fetchedAt: 0
+                            }));
+                        } catch (_) {}
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to parse legacy catalog cache', e);
+            }
         }
 
         // 2. Фоновий запит до API (Перевірка оновлень)
@@ -398,13 +421,24 @@ const Catalog = {
             const sourceProducts = Array.isArray(payload?.products) ? payload.products : [];
 
             if (!sourceProducts.length) {
-                return false;
+                return hasCached;
             }
 
             const freshProductsFingerprint = JSON.stringify(sourceProducts);
 
             // Якщо дані з сервера ідентичні кешованим, не перемальовуємо UI щоб уникнути блимання
             if (hasCached && freshProductsFingerprint === cachedProductsFingerprint) {
+                if (!hasFreshCache) {
+                    try {
+                        window.localStorage.setItem(cacheKey, JSON.stringify({
+                            products: resolvedCachedProducts,
+                            fetchedAt: Date.now()
+                        }));
+                    } catch (_) {}
+                }
+                try {
+                    window.localStorage.removeItem(legacyCacheKey);
+                } catch (_) {}
                 return true;
             }
 
@@ -414,6 +448,7 @@ const Catalog = {
                     products: sourceProducts,
                     fetchedAt: Date.now()
                 }));
+                window.localStorage.removeItem(legacyCacheKey);
             } catch (_) {}
 
             this.applyFetchedProducts(sourceProducts);

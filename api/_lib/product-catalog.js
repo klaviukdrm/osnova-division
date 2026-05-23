@@ -69,6 +69,59 @@ function safeDecodeUriComponent(value) {
     }
 }
 
+function normalizeSupabaseSignedImageUrl(parsedUrl) {
+    if (!parsedUrl || !parsedUrl.pathname) return '';
+    const signedPrefix = '/storage/v1/object/sign/';
+    const pathname = String(parsedUrl.pathname || '');
+    if (!pathname.startsWith(signedPrefix)) return '';
+
+    const signedPath = pathname.slice(signedPrefix.length);
+    const pathSegments = signedPath
+        .split('/')
+        .filter(Boolean)
+        .map((segment) => safeDecodeUriComponent(segment));
+
+    if (pathSegments.length < 2) return '';
+
+    const [bucket, ...objectParts] = pathSegments;
+    const encodedBucket = encodeURIComponent(bucket);
+    const encodedObjectPath = objectParts
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+
+    const normalized = new URL(parsedUrl.toString());
+    normalized.pathname = `/storage/v1/object/public/${encodedBucket}/${encodedObjectPath}`;
+    normalized.search = '';
+    normalized.hash = '';
+    return normalized.toString();
+}
+
+function normalizeAbsoluteImageUrl(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('data:')) return raw;
+
+    const withProtocol = raw.startsWith('//') ? `https:${raw}` : raw;
+    try {
+        const parsed = new URL(withProtocol);
+        const publicUrl = normalizeSupabaseSignedImageUrl(parsed);
+        if (publicUrl) return publicUrl;
+
+        const normalizedPathname = parsed.pathname
+            .split('/')
+            .map((segment) => {
+                if (!segment) return segment;
+                return encodeURIComponent(safeDecodeUriComponent(segment));
+            })
+            .join('/');
+
+        parsed.pathname = normalizedPathname;
+        return parsed.toString();
+    } catch (_) {
+        return raw;
+    }
+}
+
 function toCatalogImagePath(fileName) {
     const normalized = String(fileName || '').trim();
     if (!normalized) return '';
@@ -79,7 +132,8 @@ function toCatalogImagePath(fileName) {
 function normalizeCatalogImagePath(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
-    if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) return raw;
+    if (/^(https?:)?\/\//i.test(raw)) return normalizeAbsoluteImageUrl(raw);
+    if (raw.startsWith('data:')) return raw;
 
     const normalizedSlashes = raw.replace(/\\/g, '/');
     const [pathOnly, query = ''] = normalizedSlashes.split('?');
@@ -383,4 +437,3 @@ module.exports = {
     slugifyProductTitle,
     assignProductSlugs
 };
-

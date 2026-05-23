@@ -2999,9 +2999,22 @@ textarea::placeholder {
     color: #7f97ba !important;
 }
 
+#modal-main-image-wrap {
+    background: #101826 !important;
+}
+
 #modal-main-image,
 #modal-thumbs img {
     background: #101826 !important;
+}
+
+#modal-main-image {
+    opacity: 1;
+    transition: opacity 0.18s ease;
+}
+
+#modal-main-image.is-loading {
+    opacity: 0;
 }
 
 @media (max-width: 768px) {
@@ -3043,7 +3056,7 @@ textarea::placeholder {
     }
 
     #product-modal #modal-main-image-wrap {
-        background: transparent !important;
+        background: #101826 !important;
         padding: 0 !important;
         border-radius: 12px !important;
     }

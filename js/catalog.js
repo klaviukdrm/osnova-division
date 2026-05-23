@@ -1844,38 +1844,85 @@ const Catalog = {
     loadModalMainImage(mainImageEl, imagePair) {
         if (!mainImageEl || !imagePair) return;
 
+        const wrapEl = document.getElementById('modal-main-image-wrap');
         const fullUrl = String(imagePair.full || '').trim();
         const previewUrl = String(imagePair.preview || '').trim() || fullUrl;
         const loadToken = (this.state.modalImageLoadToken || 0) + 1;
         this.state.modalImageLoadToken = loadToken;
 
+        const setLoadingState = (isLoading) => {
+            mainImageEl.classList.toggle('is-loading', Boolean(isLoading));
+            if (wrapEl) {
+                wrapEl.classList.toggle('is-loading', Boolean(isLoading));
+            }
+        };
+
+        const setMainImageSrc = (src, { keepLoading = false } = {}) => new Promise((resolve) => {
+            if (!src) {
+                mainImageEl.removeAttribute('src');
+                setLoadingState(false);
+                resolve(false);
+                return;
+            }
+
+            mainImageEl.onload = () => {
+                if (this.state.modalImageLoadToken !== loadToken) {
+                    resolve(false);
+                    return;
+                }
+                if (!keepLoading) setLoadingState(false);
+                resolve(true);
+            };
+            mainImageEl.onerror = () => {
+                if (this.state.modalImageLoadToken !== loadToken) {
+                    resolve(false);
+                    return;
+                }
+                setLoadingState(false);
+                resolve(false);
+            };
+
+            mainImageEl.src = src;
+        });
+
+        setLoadingState(true);
         if (!fullUrl && !previewUrl) {
             mainImageEl.removeAttribute('src');
+            setLoadingState(false);
             return;
         }
 
         if (!fullUrl || fullUrl === previewUrl) {
-            mainImageEl.src = fullUrl || previewUrl;
+            void setMainImageSrc(fullUrl || previewUrl);
             return;
         }
 
-        if (previewUrl) {
-            mainImageEl.src = previewUrl;
-        }
+        const loadPreviewThenFull = async () => {
+            if (previewUrl) {
+                await setMainImageSrc(previewUrl);
+            }
+            if (this.state.modalImageLoadToken !== loadToken) return;
 
-        const preloader = new Image();
-        preloader.decoding = 'async';
-        preloader.loading = 'eager';
-        preloader.fetchPriority = 'low';
-        preloader.onload = () => {
-            if (this.state.modalImageLoadToken !== loadToken) return;
-            mainImageEl.src = fullUrl;
+            const preloader = new Image();
+            preloader.decoding = 'async';
+            preloader.loading = 'eager';
+            preloader.fetchPriority = 'low';
+            preloader.onload = () => {
+                if (this.state.modalImageLoadToken !== loadToken) return;
+                setLoadingState(true);
+                void setMainImageSrc(fullUrl);
+            };
+            preloader.onerror = () => {
+                if (this.state.modalImageLoadToken !== loadToken) return;
+                setLoadingState(false);
+                if (previewUrl && mainImageEl.getAttribute('src') !== previewUrl) {
+                    void setMainImageSrc(previewUrl);
+                }
+            };
+            preloader.src = fullUrl;
         };
-        preloader.onerror = () => {
-            if (this.state.modalImageLoadToken !== loadToken) return;
-            if (previewUrl) mainImageEl.src = previewUrl;
-        };
-        preloader.src = fullUrl;
+
+        void loadPreviewThenFull();
     },
 
     openProductModal(item) {

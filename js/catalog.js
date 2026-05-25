@@ -4,6 +4,8 @@ const Catalog = {
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
     LIQPAY_PENDING_ORDER_STORAGE_KEY: 'upf_pending_liqpay_order',
     LIQPAY_PENDING_ORDER_MAX_AGE_MS: 24 * 60 * 60 * 1000,
+    LARGE_ORDER_RECOMMENDATION_TOTAL: 1300,
+    LARGE_ORDER_RECOMMENDATION_MESSAGE: 'При великих замовленнях рекомендується оплачувати через LiqPay для швидшого та надійнішого підтвердження оплати.',
     CATALOG_CACHE_KEY: 'upf_catalog_all_v4',
     CATALOG_CACHE_MAX_AGE_MS: 3 * 24 * 60 * 60 * 1000,
     ITEMS_PER_PAGE: 24,
@@ -2446,7 +2448,6 @@ const Catalog = {
             const RECEIPT_ATTACH_TARGET_BYTES = Math.floor(0.32 * 1024 * 1024);
             const MAX_RECEIPT_IMAGE_DIMENSION = 2200;
             const MAX_ORDER_REQUEST_BYTES = Math.floor(4.4 * 1024 * 1024);
-            const LARGE_ORDER_RECOMMENDATION_TOTAL = 2500;
             let receiptImage = '';
             let receiptFileName = '';
             let isInvoicePending = false;
@@ -2828,11 +2829,8 @@ const Catalog = {
                     if (invoiceTotalAmount) {
                         invoiceTotalAmount.textContent = `💰 Сума до сплати: ${formatInvoiceAmount(orderPayload.total)}`;
                     }
-                    if (Number(orderPayload.total || 0) > LARGE_ORDER_RECOMMENDATION_TOTAL) {
-                        window.UI?.showToast?.(
-                            'При великих замовленнях рекомендується оплачувати через LiqPay для швидшого та надійнішого підтвердження оплати.',
-                            { tone: 'warning', duration: 10000 }
-                        );
+                    if (Number(orderPayload.total || 0) > this.LARGE_ORDER_RECOMMENDATION_TOTAL) {
+                        window.UI?.showToast?.(this.LARGE_ORDER_RECOMMENDATION_MESSAGE, { tone: 'warning', duration: 10000 });
                     }
                     resetInvoiceReceiptState();
                     this.closeOrderModal();

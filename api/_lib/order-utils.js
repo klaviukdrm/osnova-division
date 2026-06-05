@@ -210,6 +210,12 @@ function resolveSafeLimit(limit, fallbackValue = Number.POSITIVE_INFINITY) {
     return Math.max(1, Math.floor(resolvedLimit));
 }
 
+function resolveItemQuantity(item) {
+    const quantity = Number(item?.quantity || 0);
+    if (!Number.isFinite(quantity)) return 1;
+    return Math.max(1, Math.floor(quantity));
+}
+
 function isConstructorItem(item) {
     const category = String(item?.category || '').toLowerCase();
     const customKey = String(item?.customKey || '').trim();
@@ -222,16 +228,24 @@ function isAdminCatalogItem(item) {
 
 function extractCustomPreviewItems(items, limit = Number.POSITIVE_INFINITY) {
     const safeLimit = resolveSafeLimit(limit);
-    const previewItems = (Array.isArray(items) ? items : [])
+    const previewItems = [];
+
+    (Array.isArray(items) ? items : [])
         .filter((item) => isConstructorItem(item))
         .filter((item) => {
             const image = String(item?.image || '').trim();
             return isMediaReference(image);
         })
-        .map((item) => ({
-            title: String(item?.title || '\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u0438\u0439 \u0432\u0438\u0440\u0456\u0431').trim() || '\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u0438\u0439 \u0432\u0438\u0440\u0456\u0431',
-            image: String(item?.image || '').trim()
-        }));
+        .forEach((item) => {
+            const preview = {
+                title: String(item?.title || '\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u0438\u0439 \u0432\u0438\u0440\u0456\u0431').trim() || '\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u0438\u0439 \u0432\u0438\u0440\u0456\u0431',
+                image: String(item?.image || '').trim()
+            };
+            const quantity = resolveItemQuantity(item);
+            for (let index = 0; index < quantity; index += 1) {
+                previewItems.push({ ...preview });
+            }
+        });
 
     return Number.isFinite(safeLimit) ? previewItems.slice(0, safeLimit) : previewItems;
 }
@@ -255,18 +269,49 @@ function extractCustomSourceImages(items, limit = Number.POSITIVE_INFINITY) {
     return Number.isFinite(safeLimit) ? list.slice(0, safeLimit) : list;
 }
 
+function extractCustomSourceImageGroups(items, limit = Number.POSITIVE_INFINITY) {
+    const safeLimit = resolveSafeLimit(limit);
+    const groups = [];
+
+    (Array.isArray(items) ? items : [])
+        .filter((item) => isConstructorItem(item))
+        .forEach((item) => {
+            const sourceImages = Array.isArray(item?.sourceImages) ? item.sourceImages : [];
+            const images = sourceImages
+                .map((image) => String(image || '').trim())
+                .filter((value) => value && isMediaReference(value));
+
+            if (!images.length) return;
+
+            groups.push({
+                title: String(item?.title || '\u041A\u0430\u0441\u0442\u043E\u043C\u043D\u0438\u0439 \u0432\u0438\u0440\u0456\u0431').trim() || '\u041A\u0430\u0441\u0442\u043E\u043C\u043D\u0438\u0439 \u0432\u0438\u0440\u0456\u0431',
+                images
+            });
+        });
+
+    return Number.isFinite(safeLimit) ? groups.slice(0, safeLimit) : groups;
+}
+
 function extractAdminPreviewItems(items, limit = Number.POSITIVE_INFINITY) {
     const safeLimit = resolveSafeLimit(limit);
-    const previewItems = (Array.isArray(items) ? items : [])
+    const previewItems = [];
+
+    (Array.isArray(items) ? items : [])
         .filter((item) => isAdminCatalogItem(item))
         .filter((item) => {
             const image = String(item?.image || '').trim();
             return isMediaReference(image);
         })
-        .map((item) => ({
-            title: String(item?.title || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440').trim() || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440',
-            image: String(item?.image || '').trim()
-        }));
+        .forEach((item) => {
+            const preview = {
+                title: String(item?.title || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440').trim() || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440',
+                image: String(item?.image || '').trim()
+            };
+            const quantity = resolveItemQuantity(item);
+            for (let index = 0; index < quantity; index += 1) {
+                previewItems.push({ ...preview });
+            }
+        });
 
     return Number.isFinite(safeLimit) ? previewItems.slice(0, safeLimit) : previewItems;
 }
@@ -280,5 +325,6 @@ module.exports = {
     formatCurrency,
     extractCustomPreviewItems,
     extractCustomSourceImages,
+    extractCustomSourceImageGroups,
     extractAdminPreviewItems
 };

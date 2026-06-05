@@ -167,15 +167,12 @@ const DEFAULT_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 const HOODIE_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const APPAREL_PLUS_SIZE_CODE = '3XL';
 const APPAREL_PLUS_SIZE_SURCHARGE = 200;
-const MAX_UPLOAD_ABSOLUTE_BYTES = 50 * 1024 * 1024;
+const MAX_UPLOAD_ABSOLUTE_BYTES = 80 * 1024 * 1024;
 const MAX_UPLOAD_DIRECT_BYTES = 6 * 1024 * 1024;
 const MAX_UPLOAD_TARGET_BYTES = 4 * 1024 * 1024;
 const MAX_UPLOAD_SIDE = 2600;
 const HEAVY_UPLOAD_QUALITY_STEPS = [0.9, 0.82, 0.74, 0.66];
 const FALLBACK_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.svg', '.heic', '.heif', '.avif', '.jfif', '.pjpeg', '.pjp', '.ico'];
-const ORDER_STORAGE_PREVIEW_FOLDER = 'order-custom/previews';
-const ORDER_STORAGE_SOURCE_FOLDER = 'order-custom/sources';
-const ORDER_STORAGE_CACHE_CONTROL = '31536000';
 const CANVAS_OPTIMIZABLE_MIME_TYPES = new Set([
     'image/png',
     'image/jpeg',
@@ -326,15 +323,12 @@ const Editor = {
     imageTransformBoxEl: null,
     imageIdCounter: 0,
     imageSourceById: {},
-    imageOriginalFileById: {},
     imageUploadPendingCount: 0,
     imageHistoryStack: [],
     isRestoringImageSnapshot: false,
     imageScaleGestureActive: false,
     designDirty: true,
-    designSavePending: false,
     savedDesignPreview: null,
-    savedDesignSourceImages: [],
     savedDesignKey: null,
     imageState: { x: 0, y: 0, scale: 1, rotate: 0 },
     imageDragState: { dragging: false, pointerId: null, imageId: null, startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0, historyPushed: false },
@@ -862,7 +856,6 @@ const Editor = {
         const subtitleEl = this.elements.uploadLabelSubtitle;
         if (!titleEl || !subtitleEl) return;
 
-        subtitleEl.textContent = '\u0430\u0431\u043E \u043F\u0435\u0440\u0435\u0442\u044F\u0433\u043D\u0438 \u0444\u0430\u0439\u043B \u0443 \u0437\u043E\u043D\u0443 \u0434\u0440\u0443\u043A\u0443 \u2022 up to 50 MB';
         const label = String(format?.label || '').trim().toUpperCase();
         const iconOnlyMode = this.isMobileViewport() && (label === 'A4' || label === 'A5');
 
@@ -1320,7 +1313,7 @@ const Editor = {
         const addButton = this.elements.addToCartBtn;
         if (!addButton) return;
 
-        const isReady = !this.designDirty && !this.designSavePending && Boolean(this.savedDesignPreview);
+        const isReady = !this.designDirty && Boolean(this.savedDesignPreview);
         addButton.disabled = !isReady;
         addButton.classList.toggle('opacity-60', !isReady);
         addButton.classList.toggle('pointer-events-none', !isReady);
@@ -1329,7 +1322,7 @@ const Editor = {
     applySaveButtonState() {
         const saveButton = this.elements.saveDesignBtn;
         if (!saveButton) return;
-        const isPending = this.imageUploadPendingCount > 0 || this.designSavePending;
+        const isPending = this.imageUploadPendingCount > 0;
         saveButton.disabled = isPending;
         saveButton.classList.toggle('opacity-60', isPending);
         saveButton.classList.toggle('pointer-events-none', isPending);
@@ -1342,12 +1335,6 @@ const Editor = {
             this.imageUploadPendingCount = Math.max(0, this.imageUploadPendingCount - 1);
         }
         this.applySaveButtonState();
-    },
-
-    setDesignSavePending(isPending) {
-        this.designSavePending = Boolean(isPending);
-        this.applySaveButtonState();
-        this.applyConstructorOrderControlsState();
     },
 
     markDesignDirty() {
@@ -1483,174 +1470,6 @@ const Editor = {
         window.UI?.showToast?.('Макет збережено', { tone: 'info' });
     },
 
-    inferMimeTypeExtension(mimeType) {
-        const normalized = String(mimeType || '').trim().toLowerCase();
-        if (normalized === 'image/png') return 'png';
-        if (normalized === 'image/webp') return 'webp';
-        if (normalized === 'image/gif') return 'gif';
-        if (normalized === 'image/bmp') return 'bmp';
-        if (normalized === 'image/avif') return 'avif';
-        if (normalized === 'image/heic') return 'heic';
-        if (normalized === 'image/heif') return 'heif';
-        if (normalized === 'image/tiff') return 'tiff';
-        if (normalized === 'image/svg+xml') return 'svg';
-        if (normalized === 'image/x-icon' || normalized === 'image/vnd.microsoft.icon') return 'ico';
-        return 'jpg';
-    },
-
-    async dataUrlToFile(dataUrl, fileStem) {
-        const value = String(dataUrl || '').trim();
-        if (!value.startsWith('data:')) {
-            throw new Error('invalid_data_url');
-        }
-
-        const response = await fetch(value);
-        if (!response.ok) {
-            throw new Error('failed_to_prepare_upload');
-        }
-
-        const blob = await response.blob();
-        if (!blob.size) {
-            throw new Error('empty_upload_blob');
-        }
-
-        const extension = this.inferMimeTypeExtension(blob.type);
-        return new File([blob], `${fileStem}.${extension}`, {
-            type: blob.type || 'application/octet-stream'
-        });
-    },
-
-    async requestStorageUpload(file, folder) {
-        const response = await fetch('/api/storage/upload-url', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fileName: file?.name || 'upload.jpg',
-                contentType: file?.type || 'application/octet-stream',
-                size: Number(file?.size || 0),
-                folder
-            })
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload?.signedUrl || !payload?.publicUrl) {
-            const message = String(payload?.error || '').trim();
-            throw new Error(message || 'failed_to_prepare_storage_upload');
-        }
-
-        return payload;
-    },
-
-    async uploadFileToSignedUrl(file, signedUpload) {
-        const response = await fetch(String(signedUpload?.signedUrl || ''), {
-            method: 'PUT',
-            headers: {
-                'Content-Type': file?.type || 'application/octet-stream',
-                'cache-control': `max-age=${ORDER_STORAGE_CACHE_CONTROL}`,
-                'x-upsert': 'false'
-            },
-            body: file
-        });
-
-        if (!response.ok) {
-            const raw = await response.text().catch(() => '');
-            let message = '';
-            try {
-                const parsed = raw ? JSON.parse(raw) : null;
-                message = String(parsed?.error || parsed?.message || '').trim();
-            } catch (_) {
-                message = String(raw || '').trim();
-            }
-            throw new Error(message || 'failed_to_upload_to_storage');
-        }
-
-        return String(signedUpload.publicUrl || '').trim();
-    },
-
-    async uploadFileToStorage(file, options = {}) {
-        if (!(file instanceof File)) {
-            throw new Error('invalid_upload_file');
-        }
-
-        const folder = String(options.folder || ORDER_STORAGE_SOURCE_FOLDER).trim() || ORDER_STORAGE_SOURCE_FOLDER;
-        const signedUpload = await this.requestStorageUpload(file, folder);
-        return this.uploadFileToSignedUrl(file, signedUpload);
-    },
-
-    async uploadDataUrlToStorage(dataUrl, options = {}) {
-        const fileStem = String(options.fileStem || `custom-${Date.now()}`).trim() || `custom-${Date.now()}`;
-        const folder = String(options.folder || ORDER_STORAGE_SOURCE_FOLDER).trim() || ORDER_STORAGE_SOURCE_FOLDER;
-        const file = await this.dataUrlToFile(dataUrl, fileStem);
-        return this.uploadFileToStorage(file, { folder });
-    },
-
-    async saveCurrentDesignAssets(snapshot) {
-        const timestamp = Date.now();
-        const productId = String(this.state.productId || 'custom').trim() || 'custom';
-        const previewUrl = await this.uploadDataUrlToStorage(snapshot, {
-            folder: ORDER_STORAGE_PREVIEW_FOLDER,
-            fileStem: `${productId}-preview-${timestamp}`
-        });
-
-        const sourceImages = await Promise.all(
-            this.collectCurrentSourceUploads().map((source, index) => {
-                if (!source) return '';
-                if (source.kind === 'remote') {
-                    return source.value;
-                }
-                if (source.kind === 'file') {
-                    return this.uploadFileToStorage(source.value, {
-                        folder: ORDER_STORAGE_SOURCE_FOLDER
-                    });
-                }
-                return this.uploadDataUrlToStorage(source.value, {
-                    folder: ORDER_STORAGE_SOURCE_FOLDER,
-                    fileStem: `${productId}-source-${timestamp}-${index + 1}`
-                });
-            })
-        );
-
-        return {
-            previewUrl,
-            sourceImages: sourceImages.filter(Boolean)
-        };
-    },
-
-    async saveCurrentDesign() {
-        if (this.designSavePending) {
-            return;
-        }
-
-        if (this.imageUploadPendingCount > 0) {
-            window.UI?.showToast?.('Р—Р°С‡РµРєР°Р№, С„РѕС‚Рѕ С‰Рµ РѕР±СЂРѕР±Р»СЏС”С‚СЊСЃСЏ...', { tone: 'info' });
-            return;
-        }
-
-        const snapshot = this.buildDesignSnapshotDataUrl();
-        if (!snapshot) {
-            window.UI?.showToast?.('РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РјР°РєРµС‚. РЎРїСЂРѕР±СѓР№С‚Рµ С‰Рµ СЂР°Р·.', { tone: 'warning' });
-            return;
-        }
-
-        this.setDesignSavePending(true);
-        try {
-            const uploadedAssets = await this.saveCurrentDesignAssets(snapshot);
-            this.savedDesignPreview = uploadedAssets.previewUrl;
-            this.savedDesignSourceImages = uploadedAssets.sourceImages;
-            this.savedDesignKey = `constructor-design-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-            this.designDirty = false;
-            this.applyConstructorOrderControlsState();
-            window.UI?.showToast?.('РњР°РєРµС‚ Р·Р±РµСЂРµР¶РµРЅРѕ', { tone: 'info' });
-        } catch (error) {
-            console.warn('Failed to save constructor design to Supabase Storage.', error);
-            window.UI?.showToast?.('РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РјР°РєРµС‚. РЎРїСЂРѕР±СѓР№С‚Рµ С‰Рµ СЂР°Р·.', { tone: 'warning' });
-        } finally {
-            this.setDesignSavePending(false);
-        }
-    },
-
     createDefaultImageState() {
         return { x: 0, y: 0, scale: 1, stretchX: 1, stretchY: 1, rotate: 0 };
     },
@@ -1672,33 +1491,6 @@ const Editor = {
             const isRemoteFile = /^https?:\/\//i.test(normalizedSource);
             if (!isDataFile && !isRemoteFile) return;
             result.push(normalizedSource);
-        });
-
-        return result;
-    },
-
-    collectCurrentSourceUploads() {
-        const layers = this.getImageLayers();
-        const result = [];
-
-        layers.forEach((layer) => {
-            const imageId = layer?.dataset?.imageId;
-            const originalFile = this.imageOriginalFileById?.[imageId];
-            if (originalFile instanceof File) {
-                result.push({ kind: 'file', value: originalFile });
-                return;
-            }
-
-            const source = this.imageSourceById?.[imageId];
-            if (typeof source !== 'string') return;
-            const normalizedSource = source.trim();
-            if (/^https?:\/\//i.test(normalizedSource)) {
-                result.push({ kind: 'remote', value: normalizedSource });
-                return;
-            }
-            if (/^data:[^;,]+(?:;[^,]*)?;base64,/i.test(normalizedSource)) {
-                result.push({ kind: 'data-url', value: normalizedSource });
-            }
         });
 
         return result;
@@ -2385,83 +2177,6 @@ const Editor = {
         });
     },
 
-    async saveCurrentDesign() {
-        if (this.designSavePending) {
-            return;
-        }
-
-        if (this.imageUploadPendingCount > 0) {
-            window.UI?.showToast?.('\u0417\u0430\u0447\u0435\u043A\u0430\u0439, \u0444\u043E\u0442\u043E \u0449\u0435 \u043E\u0431\u0440\u043E\u0431\u043B\u044F\u0454\u0442\u044C\u0441\u044F...', { tone: 'info' });
-            return;
-        }
-
-        const snapshot = this.buildDesignSnapshotDataUrl();
-        if (!snapshot) {
-            window.UI?.showToast?.('\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0437\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u043C\u0430\u043A\u0435\u0442. \u0421\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0449\u0435 \u0440\u0430\u0437.', { tone: 'warning' });
-            return;
-        }
-
-        this.setDesignSavePending(true);
-        try {
-            const uploadedAssets = await this.saveCurrentDesignAssets(snapshot);
-            this.savedDesignPreview = uploadedAssets.previewUrl;
-            this.savedDesignSourceImages = uploadedAssets.sourceImages;
-            this.savedDesignKey = `constructor-design-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-            this.designDirty = false;
-            this.applyConstructorOrderControlsState();
-            window.UI?.showToast?.('\u041C\u0430\u043A\u0435\u0442 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u043E', { tone: 'info' });
-        } catch (error) {
-            console.warn('Failed to save constructor design to Supabase Storage.', error);
-            window.UI?.showToast?.('\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0437\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u043C\u0430\u043A\u0435\u0442. \u0421\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0449\u0435 \u0440\u0430\u0437.', { tone: 'warning' });
-        } finally {
-            this.setDesignSavePending(false);
-        }
-    },
-
-    async handleImageUpload(file, options = {}) {
-        if (!file) return;
-        const shouldRecordHistory = options.recordHistory !== false;
-        if (shouldRecordHistory) {
-            this.pushImageHistorySnapshot();
-        }
-
-        this.setImageUploadPending(true);
-        try {
-            const { dataUrl, optimized } = await this.getOptimizedUploadDataUrl(file);
-            if (!dataUrl) {
-                throw new Error('empty_image_payload');
-            }
-
-            const imageId = `img-${Date.now()}-${++this.imageIdCounter}`;
-            this.imageSourceById[imageId] = dataUrl;
-            this.imageOriginalFileById[imageId] = file instanceof File ? file : null;
-            const image = this.createImageLayer({
-                id: imageId,
-                src: dataUrl,
-                state: this.createDefaultImageState()
-            });
-
-            this.setActiveImage(image, { syncControls: true });
-            this.ensureImageTransformBox();
-            this.updateUploadPromptVisibility();
-            this.updateCanvasLayout();
-            this.elements.imageUpload.value = '';
-            this.markDesignDirty();
-
-            if (optimized) {
-                window.UI?.showToast?.('\u0412\u0435\u043B\u0438\u043A\u0435 \u0444\u043E\u0442\u043E \u043E\u043F\u0442\u0438\u043C\u0456\u0437\u043E\u0432\u0430\u043D\u043E \u0434\u043B\u044F \u0441\u0442\u0430\u0431\u0456\u043B\u044C\u043D\u043E\u0457 \u0440\u043E\u0431\u043E\u0442\u0438 \u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440\u0430', { tone: 'info' });
-            }
-        } catch (error) {
-            const message = error?.message === 'file_too_large'
-                ? '\u0424\u0430\u0439\u043B \u0437\u0430\u043D\u0430\u0434\u0442\u043E \u0432\u0435\u043B\u0438\u043A\u0438\u0439. \u0421\u043F\u0440\u043E\u0431\u0443\u0439 \u0444\u043E\u0442\u043E \u0434\u043E 50 \u041C\u0411.'
-                : '\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0438\u0442\u0438 \u0444\u043E\u0442\u043E. \u0421\u043F\u0440\u043E\u0431\u0443\u0439 \u0456\u043D\u0448\u0438\u0439 \u0444\u0430\u0439\u043B.';
-            window.UI?.showToast?.(message, { tone: 'warning' });
-            console.warn('Failed to process upload image.', error);
-        } finally {
-            this.setImageUploadPending(false);
-        }
-    },
-
     addToCartDemo() {
         if (this.designDirty || !this.savedDesignPreview || !this.savedDesignKey) {
             window.UI?.showToast?.('Спочатку натисни "Зберегти"', { tone: 'warning' });
@@ -2475,9 +2190,7 @@ const Editor = {
         const selectedColor = String(selectedVariant?.label || this.getProductVisual(product).colorLabel || '').trim();
         const text = this.elements.textInput.value.trim() || 'Без тексту';
         const cartStorageKey = 'upf_cart_v1';
-        const sourceImages = Array.isArray(this.savedDesignSourceImages)
-            ? this.savedDesignSourceImages.filter(Boolean)
-            : [];
+        const sourceImages = this.collectCurrentSourceImages();
         const selectedSize = this.getSelectedProductSize(product);
         const itemTitle = `${this.getConstructorOrderTitle(product)} • ${format.label}`;
         const formatBasePrice = this.getFormatBasePrice(product, format);

@@ -173,6 +173,9 @@ const MAX_UPLOAD_TARGET_BYTES = 4 * 1024 * 1024;
 const MAX_UPLOAD_SIDE = 2600;
 const HEAVY_UPLOAD_QUALITY_STEPS = [0.9, 0.82, 0.74, 0.66];
 const FALLBACK_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.svg', '.heic', '.heif', '.avif', '.jfif', '.pjpeg', '.pjp', '.ico'];
+const CUSTOM_ORDER_SUPPORT_THRESHOLD = 2;
+const CUSTOM_ORDER_SUPPORT_MESSAGE = 'Якщо плануєш велике замовлення кастомних товарів, краще заздалегідь звернутися до підтримки, щоб уточнити дизайн.';
+const CUSTOM_ORDER_SUPPORT_NOTICE_STORAGE_KEY = 'upf_custom_order_support_notice_v1';
 const CANVAS_OPTIMIZABLE_MIME_TYPES = new Set([
     'image/png',
     'image/jpeg',
@@ -932,6 +935,36 @@ const Editor = {
         const parsed = Number(value);
         if (!Number.isFinite(parsed)) return 1;
         return Math.max(1, Math.floor(parsed));
+    },
+
+    countCustomCartItems(cartItems = []) {
+        return cartItems.reduce((sum, entry) => {
+            if (!entry?.item?.customKey) return sum;
+            return sum + this.normalizeQuantity(entry.quantity);
+        }, 0);
+    },
+
+    shouldShowCustomOrderSupportNotice(customItemsCount) {
+        if (customItemsCount < CUSTOM_ORDER_SUPPORT_THRESHOLD) {
+            try {
+                window.localStorage.removeItem(CUSTOM_ORDER_SUPPORT_NOTICE_STORAGE_KEY);
+            } catch (error) {
+                console.warn('Failed to reset custom order support notice state.', error);
+            }
+            return false;
+        }
+
+        try {
+            if (window.localStorage.getItem(CUSTOM_ORDER_SUPPORT_NOTICE_STORAGE_KEY) === '1') {
+                return false;
+            }
+
+            window.localStorage.setItem(CUSTOM_ORDER_SUPPORT_NOTICE_STORAGE_KEY, '1');
+            return true;
+        } catch (error) {
+            console.warn('Failed to persist custom order support notice state.', error);
+            return true;
+        }
     },
 
     getFormatPriceBaseLabel(product = this.getSelectedProduct()) {
@@ -2312,6 +2345,11 @@ const Editor = {
 
             window.MainApp?.syncCartBadges?.();
             window.UI?.showToast?.('Додано в кошик', { tone: 'success' });
+
+            const customItemsCount = this.countCustomCartItems(cartItems);
+            if (this.shouldShowCustomOrderSupportNotice(customItemsCount)) {
+                window.UI?.showToast?.(CUSTOM_ORDER_SUPPORT_MESSAGE, { tone: 'warning', duration: 10000 });
+            }
         } catch (error) {
             console.warn('Failed to add constructor item to cart.', error);
             window.UI?.showToast?.('Не вдалося додати в кошик', { tone: 'warning' });

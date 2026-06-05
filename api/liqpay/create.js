@@ -1,11 +1,11 @@
-const { sendTelegramMessage, sendTelegramMediaGroup } = require('../_lib/telegram');
+const { sendTelegramMessage, sendTelegramPhoto } = require('../_lib/telegram');
 const { buildSignature } = require('../_lib/liqpay');
 const {
     generateOrderId,
     parseOrderPayload,
     buildCreatedOrderMessage,
     extractCustomPreviewItems,
-    extractCustomSourceImages,
+    extractCustomSourceImageGroups,
     extractAdminPreviewItems
 } = require('../_lib/order-utils');
 
@@ -39,7 +39,6 @@ function scheduleBackgroundTask(taskPromise) {
         }
     }
 
-    // Fallback for local/dev runtimes without waitUntil support.
     void taskPromise;
 }
 
@@ -85,6 +84,57 @@ function normalizeMediaReferences(values, siteOrigin) {
         .filter(Boolean);
 }
 
+function buildCustomSourceLinksMessage(orderId, groups, siteOrigin) {
+    const normalizedGroups = (Array.isArray(groups) ? groups : [])
+        .map((group) => ({
+            title: String(group?.title || 'Кастомний виріб').trim() || 'Кастомний виріб',
+            images: normalizeMediaReferences(group?.images || [], siteOrigin).filter((value) => /^https?:\/\//i.test(value))
+        }))
+        .filter((group) => group.images.length);
+
+    if (!normalizedGroups.length) return '';
+
+    const lines = [`🔗 Посилання на файли кастомного замовлення ${orderId}`];
+
+    normalizedGroups.forEach((group, groupIndex) => {
+        lines.push('');
+        lines.push(`${groupIndex + 1}. ${group.title}`);
+        group.images.forEach((imageUrl, imageIndex) => {
+            lines.push(`${groupIndex + 1}.${imageIndex + 1} ${imageUrl}`);
+        });
+    });
+
+    return lines.join('\n').slice(0, 4000);
+}
+
+async function sendCustomPreviewPhotos(previews, orderId, siteOrigin) {
+    const normalizedPreviews = (Array.isArray(previews) ? previews : [])
+        .map((preview) => ({
+            title: String(preview?.title || 'Кастомний виріб').trim() || 'Кастомний виріб',
+            image: toAbsoluteMediaReference(preview?.image || '', siteOrigin)
+        }))
+        .filter((preview) => /^https?:\/\//i.test(preview.image));
+
+    for (const preview of normalizedPreviews) {
+        const caption = `🖼 Превʼю кастомного макета до замовлення ${orderId}\n${preview.title}\n👕 Так виглядає принт на виробі`;
+        await sendTelegramPhoto(preview.image, caption);
+    }
+}
+
+async function sendAdminPreviewPhotos(previews, orderId, siteOrigin) {
+    const normalizedPreviews = (Array.isArray(previews) ? previews : [])
+        .map((preview) => ({
+            title: String(preview?.title || 'Адмін товар').trim() || 'Адмін товар',
+            image: toAbsoluteMediaReference(preview?.image || '', siteOrigin)
+        }))
+        .filter((preview) => /^https?:\/\//i.test(preview.image));
+
+    for (const preview of normalizedPreviews) {
+        const caption = `🖼 Адмін макет до замовлення ${orderId}\n${preview.title}\n📎 Прев'ю товару з каталогу`;
+        await sendTelegramPhoto(preview.image, caption);
+    }
+}
+
 async function notifyTelegramAboutCreatedOrder(order, orderId, siteOrigin) {
     const createdMessage = buildCreatedOrderMessage({
         ...order,
@@ -104,48 +154,60 @@ async function notifyTelegramAboutCreatedOrder(order, orderId, siteOrigin) {
     }
 
     const previews = extractCustomPreviewItems(order.items);
-    const sourceImages = extractCustomSourceImages(order.items);
-    const constructorMediaFilesRaw = [
-        ...previews.map((item) => item.image),
-        ...sourceImages
-    ].filter(Boolean);
-    const constructorMediaFiles = normalizeMediaReferences(constructorMediaFilesRaw, siteOrigin);
+    const sourceImageGroups = extractCustomSourceImageGroups(order.items);
+    const sourceLinksMessage = buildCustomSourceLinksMessage(orderId, sourceImageGroups, siteOrigin);
 
-    const adminPreviews = extractAdminPreviewItems(order.items);
-    const adminMediaFilesRaw = adminPreviews.map((item) => item.image).filter(Boolean);
-    const adminMediaFiles = normalizeMediaReferences(adminMediaFilesRaw, siteOrigin);
-
-    let constructorSent = false;
-    if (constructorMediaFiles.length) {
-        const firstTitle = previews[0]?.title || 'Кастомний виріб';
-        const caption = `🖼 Кастомний макет до замовлення ${orderId}\n${firstTitle}\n📎 Усі файли без стиснення`;
+    let sourceLinksSent = false;
+    if (sourceLinksMessage) {
         try {
-            await withRetry('send constructor media', () => sendTelegramMediaGroup(constructorMediaFiles, caption), {
+            await withRetry('send custom source links', () => sendTelegramMessage(sourceLinksMessage), {
                 attempts: 3,
-                baseDelayMs: 1200
+                baseDelayMs: 1000
             });
-            constructorSent = true;
-        } catch (previewError) {
-            console.error('Failed to send constructor media group to Telegram.', previewError);
+            sourceLinksSent = true;
+        } catch (sourceLinksError) {
+            console.error('Failed to send custom source links to Telegram.', sourceLinksError);
         }
     }
 
-    let adminSent = false;
-    if (adminMediaFiles.length) {
-        const firstAdminTitle = adminPreviews[0]?.title || 'Адмін товар';
-        const adminCaption = `🖼 Адмін макет до замовлення ${orderId}\n${firstAdminTitle}\n📎 Прев'ю товару з каталогу`;
+    let previewSent = false;
+    if (previews.length) {
         try {
-            await withRetry('send admin media', () => sendTelegramMediaGroup(adminMediaFiles, adminCaption), {
+            await withRetry('send custom previews', () => sendCustomPreviewPhotos(previews, orderId, siteOrigin), {
+                attempts: 3,
+                baseDelayMs: 1200
+            });
+            previewSent = true;
+        } catch (previewError) {
+            console.error('Failed to send custom preview photos to Telegram.', previewError);
+        }
+    }
+
+    const adminPreviews = extractAdminPreviewItems(order.items);
+
+    let adminSent = false;
+    if (adminPreviews.length) {
+        try {
+            await withRetry('send admin previews', () => sendAdminPreviewPhotos(adminPreviews, orderId, siteOrigin), {
                 attempts: 3,
                 baseDelayMs: 1200
             });
             adminSent = true;
         } catch (adminPreviewError) {
-            console.error('Failed to send admin product media group to Telegram.', adminPreviewError);
+            console.error('Failed to send admin product preview photos to Telegram.', adminPreviewError);
         }
     }
 
-    if (!messageSent || (constructorMediaFiles.length && !constructorSent) || (adminMediaFiles.length && !adminSent)) {
+    const sourceLinksExpected = Boolean(sourceLinksMessage);
+    const previewExpected = previews.length > 0;
+    const adminExpected = adminPreviews.length > 0;
+
+    if (
+        !messageSent
+        || (sourceLinksExpected && !sourceLinksSent)
+        || (previewExpected && !previewSent)
+        || (adminExpected && !adminSent)
+    ) {
         try {
             await sendTelegramMessage(
                 `⚠️ Частина даних по замовленню ${orderId} не була відправлена автоматично. Перевірте логи сервера.`
@@ -226,7 +288,6 @@ module.exports = async (req, res) => {
     const signature = buildSignature(privateKey, data);
     const checkoutUrl = `https://www.liqpay.ua/api/3/checkout?data=${encodeURIComponent(data)}&signature=${encodeURIComponent(signature)}`;
 
-    // Return checkout URL immediately so user is redirected without waiting for Telegram uploads.
     res.status(200).json({
         orderId,
         checkoutUrl

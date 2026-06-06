@@ -270,6 +270,406 @@ const MainApp = {
         }, 1600);
     },
 
+    setupExamplesStrip() {
+        document.querySelectorAll('[data-examples-strip]').forEach((strip) => {
+            const section = strip.closest('section') || document;
+            const track = strip.querySelector('[data-examples-track]');
+            const deferredTemplate = section.querySelector('[data-examples-deferred]');
+            const prevButton = section.querySelector('[data-examples-nav="prev"]');
+            const nextButton = section.querySelector('[data-examples-nav="next"]');
+            if (!track || !prevButton || !nextButton) return;
+
+            let deferredCardsLoaded = false;
+            let animationFrameId = 0;
+            let isAnimating = false;
+            let queuedDirection = 0;
+            const portfolioTitles = [
+                'Наші роботи',
+                'Приклади робіт',
+                'Виконані проєкти',
+                'Наші кейси',
+                'Реальне замовлення',
+                'Реальні замовлення',
+                'Готові роботи',
+                'Приклади друку',
+                'Останні роботи',
+                'Приклади виконання'
+            ];
+
+            const syncCardLabels = (root = track) => {
+                root.querySelectorAll('.examples-strip__card').forEach((card, index) => {
+                    const trigger = card.querySelector('[data-example-lightbox-title]');
+                    const label = card.querySelector('.product-card-v2__body p');
+                    const title = portfolioTitles[index % portfolioTitles.length];
+                    if (trigger && title) {
+                        trigger.setAttribute('data-example-lightbox-title', title);
+                    }
+                    if (label && title) {
+                        label.textContent = title;
+                    }
+                });
+            };
+
+            const loadDeferredCards = () => {
+                if (deferredCardsLoaded || !deferredTemplate?.content) return false;
+                const deferredItems = deferredTemplate.content.cloneNode(true);
+                if (!deferredItems.childElementCount) {
+                    deferredCardsLoaded = true;
+                    deferredTemplate.remove();
+                    return false;
+                }
+
+                track.appendChild(deferredItems);
+                syncCardLabels(track);
+                deferredCardsLoaded = true;
+                deferredTemplate.remove();
+                return true;
+            };
+
+            const getCards = () => Array.from(track.querySelectorAll('.examples-strip__card'));
+
+            const getNearestCardIndex = () => {
+                const cards = getCards();
+                if (!cards.length) return 0;
+
+                let nearestIndex = 0;
+                let nearestDistance = Number.POSITIVE_INFINITY;
+                cards.forEach((card, index) => {
+                    const distance = Math.abs(card.offsetLeft - track.scrollLeft);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestIndex = index;
+                    }
+                });
+                return nearestIndex;
+            };
+
+            const animateTrackTo = (targetLeft) => {
+                const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+                const destination = Math.max(0, Math.min(targetLeft, maxScrollLeft));
+                const startLeft = track.scrollLeft;
+                const distance = destination - startLeft;
+                if (Math.abs(distance) < 2) {
+                    track.scrollLeft = destination;
+                    track.classList.remove('is-animating');
+                    isAnimating = false;
+                    syncButtons();
+                    flushQueuedMove();
+                    return;
+                }
+
+                const duration = 360;
+                const startTime = performance.now();
+                const easeInOutCubic = (progress) => (
+                    progress < 0.5
+                        ? 4 * progress * progress * progress
+                        : 1 - Math.pow(-2 * progress + 2, 3) / 2
+                );
+
+                track.classList.add('is-animating');
+                isAnimating = true;
+
+                const step = (now) => {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = easeInOutCubic(progress);
+                    track.scrollLeft = startLeft + (distance * eased);
+                    syncButtons();
+
+                    if (progress < 1) {
+                        animationFrameId = window.requestAnimationFrame(step);
+                        return;
+                    }
+
+                    track.scrollLeft = destination;
+                    track.classList.remove('is-animating');
+                    animationFrameId = 0;
+                    isAnimating = false;
+                    syncButtons();
+                    flushQueuedMove();
+                };
+
+                animationFrameId = window.requestAnimationFrame(step);
+            };
+
+            const syncButtons = () => {
+                const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+                prevButton.disabled = track.scrollLeft <= 4;
+                const hasDeferredCards = !deferredCardsLoaded && Boolean(deferredTemplate?.content?.childElementCount);
+                nextButton.disabled = hasDeferredCards ? false : track.scrollLeft >= maxScrollLeft - 4;
+            };
+
+            const moveByCard = (direction, allowQueue = true) => {
+                if (isAnimating) {
+                    if (allowQueue) {
+                        queuedDirection = direction;
+                    }
+                    return;
+                }
+
+                if (loadDeferredCards()) {
+                    syncButtons();
+                }
+
+                const cards = getCards();
+                if (!cards.length) return;
+
+                const currentIndex = getNearestCardIndex();
+                const nextIndex = Math.max(0, Math.min(cards.length - 1, currentIndex + direction));
+                const targetCard = cards[nextIndex];
+                if (!targetCard) return;
+
+                animateTrackTo(targetCard.offsetLeft);
+            };
+
+            const flushQueuedMove = () => {
+                if (!queuedDirection) return;
+                const nextDirection = queuedDirection;
+                queuedDirection = 0;
+                moveByCard(nextDirection, false);
+            };
+
+            prevButton.addEventListener('click', () => {
+                moveByCard(-1);
+            });
+
+            nextButton.addEventListener('click', () => {
+                moveByCard(1);
+            });
+
+            track.addEventListener('scrollend', () => {
+                if (!track.classList.contains('is-animating')) {
+                    syncButtons();
+                }
+            });
+
+            const preloadDeferredOnIntent = () => {
+                if (loadDeferredCards()) {
+                    syncButtons();
+                }
+            };
+
+            track.addEventListener('pointerdown', preloadDeferredOnIntent, { passive: true, once: true });
+            track.addEventListener('wheel', preloadDeferredOnIntent, { passive: true, once: true });
+            track.addEventListener('touchstart', preloadDeferredOnIntent, { passive: true, once: true });
+            track.addEventListener('scroll', syncButtons, { passive: true });
+            window.addEventListener('resize', syncButtons, { passive: true });
+            syncCardLabels(track);
+            syncButtons();
+        });
+    },
+
+    setupExamplesLightbox() {
+        const modalId = 'examples-lightbox-modal';
+        const modal = document.getElementById(modalId);
+        const image = document.getElementById('examples-lightbox-image');
+        const imageCaption = document.getElementById('examples-lightbox-caption');
+        const video = document.getElementById('examples-lightbox-video');
+        const videoControls = document.getElementById('examples-lightbox-video-controls');
+        const videoTitle = document.getElementById('examples-lightbox-video-title');
+        const videoToggle = document.getElementById('examples-lightbox-video-toggle');
+        const videoSeek = document.getElementById('examples-lightbox-video-seek');
+        const videoTime = document.getElementById('examples-lightbox-video-time');
+        const closeButton = document.getElementById('examples-lightbox-close');
+        const backdrop = modal?.querySelector('[data-examples-lightbox-close]');
+        const viewport = modal?.querySelector('.examples-lightbox-modal__viewport');
+        if (!modal || !image) return;
+
+        const formatTime = (value) => {
+            if (!Number.isFinite(value) || value < 0) return '0:00';
+            const totalSeconds = Math.floor(value);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        };
+
+        const syncVideoUi = () => {
+            if (!video) return;
+            const isPlaying = !video.paused && !video.ended;
+            const icon = videoToggle?.querySelector('i');
+            if (icon) {
+                icon.className = `fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`;
+            }
+
+            const duration = Number.isFinite(video.duration) ? video.duration : 0;
+            const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+            if (videoSeek) {
+                videoSeek.value = String(duration > 0 ? Math.min((currentTime / duration) * 1000, 1000) : 0);
+            }
+            if (videoTime) {
+                videoTime.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+            }
+        };
+
+        const closeModal = () => {
+            modal.classList.remove('examples-lightbox-modal--video');
+            image.src = '';
+            image.classList.remove('hidden');
+            image.alt = 'Фото прикладу';
+            if (imageCaption) {
+                imageCaption.textContent = '';
+                imageCaption.classList.remove('hidden');
+            }
+            if (video) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+                video.classList.add('hidden');
+            }
+            videoControls?.classList.add('hidden');
+            if (videoTitle) {
+                videoTitle.textContent = '';
+            }
+            syncVideoUi();
+            window.UI?.closeModal?.(modalId);
+        };
+
+        const openModal = (trigger) => {
+            const src = trigger?.getAttribute('data-example-lightbox-src') || '';
+            if (!src) return;
+            const type = trigger?.getAttribute('data-example-lightbox-type') || 'image';
+            const title =
+                trigger.getAttribute('data-example-lightbox-title')
+                || trigger.closest('.examples-strip__card')?.querySelector('.product-card-v2__body p')?.textContent?.trim()
+                || '';
+
+            if (type === 'video' && video) {
+                modal.classList.add('examples-lightbox-modal--video');
+                image.classList.add('hidden');
+                image.removeAttribute('src');
+                if (imageCaption) {
+                    imageCaption.classList.add('hidden');
+                    imageCaption.textContent = '';
+                }
+                video.classList.remove('hidden');
+                video.src = src;
+                video.currentTime = 0;
+                if (videoTitle) {
+                    videoTitle.textContent = title;
+                }
+                videoControls?.classList.remove('hidden');
+                window.UI?.openModal?.(modalId);
+                window.setTimeout(() => {
+                    video.play().catch(() => {});
+                    syncVideoUi();
+                }, 40);
+                return;
+            }
+
+            modal.classList.remove('examples-lightbox-modal--video');
+            if (video) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+                video.classList.add('hidden');
+            }
+            videoControls?.classList.add('hidden');
+            if (videoTitle) {
+                videoTitle.textContent = '';
+            }
+            image.classList.remove('hidden');
+            image.src = src;
+            image.alt = trigger.getAttribute('data-example-lightbox-alt') || 'Фото прикладу';
+            if (imageCaption) {
+                imageCaption.classList.remove('hidden');
+                imageCaption.textContent = title;
+            }
+            window.UI?.openModal?.(modalId);
+        };
+
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-example-lightbox-src]');
+            if (!trigger) return;
+            event.preventDefault();
+            openModal(trigger);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            const trigger = event.target.closest?.('[data-example-lightbox-src]');
+            if (trigger && (event.key === 'Enter' || event.key === ' ')) {
+                event.preventDefault();
+                openModal(trigger);
+                return;
+            }
+
+            if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        closeButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            closeModal();
+        });
+
+        backdrop?.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeModal();
+        });
+
+        viewport?.addEventListener('click', (event) => {
+            const mediaWrap = event.target.closest('.examples-lightbox-modal__media-wrap');
+            const closeTrigger = event.target.closest('#examples-lightbox-close');
+            if (mediaWrap || closeTrigger) return;
+            closeModal();
+        });
+
+        videoToggle?.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!video) return;
+            if (video.paused) {
+                video.play().catch(() => {});
+            } else {
+                video.pause();
+            }
+        });
+
+        videoSeek?.addEventListener('input', () => {
+            if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
+            video.currentTime = (Number(videoSeek.value) / 1000) * video.duration;
+            syncVideoUi();
+        });
+
+        video?.addEventListener('timeupdate', syncVideoUi);
+        video?.addEventListener('loadedmetadata', syncVideoUi);
+        video?.addEventListener('play', syncVideoUi);
+        video?.addEventListener('pause', syncVideoUi);
+        video?.addEventListener('ended', syncVideoUi);
+    },
+
+    setupExampleVideoPreviews() {
+        document.querySelectorAll('[data-example-video-preview]').forEach((preview) => {
+            if (preview.dataset.previewReady === '1') return;
+            preview.dataset.previewReady = '1';
+            preview.muted = true;
+            preview.loop = false;
+            preview.autoplay = false;
+            preview.playsInline = true;
+            preview.preload = 'auto';
+
+            const freezeOnFrame = () => {
+                preview.pause();
+            };
+
+            preview.addEventListener('loadeddata', () => {
+                freezeOnFrame();
+                if (preview.currentTime > 0) return;
+                try {
+                    const targetTime = Number.isFinite(preview.duration) && preview.duration > 0.08 ? 0.08 : 0;
+                    preview.currentTime = targetTime;
+                } catch (error) {
+                    freezeOnFrame();
+                }
+            }, { once: true });
+
+            preview.addEventListener('seeked', freezeOnFrame, { once: true });
+            preview.load();
+            freezeOnFrame();
+        });
+    },
+
     init() {
         if (this.initialized) return;
         this.initialized = true;
@@ -295,6 +695,9 @@ const MainApp = {
         this.setupFloatingCartButtons();
         this.setupKeyboardShortcuts();
         this.setupHeroStackedShowcase();
+        this.setupExamplesStrip();
+        this.setupExamplesLightbox();
+        this.setupExampleVideoPreviews();
         this.setupLegalDocsModal();
         this.setupMobileHeaderVisibility();
         this.setupLanguageToggle();

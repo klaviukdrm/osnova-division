@@ -50,7 +50,6 @@ const Catalog = {
         'KULYA V LOB',
         'TNMT',
         'ЖИТТЄЛЮБ',
-        'ЗЕНИК',
         'ЩУР MOTHERS CHAMBER'
     ]),
     APPAREL_IMAGE_FILES: [
@@ -89,8 +88,6 @@ const Catalog = {
         '%D0%96%D0%98%D0%A2%D0%A2%D0%84%D0%9B%D0%AE%D0%91%20%D0%95%D0%A0%D0%9E%D0%A2%D0%98%D0%A7%D0%9D%D0%98%D0%99.jpg',
         '%D0%96%D0%98%D0%A2%D0%A2%D0%84%D0%9B%D0%AE%D0%91%20%D0%9F%D0%A3%D0%94%D0%A0%D0%90.jpg',
         '%D0%96%D0%98%D0%A2%D0%A2%D0%84%D0%9B%D0%AE%D0%91.jpg',
-        '%D0%97%D0%95%D0%9D%D0%98%D0%9A.jpg',
-        '%D0%97%D0%9B%D0%98%D0%99%20%D0%A0%D0%95%D0%9F%D0%95%D0%A0%20%D0%97%D0%95%D0%9D%D0%98%D0%9A.jpg',
         '%D0%9A%D0%A3%D0%A7%D0%9C%D0%A3%20%D0%92%D0%98%D0%A0%D0%9D%D0%86%D0%A2.jpg',
         '%D0%9C%D0%98%D0%9A%D0%9E%D0%9B%D0%90%D0%99%D0%A7%D0%A3%D0%9A.jpg',
         '%D0%9D%D0%86%D0%A5%D0%A3%D0%AF%20%D0%A1%D0%9E%D0%91%D0%86.jpg',

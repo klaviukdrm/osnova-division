@@ -519,6 +519,7 @@ const MainApp = {
             videoControls?.classList.add('hidden');
             if (videoTitle) {
                 videoTitle.textContent = '';
+                videoTitle.classList.add('hidden');
             }
             syncVideoUi();
             window.UI?.closeModal?.(modalId);
@@ -545,7 +546,8 @@ const MainApp = {
                 video.src = src;
                 video.currentTime = 0;
                 if (videoTitle) {
-                    videoTitle.textContent = title;
+                    videoTitle.textContent = '';
+                    videoTitle.classList.add('hidden');
                 }
                 videoControls?.classList.remove('hidden');
                 window.UI?.openModal?.(modalId);
@@ -566,6 +568,7 @@ const MainApp = {
             videoControls?.classList.add('hidden');
             if (videoTitle) {
                 videoTitle.textContent = '';
+                videoTitle.classList.add('hidden');
             }
             image.classList.remove('hidden');
             image.src = src;
@@ -573,6 +576,9 @@ const MainApp = {
             if (imageCaption) {
                 imageCaption.classList.remove('hidden');
                 imageCaption.textContent = title;
+            }
+            if (videoTitle) {
+                videoTitle.classList.remove('hidden');
             }
             window.UI?.openModal?.(modalId);
         };

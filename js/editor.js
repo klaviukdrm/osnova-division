@@ -176,6 +176,8 @@ const FALLBACK_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.b
 const CUSTOM_ORDER_SUPPORT_THRESHOLD = 2;
 const CUSTOM_ORDER_SUPPORT_MESSAGE = 'Якщо плануєш велике замовлення кастомних товарів, краще заздалегідь звернутися до підтримки, щоб уточнити дизайн.';
 const CUSTOM_ORDER_SUPPORT_NOTICE_STORAGE_KEY = 'upf_custom_order_support_notice_v1';
+const CART_ADD_FAILURE_TOAST_MESSAGE = 'На жаль, файл завеликий для завантаження в кошик. Зверніться до підтримки, і ми допоможемо завантажити файл ^_^';
+const CART_ADD_FAILURE_TOAST_DURATION = 7000;
 const CANVAS_OPTIMIZABLE_MIME_TYPES = new Set([
     'image/png',
     'image/jpeg',
@@ -347,6 +349,20 @@ const Editor = {
         centerY: 0
     },
     textTranslationTimeoutId: null,
+    lastCartAddFailureToastAt: 0,
+
+    showCartAddFailureToast() {
+        const now = Date.now();
+        if (now - this.lastCartAddFailureToastAt < CART_ADD_FAILURE_TOAST_DURATION) {
+            return;
+        }
+
+        this.lastCartAddFailureToastAt = now;
+        window.UI?.showToast?.(CART_ADD_FAILURE_TOAST_MESSAGE, {
+            tone: 'warning',
+            duration: CART_ADD_FAILURE_TOAST_DURATION
+        });
+    },
 
     cacheElements() {
         this.elements = {
@@ -2352,7 +2368,7 @@ const Editor = {
             }
         } catch (error) {
             console.warn('Failed to add constructor item to cart.', error);
-            window.UI?.showToast?.('Не вдалося додати в кошик', { tone: 'warning' });
+            this.showCartAddFailureToast();
         }
     }
 };

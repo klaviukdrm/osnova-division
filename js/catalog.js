@@ -2675,6 +2675,69 @@ const Catalog = {
                 };
             };
 
+            const cloneOrderPayload = (payload, extraFields = {}) => ({
+                ...(payload || {}),
+                ...extraFields,
+                items: Array.isArray(payload?.items)
+                    ? payload.items.map((item) => ({
+                        ...(item || {}),
+                        sourceImages: Array.isArray(item?.sourceImages) ? [...item.sourceImages] : []
+                    }))
+                    : []
+            });
+
+            const compactOrderPayloadForTransport = (payload) => {
+                const basePayload = cloneOrderPayload(payload);
+                let requestBody = JSON.stringify(basePayload);
+
+                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
+                    return {
+                        payload: basePayload,
+                        body: requestBody,
+                        compactionLevel: 'none'
+                    };
+                }
+
+                const keepFirstSourceImagePayload = cloneOrderPayload(basePayload);
+                keepFirstSourceImagePayload.items = keepFirstSourceImagePayload.items.map((item) => ({
+                    ...item,
+                    sourceImages: Array.isArray(item?.sourceImages) && item.sourceImages.length
+                        ? [item.sourceImages[0]]
+                        : []
+                }));
+                requestBody = JSON.stringify(keepFirstSourceImagePayload);
+
+                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
+                    return {
+                        payload: keepFirstSourceImagePayload,
+                        body: requestBody,
+                        compactionLevel: 'keep-first-source-image'
+                    };
+                }
+
+                const dropSourceImagesPayload = cloneOrderPayload(basePayload);
+                dropSourceImagesPayload.items = dropSourceImagesPayload.items.map((item) => {
+                    const nextItem = { ...item };
+                    delete nextItem.sourceImages;
+                    return nextItem;
+                });
+                requestBody = JSON.stringify(dropSourceImagesPayload);
+
+                return {
+                    payload: dropSourceImagesPayload,
+                    body: requestBody,
+                    compactionLevel: 'drop-all-source-images'
+                };
+            };
+
+            const notifyOrderPayloadCompaction = (compactionLevel) => {
+                if (compactionLevel === 'keep-first-source-image') {
+                    window.UI?.showToast?.('Для стабільного оформлення замовлення залишили по 1 вихідному файлу на кожен макет', { tone: 'info' });
+                } else if (compactionLevel === 'drop-all-source-images') {
+                    window.UI?.showToast?.('Замовлення відправляємо у спрощеному режимі: вихідні файли прибрано, але прев’ю макетів залишилися', { tone: 'info' });
+                }
+            };
+
             const processInvoiceOrder = async () => {
                 syncOrderPhoneValidity();
                 if (!form.reportValidity()) return;
@@ -2688,13 +2751,13 @@ const Catalog = {
                 setPaymentButtonsState(true, 'invoice');
                 setInvoiceConfirmState(true);
                 try {
-                    const requestPayload = {
+                    let requestPayload = {
                         ...orderPayload,
                         paymentMethod: 'invoice',
                         receiptImage,
                         receiptName: receiptFileName
                     };
-                    const requestBody = JSON.stringify(requestPayload);
+                    let requestBody = JSON.stringify(requestPayload);
                     if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
                         if (
                             requestPayload.receiptImage
@@ -2711,15 +2774,19 @@ const Catalog = {
                             } catch (_) {}
                         }
 
-                        const retryBody = JSON.stringify(requestPayload);
-                        if (getByteLength(retryBody) > MAX_ORDER_REQUEST_BYTES) {
+                        const preparedRequest = compactOrderPayloadForTransport(requestPayload);
+                        requestPayload = preparedRequest.payload;
+                        requestBody = preparedRequest.body;
+                        notifyOrderPayloadCompaction(preparedRequest.compactionLevel);
+
+                        if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
                             throw new Error('Файл квитанції завеликий для безпечного відправлення. Для PDF бажано до 3.2 МБ, для фото стиснення виконується автоматично.');
                         }
 
                         const response = await fetch('/api/orders/create', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: retryBody
+                            body: requestBody
                         });
 
                         const result = await response.json().catch(() => ({}));
@@ -2747,6 +2814,9 @@ const Catalog = {
 
                     const result = await response.json().catch(() => ({}));
                     if (!response.ok) {
+                        if (response.status === 413) {
+                            throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште кількість великих файлів у кошику.');
+                        }
                         throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
                     }
 
@@ -2773,13 +2843,20 @@ const Catalog = {
 
                 setPaymentButtonsState(true, 'wallet');
                 try {
+                    const preparedRequest = compactOrderPayloadForTransport({
+                        ...orderPayload,
+                        paymentMethod: 'wallet'
+                    });
+                    notifyOrderPayloadCompaction(preparedRequest.compactionLevel);
+
+                    if (getByteLength(preparedRequest.body) > MAX_ORDER_REQUEST_BYTES) {
+                        throw new Error('Розмір замовлення перевищує безпечний ліміт. Зменште кількість великих файлів у кошику або зверніться до підтримки.');
+                    }
+
                     const response = await fetch('/api/liqpay/create', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ...orderPayload,
-                            paymentMethod: 'wallet'
-                        })
+                        body: preparedRequest.body
                     });
 
                     const result = await response.json().catch(() => ({}));

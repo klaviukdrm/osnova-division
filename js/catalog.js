@@ -2698,7 +2698,27 @@ const Catalog = {
                     };
                 }
 
-                const keepFirstSourceImagePayload = cloneOrderPayload(basePayload);
+                const dropConstructorPreviewImagesPayload = cloneOrderPayload(basePayload);
+                dropConstructorPreviewImagesPayload.items = dropConstructorPreviewImagesPayload.items.map((item) => {
+                    const nextItem = { ...(item || {}) };
+                    const isConstructorItem = Boolean(String(nextItem?.customKey || '').trim())
+                        || String(nextItem?.category || '').trim().toLowerCase().includes('конструкт');
+                    if (isConstructorItem) {
+                        delete nextItem.image;
+                    }
+                    return nextItem;
+                });
+                requestBody = JSON.stringify(dropConstructorPreviewImagesPayload);
+
+                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
+                    return {
+                        payload: dropConstructorPreviewImagesPayload,
+                        body: requestBody,
+                        compactionLevel: 'drop-constructor-preview-images'
+                    };
+                }
+
+                const keepFirstSourceImagePayload = cloneOrderPayload(dropConstructorPreviewImagesPayload);
                 keepFirstSourceImagePayload.items = keepFirstSourceImagePayload.items.map((item) => ({
                     ...item,
                     sourceImages: Array.isArray(item?.sourceImages) && item.sourceImages.length
@@ -2715,7 +2735,7 @@ const Catalog = {
                     };
                 }
 
-                const dropSourceImagesPayload = cloneOrderPayload(basePayload);
+                const dropSourceImagesPayload = cloneOrderPayload(dropConstructorPreviewImagesPayload);
                 dropSourceImagesPayload.items = dropSourceImagesPayload.items.map((item) => {
                     const nextItem = { ...item };
                     delete nextItem.sourceImages;
@@ -2731,7 +2751,9 @@ const Catalog = {
             };
 
             const notifyOrderPayloadCompaction = (compactionLevel) => {
-                if (compactionLevel === 'keep-first-source-image') {
+                if (compactionLevel === 'drop-constructor-preview-images') {
+                    window.UI?.showToast?.('Для стабільного оформлення прибрали прев’ю макетів, але вихідні фото залишили', { tone: 'info' });
+                } else if (compactionLevel === 'keep-first-source-image') {
                     window.UI?.showToast?.('Для стабільного оформлення замовлення залишили по 1 вихідному файлу на кожен макет', { tone: 'info' });
                 } else if (compactionLevel === 'drop-all-source-images') {
                     window.UI?.showToast?.('Замовлення відправляємо у спрощеному режимі: вихідні файли прибрано, але прев’ю макетів залишилися', { tone: 'info' });

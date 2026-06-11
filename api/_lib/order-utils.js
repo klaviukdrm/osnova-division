@@ -204,6 +204,42 @@ function isMediaReference(value) {
     return isDataBase64Url(normalizedValue) || isHttpUrl(normalizedValue);
 }
 
+function toCompressedAdminPreviewReference(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (isDataBase64Url(raw)) return raw;
+
+    const replaceWithThumbPath = (pathValue) => {
+        const normalized = String(pathValue || '').replace(/\\/g, '/');
+        const [pathOnly, query = ''] = normalized.split('?');
+        const trimmedPath = pathOnly.replace(/^\/+/, '');
+        const lowerPath = trimmedPath.toLowerCase();
+
+        if (!lowerPath.startsWith('images/')) return '';
+        if (lowerPath.startsWith('images/thumbs/')) {
+            return query ? `${trimmedPath}?${query}` : trimmedPath;
+        }
+
+        const thumbPath = `images/thumbs/${trimmedPath.slice('images/'.length)}`;
+        return query ? `${thumbPath}?${query}` : thumbPath;
+    };
+
+    if (!isHttpUrl(raw)) {
+        return replaceWithThumbPath(raw) || raw;
+    }
+
+    try {
+        const parsed = new URL(raw);
+        const replacedPath = replaceWithThumbPath(parsed.pathname);
+        if (!replacedPath) return raw;
+
+        parsed.pathname = `/${replacedPath.replace(/^\/+/, '')}`;
+        return parsed.toString();
+    } catch (_) {
+        return raw;
+    }
+}
+
 function resolveSafeLimit(limit, fallbackValue = Number.POSITIVE_INFINITY) {
     const resolvedLimit = Number(limit);
     if (!Number.isFinite(resolvedLimit)) return fallbackValue;
@@ -265,7 +301,7 @@ function extractAdminPreviewItems(items, limit = Number.POSITIVE_INFINITY) {
         })
         .map((item) => ({
             title: String(item?.title || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440').trim() || '\u0410\u0434\u043c\u0456\u043d \u0442\u043e\u0432\u0430\u0440',
-            image: String(item?.image || '').trim()
+            image: toCompressedAdminPreviewReference(item?.image || '')
         }));
 
     return Number.isFinite(safeLimit) ? previewItems.slice(0, safeLimit) : previewItems;

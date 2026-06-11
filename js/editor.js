@@ -168,11 +168,22 @@ const HOODIE_APPAREL_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 const APPAREL_PLUS_SIZE_CODE = '3XL';
 const APPAREL_PLUS_SIZE_SURCHARGE = 200;
 const MAX_UPLOAD_ABSOLUTE_BYTES = 80 * 1024 * 1024;
-const MAX_UPLOAD_DIRECT_BYTES = 6 * 1024 * 1024;
-const MAX_UPLOAD_TARGET_BYTES = 4 * 1024 * 1024;
+const MAX_UPLOAD_DIRECT_BYTES = Math.round(1.5 * 1024 * 1024);
+const MAX_UPLOAD_TARGET_BYTES = Math.round(1.25 * 1024 * 1024);
 const MAX_UPLOAD_SIDE = 2600;
-const HEAVY_UPLOAD_QUALITY_STEPS = [0.9, 0.82, 0.74, 0.66];
-const FALLBACK_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.svg', '.heic', '.heif', '.avif', '.jfif', '.pjpeg', '.pjp', '.ico'];
+const HEAVY_UPLOAD_QUALITY_STEPS = [0.92, 0.88, 0.84, 0.8, 0.76, 0.72];
+const FALLBACK_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.avif', '.jfif', '.pjpeg', '.pjp'];
+const UNSUPPORTED_EDITOR_IMAGE_EXTENSIONS = ['.gif', '.heic', '.heif', '.tif', '.tiff', '.svg'];
+const UNSUPPORTED_EDITOR_IMAGE_MIME_TYPES = new Set([
+    'image/gif',
+    'image/heic',
+    'image/heic-sequence',
+    'image/heif',
+    'image/heif-sequence',
+    'image/svg+xml',
+    'image/tif',
+    'image/tiff'
+]);
 const CUSTOM_ORDER_SUPPORT_THRESHOLD = 2;
 const CUSTOM_ORDER_SUPPORT_MESSAGE = 'Якщо плануєш велике замовлення кастомних товарів, краще заздалегідь звернутися до підтримки, щоб уточнити дизайн.';
 const CUSTOM_ORDER_SUPPORT_NOTICE_STORAGE_KEY = 'upf_custom_order_support_notice_v1';
@@ -551,8 +562,17 @@ const Editor = {
             this.updatePreviewSize();
         });
         this.elements.imageUpload.addEventListener('change', (event) => {
-            const files = this.filterUploadImageFiles(event.target.files);
-            files.forEach((file, index) => this.handleImageUpload(file, { recordHistory: index === 0 }));
+            const selectedFiles = Array.from(event.target.files || []);
+            if (this.hasUnsupportedEditorImageFiles(selectedFiles)) {
+                this.showUnsupportedImageFormatToast();
+            }
+            const files = this.filterUploadImageFiles(selectedFiles);
+            const [file] = files;
+            if (!file) {
+                this.elements.imageUpload.value = '';
+                return;
+            }
+            this.handleImageUpload(file);
         });
         this.elements.imageUploadTrigger.addEventListener('click', () => this.elements.imageUpload.click());
         this.elements.imageScale.addEventListener('pointerdown', () => {
@@ -1770,11 +1790,29 @@ const Editor = {
 
     isLikelyImageFile(file) {
         if (!(file instanceof File)) return false;
+        if (this.isUnsupportedEditorImageFile(file)) return false;
         const mimeType = String(file.type || '').trim().toLowerCase();
         if (mimeType.startsWith('image/')) return true;
 
         const fileName = String(file.name || '').trim().toLowerCase();
         return FALLBACK_IMAGE_EXTENSIONS.some((extension) => fileName.endsWith(extension));
+    },
+
+    isUnsupportedEditorImageFile(file) {
+        if (!(file instanceof File)) return false;
+        const mimeType = String(file.type || '').trim().toLowerCase();
+        if (UNSUPPORTED_EDITOR_IMAGE_MIME_TYPES.has(mimeType)) return true;
+
+        const fileName = String(file.name || '').trim().toLowerCase();
+        return UNSUPPORTED_EDITOR_IMAGE_EXTENSIONS.some((extension) => fileName.endsWith(extension));
+    },
+
+    hasUnsupportedEditorImageFiles(fileList) {
+        return Array.from(fileList || []).some((file) => this.isUnsupportedEditorImageFile(file));
+    },
+
+    showUnsupportedImageFormatToast() {
+        window.UI?.showToast?.('Формат файлу не підтримується', { tone: 'warning' });
     },
 
     filterUploadImageFiles(fileList) {
@@ -1823,19 +1861,62 @@ const Editor = {
 
             ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-            let bestBlob = null;
-            for (const quality of HEAVY_UPLOAD_QUALITY_STEPS) {
-                const blob = await this.canvasToBlob(canvas, 'image/jpeg', quality);
-                if (!blob) continue;
-                bestBlob = blob;
-                if (blob.size <= MAX_UPLOAD_TARGET_BYTES) break;
+            const outputFormats = [
+                { type: 'image/webp', extension: 'webp' },
+                { type: 'image/jpeg', extension: 'jpg' }
+            ];
+
+            let bestCandidate = null;
+            for (const format of outputFormats) {
+                for (const quality of HEAVY_UPLOAD_QUALITY_STEPS) {
+                    const blob = await this.canvasToBlob(canvas, format.type, quality);
+                    if (!blob) continue;
+
+                    const candidate = {
+                        blob,
+                        type: format.type,
+                        extension: format.extension,
+                        quality
+                    };
+
+                    if (!bestCandidate) {
+                        bestCandidate = candidate;
+                    } else {
+                        const currentWithinTarget = bestCandidate.blob.size <= MAX_UPLOAD_TARGET_BYTES;
+                        const nextWithinTarget = blob.size <= MAX_UPLOAD_TARGET_BYTES;
+
+                        if (nextWithinTarget && !currentWithinTarget) {
+                            bestCandidate = candidate;
+                        } else if (nextWithinTarget && currentWithinTarget && blob.size > bestCandidate.blob.size) {
+                            // Prefer the largest file that still fits the target to preserve more detail.
+                            bestCandidate = candidate;
+                        } else if (!nextWithinTarget && !currentWithinTarget && blob.size < bestCandidate.blob.size) {
+                            // If nothing fits yet, keep the smallest candidate seen so far.
+                            bestCandidate = candidate;
+                        }
+                    }
+
+                    if (blob.size <= MAX_UPLOAD_TARGET_BYTES) {
+                        break;
+                    }
+                }
             }
 
-            if (!bestBlob) {
+            if (!bestCandidate) {
                 return { dataUrl: await this.readFileAsDataUrl(file), optimized: false };
             }
 
-            const optimizedFile = new File([bestBlob], `${Date.now()}-optimized.jpg`, { type: 'image/jpeg' });
+            const optimizedBlob = bestCandidate.blob;
+            const reducedDimensions = targetWidth < sourceWidth || targetHeight < sourceHeight;
+            if (!reducedDimensions && optimizedBlob.size >= Math.round(file.size * 0.97)) {
+                return { dataUrl: await this.readFileAsDataUrl(file), optimized: false };
+            }
+
+            const optimizedFile = new File(
+                [optimizedBlob],
+                `${Date.now()}-optimized.${bestCandidate.extension}`,
+                { type: bestCandidate.type }
+            );
             return { dataUrl: await this.readFileAsDataUrl(optimizedFile), optimized: true };
         } finally {
             URL.revokeObjectURL(objectUrl);
@@ -1858,6 +1939,7 @@ const Editor = {
 
             const imageId = `img-${Date.now()}-${++this.imageIdCounter}`;
             this.imageSourceById[imageId] = dataUrl;
+            this.getImageLayers().forEach((layer) => layer.remove());
             const image = this.createImageLayer({
                 id: imageId,
                 src: dataUrl,
@@ -2219,10 +2301,14 @@ const Editor = {
         area.addEventListener('drop', (event) => {
             event.preventDefault();
             clear();
-            const files = this.filterUploadImageFiles(event.dataTransfer?.files);
-            files.forEach((file, index) => {
-                this.handleImageUpload(file, { recordHistory: index === 0 });
-            });
+            const droppedFiles = Array.from(event.dataTransfer?.files || []);
+            if (this.hasUnsupportedEditorImageFiles(droppedFiles)) {
+                this.showUnsupportedImageFormatToast();
+            }
+            const files = this.filterUploadImageFiles(droppedFiles);
+            const [file] = files;
+            if (!file) return;
+            this.handleImageUpload(file);
         });
     },
 
@@ -2319,6 +2405,8 @@ const Editor = {
                     throw storageError;
                 }
 
+                throw storageError;
+
                 const toCompactEntries = (entries, mode = 'keep-current-sources') => entries.map((entry, index) => {
                     const nextItem = { ...(entry?.item || {}) };
                     delete nextItem.gallery;
@@ -2330,9 +2418,7 @@ const Editor = {
                                 delete nextItem.sourceImages;
                             }
                         } else if (mode === 'drop-all-sources') {
-                            if (!keepCurrentSources) {
-                                delete nextItem.sourceImages;
-                            }
+                            delete nextItem.sourceImages;
                         }
                     }
 

@@ -172,6 +172,8 @@ const MAX_UPLOAD_DIRECT_BYTES = Math.round(1.5 * 1024 * 1024);
 const MAX_UPLOAD_TARGET_BYTES = Math.round(1.25 * 1024 * 1024);
 const MAX_UPLOAD_SIDE = 2600;
 const HEAVY_UPLOAD_QUALITY_STEPS = [0.92, 0.88, 0.84, 0.8, 0.76, 0.72];
+const MAX_ORDER_REQUEST_BYTES = Math.floor(4.4 * 1024 * 1024);
+const CUSTOM_CART_ORDER_HEADROOM_BYTES = 128 * 1024;
 const FALLBACK_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.avif', '.jfif', '.pjpeg', '.pjp'];
 const UNSUPPORTED_EDITOR_IMAGE_EXTENSIONS = ['.gif', '.heic', '.heif', '.tif', '.tiff', '.svg'];
 const UNSUPPORTED_EDITOR_IMAGE_MIME_TYPES = new Set([
@@ -971,6 +973,84 @@ const Editor = {
         const parsed = Number(value);
         if (!Number.isFinite(parsed)) return 1;
         return Math.max(1, Math.floor(parsed));
+    },
+
+    getByteLength(text) {
+        if (typeof text !== 'string') return 0;
+        if (typeof TextEncoder !== 'undefined') {
+            return new TextEncoder().encode(text).length;
+        }
+        try {
+            return unescape(encodeURIComponent(text)).length;
+        } catch (_) {
+            return text.length;
+        }
+    },
+
+    isConstructorCartItem(item) {
+        const category = String(item?.category || '').trim().toLowerCase();
+        return Boolean(String(item?.customKey || '').trim()) || category.includes('конструкт');
+    },
+
+    buildCheckoutPayloadProbe(cartEntries = []) {
+        const items = (Array.isArray(cartEntries) ? cartEntries : []).map((entry) => {
+            const item = entry?.item || {};
+            const selectedSize = String(item?.selectedSize || '').trim();
+            return {
+                title: String(item?.title || '').trim(),
+                category: String(item?.category || '').trim(),
+                source: String(item?.source || '').trim(),
+                color: String(item?.color || '').trim(),
+                size: selectedSize,
+                price: Number(item?.price || 0),
+                quantity: this.normalizeQuantity(entry?.quantity),
+                image: String(item?.image || '').trim(),
+                customKey: String(item?.customKey || '').trim(),
+                sourceImages: Array.isArray(item?.sourceImages)
+                    ? item.sourceImages.map((value) => String(value || '').trim()).filter(Boolean)
+                    : []
+            };
+        });
+
+        const total = items.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
+        return {
+            name: 'probe',
+            city: 'probe',
+            shipping: '',
+            telegram: '',
+            phone: 'probe',
+            comment: '',
+            paymentMethod: 'wallet',
+            items,
+            total
+        };
+    },
+
+    stripConstructorPreviewImagesFromPayload(payload) {
+        return {
+            ...(payload || {}),
+            items: Array.isArray(payload?.items)
+                ? payload.items.map((item) => {
+                    if (!this.isConstructorCartItem(item)) return { ...(item || {}) };
+                    const nextItem = { ...(item || {}) };
+                    delete nextItem.image;
+                    return nextItem;
+                })
+                : []
+        };
+    },
+
+    wouldCartRequireDroppingSourceImages(cartEntries = []) {
+        const safeTransportLimit = Math.max(1, MAX_ORDER_REQUEST_BYTES - CUSTOM_CART_ORDER_HEADROOM_BYTES);
+        const probePayload = this.buildCheckoutPayloadProbe(cartEntries);
+        const directBytes = this.getByteLength(JSON.stringify(probePayload));
+        if (directBytes <= safeTransportLimit) {
+            return false;
+        }
+
+        const withoutConstructorPreviews = this.stripConstructorPreviewImagesFromPayload(probePayload);
+        const withoutPreviewBytes = this.getByteLength(JSON.stringify(withoutConstructorPreviews));
+        return withoutPreviewBytes > safeTransportLimit;
     },
 
     countCustomCartItems(cartItems = []) {
@@ -2373,6 +2453,11 @@ const Editor = {
                     item: cartItem,
                     quantity: 1
                 });
+            }
+
+            if (this.wouldCartRequireDroppingSourceImages(cartItems)) {
+                window.UI?.showToast?.('Ще один кастомний товар уже не вміститься без втрати вихідного фото. Оформи поточні товари окремим замовленням.', { tone: 'warning', duration: 9000 });
+                return;
             }
 
             const payload = JSON.stringify(cartItems);

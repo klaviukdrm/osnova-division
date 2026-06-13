@@ -712,6 +712,47 @@ const Catalog = {
         });
     },
 
+    getCatalogTitleGroupKey(item) {
+        const title = String(item?.title || '').trim();
+        if (!title) return '';
+
+        const normalized = this.normalizeSearchValue(title)
+            .replace(/[()]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const primaryPart = normalized
+            .split(' • ')[0]
+            .split(' — ')[0]
+            .split(' - ')[0]
+            .split(' | ')[0]
+            .trim();
+
+        return primaryPart || normalized;
+    },
+
+    sortCatalogProducts(products) {
+        const list = Array.isArray(products) ? [...products] : [];
+        return list.sort((left, right) => {
+            const leftCategory = this.normalizeSearchValue(left?.category || '');
+            const rightCategory = this.normalizeSearchValue(right?.category || '');
+            const categoryCompare = leftCategory.localeCompare(rightCategory, 'uk', { sensitivity: 'base' });
+            if (categoryCompare !== 0) return categoryCompare;
+
+            const leftGroup = this.getCatalogTitleGroupKey(left);
+            const rightGroup = this.getCatalogTitleGroupKey(right);
+            const groupCompare = leftGroup.localeCompare(rightGroup, 'uk', { sensitivity: 'base' });
+            if (groupCompare !== 0) return groupCompare;
+
+            const leftTitle = this.normalizeSearchValue(left?.title || '');
+            const rightTitle = this.normalizeSearchValue(right?.title || '');
+            const titleCompare = leftTitle.localeCompare(rightTitle, 'uk', { sensitivity: 'base' });
+            if (titleCompare !== 0) return titleCompare;
+
+            return String(left?.slug || '').localeCompare(String(right?.slug || ''), 'uk', { sensitivity: 'base' });
+        });
+    },
+
     getProductUrl(item) {
         const slug = String(item?.slug || '').trim();
         return slug ? `/product/${encodeURIComponent(slug)}` : '#';
@@ -1206,7 +1247,7 @@ const Catalog = {
 
     setCatalogData(categories, products) {
         const nextCategories = (categories || []).filter(Boolean);
-        const nextProducts = this.assignProductSlugs((products || []).filter(Boolean));
+        const nextProducts = this.assignProductSlugs(this.sortCatalogProducts((products || []).filter(Boolean)));
         this.state.categories = nextCategories;
         this.state.products = nextProducts;
 
@@ -2675,91 +2716,6 @@ const Catalog = {
                 };
             };
 
-            const cloneOrderPayload = (payload, extraFields = {}) => ({
-                ...(payload || {}),
-                ...extraFields,
-                items: Array.isArray(payload?.items)
-                    ? payload.items.map((item) => ({
-                        ...(item || {}),
-                        sourceImages: Array.isArray(item?.sourceImages) ? [...item.sourceImages] : []
-                    }))
-                    : []
-            });
-
-            const compactOrderPayloadForTransport = (payload) => {
-                const basePayload = cloneOrderPayload(payload);
-                let requestBody = JSON.stringify(basePayload);
-
-                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                    return {
-                        payload: basePayload,
-                        body: requestBody,
-                        compactionLevel: 'none'
-                    };
-                }
-
-                const dropConstructorPreviewImagesPayload = cloneOrderPayload(basePayload);
-                dropConstructorPreviewImagesPayload.items = dropConstructorPreviewImagesPayload.items.map((item) => {
-                    const nextItem = { ...(item || {}) };
-                    const isConstructorItem = Boolean(String(nextItem?.customKey || '').trim())
-                        || String(nextItem?.category || '').trim().toLowerCase().includes('конструкт');
-                    if (isConstructorItem) {
-                        delete nextItem.image;
-                    }
-                    return nextItem;
-                });
-                requestBody = JSON.stringify(dropConstructorPreviewImagesPayload);
-
-                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                    return {
-                        payload: dropConstructorPreviewImagesPayload,
-                        body: requestBody,
-                        compactionLevel: 'drop-constructor-preview-images'
-                    };
-                }
-
-                const keepFirstSourceImagePayload = cloneOrderPayload(dropConstructorPreviewImagesPayload);
-                keepFirstSourceImagePayload.items = keepFirstSourceImagePayload.items.map((item) => ({
-                    ...item,
-                    sourceImages: Array.isArray(item?.sourceImages) && item.sourceImages.length
-                        ? [item.sourceImages[0]]
-                        : []
-                }));
-                requestBody = JSON.stringify(keepFirstSourceImagePayload);
-
-                if (getByteLength(requestBody) <= MAX_ORDER_REQUEST_BYTES) {
-                    return {
-                        payload: keepFirstSourceImagePayload,
-                        body: requestBody,
-                        compactionLevel: 'keep-first-source-image'
-                    };
-                }
-
-                const dropSourceImagesPayload = cloneOrderPayload(dropConstructorPreviewImagesPayload);
-                dropSourceImagesPayload.items = dropSourceImagesPayload.items.map((item) => {
-                    const nextItem = { ...item };
-                    delete nextItem.sourceImages;
-                    return nextItem;
-                });
-                requestBody = JSON.stringify(dropSourceImagesPayload);
-
-                return {
-                    payload: dropSourceImagesPayload,
-                    body: requestBody,
-                    compactionLevel: 'drop-all-source-images'
-                };
-            };
-
-            const notifyOrderPayloadCompaction = (compactionLevel) => {
-                if (compactionLevel === 'drop-constructor-preview-images') {
-                    window.UI?.showToast?.('Для стабільного оформлення прибрали прев’ю макетів, але вихідні фото залишили', { tone: 'info' });
-                } else if (compactionLevel === 'keep-first-source-image') {
-                    window.UI?.showToast?.('Для стабільного оформлення замовлення залишили по 1 вихідному файлу на кожен макет', { tone: 'info' });
-                } else if (compactionLevel === 'drop-all-source-images') {
-                    window.UI?.showToast?.('Замовлення відправляємо у спрощеному режимі: вихідні файли прибрано, але прев’ю макетів залишилися', { tone: 'info' });
-                }
-            };
-
             const processInvoiceOrder = async () => {
                 syncOrderPhoneValidity();
                 if (!form.reportValidity()) return;
@@ -2773,13 +2729,13 @@ const Catalog = {
                 setPaymentButtonsState(true, 'invoice');
                 setInvoiceConfirmState(true);
                 try {
-                    let requestPayload = {
+                    const requestPayload = {
                         ...orderPayload,
                         paymentMethod: 'invoice',
                         receiptImage,
                         receiptName: receiptFileName
                     };
-                    let requestBody = JSON.stringify(requestPayload);
+                    const requestBody = JSON.stringify(requestPayload);
                     if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
                         if (
                             requestPayload.receiptImage
@@ -2796,19 +2752,15 @@ const Catalog = {
                             } catch (_) {}
                         }
 
-                        const preparedRequest = compactOrderPayloadForTransport(requestPayload);
-                        requestPayload = preparedRequest.payload;
-                        requestBody = preparedRequest.body;
-                        notifyOrderPayloadCompaction(preparedRequest.compactionLevel);
-
-                        if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
+                        const retryBody = JSON.stringify(requestPayload);
+                        if (getByteLength(retryBody) > MAX_ORDER_REQUEST_BYTES) {
                             throw new Error('Файл квитанції завеликий для безпечного відправлення. Для PDF бажано до 3.2 МБ, для фото стиснення виконується автоматично.');
                         }
 
                         const response = await fetch('/api/orders/create', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: requestBody
+                            body: retryBody
                         });
 
                         const result = await response.json().catch(() => ({}));
@@ -2836,9 +2788,6 @@ const Catalog = {
 
                     const result = await response.json().catch(() => ({}));
                     if (!response.ok) {
-                        if (response.status === 413) {
-                            throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште кількість великих файлів у кошику.');
-                        }
                         throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
                     }
 
@@ -2865,20 +2814,13 @@ const Catalog = {
 
                 setPaymentButtonsState(true, 'wallet');
                 try {
-                    const preparedRequest = compactOrderPayloadForTransport({
-                        ...orderPayload,
-                        paymentMethod: 'wallet'
-                    });
-                    notifyOrderPayloadCompaction(preparedRequest.compactionLevel);
-
-                    if (getByteLength(preparedRequest.body) > MAX_ORDER_REQUEST_BYTES) {
-                        throw new Error('Розмір замовлення перевищує безпечний ліміт. Зменште кількість великих файлів у кошику або зверніться до підтримки.');
-                    }
-
                     const response = await fetch('/api/liqpay/create', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: preparedRequest.body
+                        body: JSON.stringify({
+                            ...orderPayload,
+                            paymentMethod: 'wallet'
+                        })
                     });
 
                     const result = await response.json().catch(() => ({}));

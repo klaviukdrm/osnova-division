@@ -4,6 +4,8 @@ const AdminPanel = {
     DEFAULT_PRICE: 650,
     DEFAULT_IMAGE_PATH: 'images/muzhskaya-futbolka-belaya-1005.png',
     isAuthenticated: false,
+    allProducts: [],
+    searchQuery: '',
     selectedFileDataUrl: '',
     selectedFileName: '',
     descriptionAutoMode: true,
@@ -67,6 +69,7 @@ const AdminPanel = {
             submitStatus: document.getElementById('admin-submit-status'),
             refreshButton: document.getElementById('admin-refresh-btn'),
             productsList: document.getElementById('admin-products-list'),
+            productsSearchInput: document.getElementById('admin-products-search-input'),
             titleInput: document.getElementById('product-title'),
             priceInput: document.getElementById('product-price'),
             descriptionInput: document.getElementById('product-description'),
@@ -251,6 +254,43 @@ const AdminPanel = {
         }
     },
 
+    normalizeSearchValue(value) {
+        return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[`']/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    getSearchTokens(value) {
+        const normalized = this.normalizeSearchValue(value);
+        if (!normalized) return [];
+        return normalized.split(' ').filter(Boolean);
+    },
+
+    matchesSearchQuery(product) {
+        const tokens = this.getSearchTokens(this.searchQuery);
+        if (!tokens.length) return true;
+
+        const haystack = this.normalizeSearchValue(product?.title || '');
+        return tokens.every((token) => haystack.includes(token));
+    },
+
+    getFilteredProducts() {
+        return this.allProducts.filter((product) => this.matchesSearchQuery(product));
+    },
+
+    syncSearchInput() {
+        const input = this.elements.productsSearchInput;
+        if (!input) return;
+        const nextValue = String(this.searchQuery || '');
+        if (input.value !== nextValue) {
+            input.value = nextValue;
+        }
+    },
+
     renderProducts(products) {
         const list = this.elements.productsList;
         if (!list) return;
@@ -301,6 +341,42 @@ const AdminPanel = {
         }).join('');
     },
 
+    renderFilteredProducts() {
+        const list = this.elements.productsList;
+        if (!list) return;
+
+        if (!this.allProducts.length) {
+            list.innerHTML = '<p class="text-sm text-slate-400">РЈ Р±Р°Р·С– РїРѕРєРё РЅРµРјР°С” С‚РѕРІР°СЂС–РІ.</p>';
+            return;
+        }
+
+        const filteredProducts = this.getFilteredProducts();
+        if (!filteredProducts.length) {
+            list.innerHTML = '<p class="text-sm text-slate-400">Р—Р° РІР°С€РёРј Р·Р°РїРёС‚РѕРј С‚РѕРІР°СЂРё РЅРµ Р·РЅР°Р№РґРµРЅРѕ.</p>';
+            return;
+        }
+
+        this.renderProducts(filteredProducts);
+    },
+
+    renderFilteredProducts() {
+        const list = this.elements.productsList;
+        if (!list) return;
+
+        if (!this.allProducts.length) {
+            list.innerHTML = '<p class="text-sm text-slate-400">У базі поки немає товарів.</p>';
+            return;
+        }
+
+        const filteredProducts = this.getFilteredProducts();
+        if (!filteredProducts.length) {
+            list.innerHTML = '<p class="text-sm text-slate-400">За вашим запитом товари не знайдено.</p>';
+            return;
+        }
+
+        this.renderProducts(filteredProducts);
+    },
+
     async loadProducts() {
         try {
             if (this.elements.refreshButton) {
@@ -312,8 +388,10 @@ const AdminPanel = {
                 product_id: item?.product_id,
                 title: item?.title
             })));
-            this.renderProducts(payload?.products || []);
+            this.allProducts = Array.isArray(payload?.products) ? payload.products : [];
+            this.renderFilteredProducts();
         } catch (error) {
+            this.allProducts = [];
             if (this.elements.productsList) {
                 this.elements.productsList.innerHTML = `<p class="text-sm text-red-400">Не вдалося отримати товари: ${error.message}</p>`;
             }
@@ -540,6 +618,11 @@ const AdminPanel = {
             await this.deleteProductById(id);
         });
 
+        this.elements.productsSearchInput?.addEventListener('input', (event) => {
+            this.searchQuery = String(event?.target?.value || '');
+            this.renderFilteredProducts();
+        });
+
         this.elements.productForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
             if (!this.isAuthenticated) {
@@ -590,6 +673,7 @@ const AdminPanel = {
 
     async init() {
         this.cacheElements();
+        this.syncSearchInput();
         this.populateCategorySelect();
         this.populateSubcategorySelect(this.categoryOptions[0]?.value || 'Футболки');
         if (this.elements.priceInput) {

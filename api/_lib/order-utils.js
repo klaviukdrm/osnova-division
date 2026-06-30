@@ -48,6 +48,7 @@ function parseOrderPayload(body) {
 
     return {
         name: String(body?.name || '').trim(),
+        country: String(body?.country || '').trim(),
         city: String(body?.city || '').trim(),
         shipping: String(body?.shipping || '').trim(),
         telegram: String(body?.telegram || '').trim(),
@@ -57,7 +58,8 @@ function parseOrderPayload(body) {
         receiptName: String(body?.receiptName || '').trim(),
         items,
         total: Number.isFinite(total) ? total : 0,
-        paymentMethod: String(body?.paymentMethod || '').trim()
+        paymentMethod: String(body?.paymentMethod || '').trim(),
+        orderType: String(body?.orderType || '').trim().toLowerCase()
     };
 }
 
@@ -72,6 +74,7 @@ function mapPaymentMethodLabel(method) {
     if (normalized === 'invoice') return '\u041e\u043f\u043b\u0430\u0442\u0430 \u0437\u0430 \u0440\u0435\u043a\u0432\u0456\u0437\u0438\u0442\u0430\u043c\u0438';
     if (normalized === 'wallet') return 'Google Pay / Apple Pay (LiqPay)';
     if (normalized === 'liqpay') return 'LiqPay';
+    if (normalized === 'worldwide') return '\u0417\u0430 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0435\u043d\u0456\u0441\u0442\u044e';
     return method || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e';
 }
 
@@ -141,6 +144,31 @@ function buildCreatedOrderMessage(order) {
     }
     if (order.receiptImage) {
         lines.push('🧾 Квитанція: додано');
+    }
+
+    return lines.join('\n');
+}
+
+function buildWorldwideOrderMessage(order) {
+    const itemsText = formatCreatedItems(order.items);
+    const lines = [
+        '🌖 НОВЕ ЗАМОВЛЕННЯ WORLDWIDE 🌖',
+        '',
+        `🎟️ Номер: ${order.orderId}`,
+        `🧍 Ім'я: ${order.name || 'Не вказано'}`,
+        `🌍 Країна: ${order.country || 'Не вказано'}`,
+        `📍 Місто: ${order.city || 'Не вказано'}`,
+        `💬 Telegram: ${order.telegram || 'Не вказано'}`,
+        `📱 Телефон: ${order.phone || 'Не вказано'}`,
+        '',
+        `🛍️ Товари:\n${itemsText}`,
+        `💳 Оплата: ${mapPaymentMethodLabel(order.paymentMethod)}`,
+        '🟡 Статус: created',
+        `💵 Сума: ${formatCurrency(order.total)}`
+    ];
+
+    if (order.comment) {
+        lines.push(`📝 Коментар: ${order.comment}`);
     }
 
     return lines.join('\n');
@@ -311,6 +339,7 @@ module.exports = {
     generateOrderId,
     parseOrderPayload,
     buildCreatedOrderMessage,
+    buildWorldwideOrderMessage,
     buildInvoiceOrderMessage,
     buildPaidOrderMessage,
     formatCurrency,

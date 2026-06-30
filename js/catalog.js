@@ -2056,6 +2056,12 @@ const Catalog = {
         const phoneInput = document.getElementById('order-phone');
         const commentInput = document.getElementById('order-comment');
         const orderHint = document.getElementById('order-note-hint');
+        const worldwideNameInput = document.getElementById('worldwide-name');
+        const worldwideCountryInput = document.getElementById('worldwide-country');
+        const worldwideCityInput = document.getElementById('worldwide-city');
+        const worldwideTelegramInput = document.getElementById('worldwide-telegram');
+        const worldwidePhoneInput = document.getElementById('worldwide-phone');
+        const worldwideSuccess = document.getElementById('worldwide-success');
         if (itemsCountEl) itemsCountEl.textContent = String(this.getCartItemsCount());
         if (totalPriceEl) totalPriceEl.textContent = this.formatPrice(this.getCartTotal());
         if (fullNameInput && !fullNameInput.value) fullNameInput.value = '';
@@ -2063,6 +2069,11 @@ const Catalog = {
         if (phoneInput && !phoneInput.value) phoneInput.value = '';
         if (shippingInput && !shippingInput.value) shippingInput.value = '';
         if (commentInput && !commentInput.value) commentInput.value = '';
+        if (worldwideNameInput && !worldwideNameInput.value) worldwideNameInput.value = '';
+        if (worldwideCountryInput && !worldwideCountryInput.value) worldwideCountryInput.value = '';
+        if (worldwideCityInput && !worldwideCityInput.value) worldwideCityInput.value = '';
+        if (worldwideTelegramInput && !worldwideTelegramInput.value) worldwideTelegramInput.value = '';
+        if (worldwidePhoneInput && !worldwidePhoneInput.value) worldwidePhoneInput.value = '';
         if (orderHint) {
             orderHint.textContent = '';
         }
@@ -2247,6 +2258,14 @@ const Catalog = {
         const invoiceReceiptName = document.getElementById('invoice-receipt-name');
         const invoiceTotalAmount = document.getElementById('invoice-total-amount');
         const orderPhoneInput = document.getElementById('order-phone');
+        let worldwideForm = null;
+        let worldwideSubmitButton = null;
+        let worldwideNameInput = null;
+        let worldwideCountryInput = null;
+        let worldwideCityInput = null;
+        let worldwideTelegramInput = null;
+        let worldwidePhoneInput = null;
+        let worldwideSuccess = null;
 
         if (closeButton) closeButton.addEventListener('click', () => this.closeOrderModal());
         if (backdrop) backdrop.addEventListener('click', () => this.closeOrderModal());
@@ -2287,24 +2306,62 @@ const Catalog = {
                     <button type="button" id="tab-worldwide" class="${inactiveTabCls}">WORLDWIDE</button>
                 </div>
                 <div id="worldwide-content" class="hidden text-center py-6">
-                    <div class="w-16 h-16 mx-auto bg-slate-800 text-blue-400 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                        <i class="fa-solid fa-earth-americas text-2xl"></i>
-                    </div>
-                    <h4 class="text-xl font-bold text-slate-100 mb-2">Worldwide Shipping</h4>
-                    <p class="text-sm text-slate-400 mb-6 max-w-xs mx-auto leading-relaxed">To order to another country, please contact our Telegram bot or Instagram. Our manager will help you with international shipping details.</p>
-                    <div class="flex flex-col gap-3">
-                        <a href="https://t.me/Ukrainian_Print_Familybot" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-[#0088cc] text-white font-bold rounded-xl hover:bg-[#0077b5] transition-colors duration-200">
-                            <i class="fa-brands fa-telegram text-xl"></i>
-                            Open Telegram Bot
-                        </a>
-                        <a href="https://www.instagram.com/ukrainian_print_family" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold rounded-xl hover:opacity-90 transition-opacity duration-200">
-                            <i class="fa-brands fa-instagram text-xl"></i>
-                            Open Instagram
-                        </a>
+                    <form id="worldwide-order-form" class="max-w-md mx-auto mb-6 text-left space-y-4 rounded-3xl bg-slate-900/30 p-5 shadow-sm">
+                        <div>
+                            <label for="worldwide-name" class="text-sm text-slate-300 block mb-1">Ім'я</label>
+                            <input id="worldwide-name" type="text" placeholder="Вкажіть ім'я" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="worldwide-country" class="text-sm text-slate-300 block mb-1">Країна</label>
+                                <input id="worldwide-country" type="text" placeholder="Наприклад: Польща" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                            </div>
+                            <div>
+                                <label for="worldwide-city" class="text-sm text-slate-300 block mb-1">Місто</label>
+                                <input id="worldwide-city" type="text" placeholder="Наприклад: Варшава" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="worldwide-telegram" class="text-sm text-slate-300 block mb-1">Telegram</label>
+                            <input id="worldwide-telegram" type="text" placeholder="Наприклад: @nickname" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-phone" class="text-sm text-slate-300 block mb-1">Номер телефону</label>
+                            <input id="worldwide-phone" type="tel" placeholder="Наприклад: +48 123 456 789" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <button id="worldwide-submit-btn" type="submit" class="liquid-glass-btn w-full px-6 py-3 rounded-2xl bg-green-600 text-white font-semibold transition hover:bg-green-700 shadow-lg shadow-green-600/20">
+                            Відправити
+                        </button>
+                    </form>
+                    <div id="worldwide-success" class="hidden">
+                        <div class="w-16 h-16 mx-auto bg-slate-800 text-blue-400 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                            <i class="fa-solid fa-check text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-100 mb-2">Доставка по світу</h4>
+                        <p class="text-sm text-slate-400 mb-6 max-w-xs mx-auto leading-relaxed">Ваші дані успішно надіслано. Напишіть менеджеру в Telegram або Instagram або зачекайте, поки він зв'яжеться з вами.</p>
+                        <div class="flex flex-col gap-3">
+                            <a href="https://t.me/Ukrainian_Print_Familybot" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-[#0088cc] text-white font-bold rounded-xl hover:bg-[#0077b5] transition-colors duration-200">
+                                <i class="fa-brands fa-telegram text-xl"></i>
+                                Відкрити Telegram-бот
+                            </a>
+                            <a href="https://www.instagram.com/ukrainian_print_family" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold rounded-xl hover:opacity-90 transition-opacity duration-200">
+                                <i class="fa-brands fa-instagram text-xl"></i>
+                                Відкрити Instagram
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
             form.insertAdjacentHTML('beforebegin', tabsHtml);
+
+            worldwideForm = document.getElementById('worldwide-order-form');
+            worldwideSubmitButton = document.getElementById('worldwide-submit-btn');
+            worldwideNameInput = document.getElementById('worldwide-name');
+            worldwideCountryInput = document.getElementById('worldwide-country');
+            worldwideCityInput = document.getElementById('worldwide-city');
+            worldwideTelegramInput = document.getElementById('worldwide-telegram');
+            worldwidePhoneInput = document.getElementById('worldwide-phone');
+            worldwideSuccess = document.getElementById('worldwide-success');
 
             const tabUa = document.getElementById('tab-ukraine');
             const tabWw = document.getElementById('tab-worldwide');
@@ -2315,11 +2372,15 @@ const Catalog = {
                     tabUa.className = activeTabCls;
                     tabWw.className = inactiveTabCls;
                     form.style.display = '';
+                    if (worldwideForm) worldwideForm.style.display = 'none';
+                    if (worldwideSuccess) worldwideSuccess.classList.add('hidden');
                     wwContent.style.display = 'none';
                 } else {
                     tabWw.className = activeTabCls;
                     tabUa.className = inactiveTabCls;
                     form.style.display = 'none';
+                    if (worldwideForm) worldwideForm.style.display = '';
+                    if (worldwideSuccess) worldwideSuccess.classList.add('hidden');
                     wwContent.style.display = 'block';
                 }
             };
@@ -2716,6 +2777,84 @@ const Catalog = {
                 };
             };
 
+            const buildWorldwideOrderPayload = () => {
+                const name = worldwideNameInput?.value?.trim() || 'Без імені';
+                const country = worldwideCountryInput?.value?.trim() || 'Без країни';
+                const city = worldwideCityInput?.value?.trim() || 'Без міста';
+                const telegram = worldwideTelegramInput?.value?.trim() || 'Не вказано';
+                const phone = worldwidePhoneInput?.value?.trim() || 'Без телефону';
+                const cartItems = [...this.state.cartItems];
+
+                if (!cartItems.length) {
+                    window.UI?.showToast?.('Кошик порожній. Додайте товари перед оформленням.', { tone: 'warning' });
+                    this.closeOrderModal();
+                    return null;
+                }
+
+                return {
+                    name,
+                    country,
+                    city,
+                    telegram,
+                    phone,
+                    items: cartItems.map((entry) => ({
+                        title: entry.item?.title || '',
+                        category: this.getDisplayCategory(entry.item),
+                        source: entry.item?.source || '',
+                        color: entry.item?.color || '',
+                        size: entry.item?.selectedSize ? `${entry.item.selectedSize}${entry.item.selectedFit === 'oversize' ? ' (oversize)' : ''}` : '',
+                        price: this.getProductPrice(entry.item),
+                        quantity: this.normalizeQuantity(entry.quantity),
+                        image: entry.item?.image || '',
+                        customKey: entry.item?.customKey || '',
+                        sourceImages: Array.isArray(entry.item?.sourceImages) ? entry.item.sourceImages : []
+                    })),
+                    total: this.getCartTotal(),
+                    orderType: 'worldwide',
+                    paymentMethod: 'worldwide'
+                };
+            };
+
+            const setWorldwideSubmitState = (isPending) => {
+                if (!worldwideSubmitButton) return;
+                worldwideSubmitButton.disabled = isPending;
+                worldwideSubmitButton.textContent = isPending ? 'Відправляємо...' : 'Відправити';
+            };
+
+            const processWorldwideOrder = async () => {
+                if (!worldwideForm?.reportValidity()) return;
+                const orderPayload = buildWorldwideOrderPayload();
+                if (!orderPayload) return;
+
+                setWorldwideSubmitState(true);
+                try {
+                    const response = await fetch('/api/orders/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderPayload)
+                    });
+
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(result?.error || 'Не вдалося оформити замовлення. Спробуйте ще раз.');
+                    }
+
+                    const successMessage = 'Ваші дані успішно надіслано. Очікуйте зв\'язку з менеджером.';
+                    window.UI?.showToast?.(window.Translator?.dict?.[successMessage] || successMessage, { tone: 'success' });
+                    this.clearCart(false);
+                    form.reset();
+                    worldwideForm.reset();
+                    form.style.display = 'none';
+                    worldwideForm.style.display = 'none';
+                    if (worldwideSuccess) worldwideSuccess.classList.remove('hidden');
+                } catch (error) {
+                    console.warn('Worldwide order submission failed.', error);
+                    window.UI?.showToast?.(error?.message || 'Не вдалося оформити замовлення. Спробуйте ще раз.', { tone: 'warning' });
+                } finally {
+                    setWorldwideSubmitState(false);
+                }
+            };
+
             const processInvoiceOrder = async () => {
                 syncOrderPhoneValidity();
                 if (!form.reportValidity()) return;
@@ -2874,6 +3013,13 @@ const Catalog = {
             if (walletButton) {
                 walletButton.addEventListener('click', async () => {
                     await processWalletPayment();
+                });
+            }
+
+            if (worldwideForm) {
+                worldwideForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    await processWorldwideOrder();
                 });
             }
 

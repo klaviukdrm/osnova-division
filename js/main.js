@@ -1093,6 +1093,7 @@ const Translator = {
         'Відправляємо...': 'Sending...',
         'Відкрити Telegram-бот': 'Open Telegram Bot',
         'Відкрити Instagram': 'Open Instagram',
+        'Telegram (необов\'язково)': 'Telegram (optional)',
         'Позицій': 'Items',
         'Сума': 'Total Amount',
         'ПІБ': 'Full Name',

@@ -2311,8 +2311,8 @@ const Catalog = {
                 <div id="worldwide-content" class="hidden text-center py-6">
                     <form id="worldwide-order-form" class="max-w-md mx-auto mb-6 text-left space-y-4 rounded-3xl bg-slate-900/30 p-5 shadow-sm">
                         <div>
-                            <label for="worldwide-name" class="text-sm text-slate-300 block mb-1">Ім'я</label>
-                            <input id="worldwide-name" type="text" placeholder="Вкажіть ім'я" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                            <label for="worldwide-name" class="text-sm text-slate-300 block mb-1">ПІБ</label>
+                            <input id="worldwide-name" type="text" placeholder="Вкажіть ПІБ" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -2325,8 +2325,8 @@ const Catalog = {
                             </div>
                         </div>
                         <div>
-                            <label for="worldwide-telegram" class="text-sm text-slate-300 block mb-1">Telegram</label>
-                            <input id="worldwide-telegram" type="text" placeholder="Наприклад: @nickname" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                            <label for="worldwide-telegram" class="text-sm text-slate-300 block mb-1">Telegram (необов'язково)</label>
+                            <input id="worldwide-telegram" type="text" placeholder="Наприклад: @nickname" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700">
                         </div>
                         <div>
                             <label for="worldwide-phone" class="text-sm text-slate-300 block mb-1">Номер телефону</label>

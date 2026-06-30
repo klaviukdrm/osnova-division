@@ -1272,7 +1272,7 @@ const Translator = {
         'Вкажіть ПІБ': 'Enter Full Name',
         'Наприклад: Хмельницький': 'e.g. Kyiv',
         'Наприклад: НП 27 / Укрпошта 01001': 'e.g. Post Office 27',
-        'Додаткові побажання': 'Additional wishes',
+        'Потрібен дзвінок або SMS для підтвердження? Напишіть тут.': 'Need a call or SMS to confirm the order? Write it here.',
         'Напиши свій текст...': 'Type your text...'
     },
     formatPrice(uah) {

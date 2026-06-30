@@ -2079,6 +2079,9 @@ const Catalog = {
         }
 
         window.UI?.openModal('order-modal');
+        window.requestAnimationFrame(() => {
+            document.getElementById('tab-ukraine')?.click();
+        });
     },
 
     closeOrderModal() {

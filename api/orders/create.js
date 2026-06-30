@@ -3,6 +3,7 @@ const {
     generateOrderId,
     parseOrderPayload,
     buildInvoiceOrderMessage,
+    buildWorldwideOrderMessage,
     extractCustomPreviewItems,
     extractCustomSourceImages,
     extractAdminPreviewItems
@@ -173,11 +174,17 @@ module.exports = async (req, res) => {
     }
 
     const orderId = generateOrderId();
-    const text = buildInvoiceOrderMessage({
-        ...order,
-        orderId,
-        paymentMethod: 'invoice'
-    });
+    const text = order.orderType === 'worldwide'
+        ? buildWorldwideOrderMessage({
+            ...order,
+            orderId,
+            paymentMethod: 'worldwide'
+        })
+        : buildInvoiceOrderMessage({
+            ...order,
+            orderId,
+            paymentMethod: 'invoice'
+        });
 
     const notificationsPromise = sendOrderNotifications({ order, body, orderId, text, siteOrigin });
 

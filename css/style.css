@@ -2181,6 +2181,22 @@ body.editor-sheet-open {
 }
 
 @media (max-width: 768px) {
+    nav .max-w-7xl {
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+    }
+
+    nav .max-w-7xl > div:last-child {
+        width: auto !important;
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+    }
+
     #hero {
         padding-top: 56px;
         padding-bottom: 56px;
@@ -2440,10 +2456,19 @@ body.editor-sheet-open {
     }
 
     nav .max-w-7xl {
-        padding-top: 12px;
-        padding-bottom: 12px;
-        padding-left: 14px;
-        padding-right: 14px;
+        padding-top: 13px !important;
+        padding-bottom: 13px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+    }
+
+    nav .max-w-7xl > div:last-child {
+        width: auto !important;
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
     }
 
     #hero {
@@ -4267,7 +4292,7 @@ body.tail-container #examples-lightbox-modal .examples-lightbox-modal__close:hov
     border-color: #dbeafe !important;
 }
 
-/* Catalog & Constructor section background: stealth dark blue workshop grid matching site theme */
+/* Catalog & Constructor section background: stealth dark blue workshop grid */
 body.tail-container #products,
 body.tail-container #constructor,
 body.tail-container .mockup-stage {
@@ -4278,6 +4303,30 @@ body.tail-container .mockup-stage {
         repeating-linear-gradient(117deg, rgba(34, 50, 77, 0.42) 0 1px, transparent 1px 150px),
         repeating-linear-gradient(27deg, rgba(34, 50, 77, 0.35) 0 1px, transparent 1px 150px),
         linear-gradient(180deg, var(--fx-bg-2) 0%, #030711 100%) !important;
+    background-attachment: fixed !important;
+}
+
+body.tail-container #catalog-grid {
+    min-height: 480px;
+    contain: layout paint;
+}
+
+/* Hero background: clean original gradient without grid lines */
+body.tail-container #hero {
+    background: linear-gradient(180deg, var(--fx-bg-2) 0%, #030711 100%) !important;
+    background-image:
+        radial-gradient(circle at 15% 8%, rgba(79, 143, 240, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(34, 211, 238, 0.04) 0%, transparent 40%),
+        linear-gradient(180deg, var(--fx-bg-2) 0%, #030711 100%) !important;
+}
+
+body.tail-container footer {
+    background: linear-gradient(180deg, var(--fx-bg-2) 0%, #030711 100%) !important;
+    border-top: 1px solid rgba(34, 50, 77, 0.5) !important;
+}
+
+body.tail-container #constructor {
+    padding-bottom: 60px !important;
 }
 
 /* 2-column equal stretch tabs in constructor without changing height */

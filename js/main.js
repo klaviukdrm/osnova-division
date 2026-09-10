@@ -822,11 +822,11 @@ const MainApp = {
 
         if (uaBtn && enBtn) {
             if (storedLang === 'en') {
-                uaBtn.className = "nav-lang-cell relative z-10 flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-extrabold [text-shadow:0_0_12px_#22d3ee,0_0_24px_#22d3ee] sm:text-slate-400 sm:[text-shadow:none] sm:font-medium hover:text-white transition";
-                enBtn.className = "nav-lang-cell is-active relative z-10 hidden sm:block flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-bold transition";
+                uaBtn.classList.remove('is-active');
+                enBtn.classList.add('is-active');
             } else {
-                uaBtn.className = "nav-lang-cell is-active relative z-10 hidden sm:block flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-bold transition";
-                enBtn.className = "nav-lang-cell relative z-10 flex-1 px-3 py-2.5 sm:px-4 sm:py-3.5 text-white font-extrabold [text-shadow:0_0_12px_#22d3ee,0_0_24px_#22d3ee] sm:text-slate-400 sm:[text-shadow:none] sm:font-medium hover:text-white transition";
+                uaBtn.classList.add('is-active');
+                enBtn.classList.remove('is-active');
             }
         }
 
@@ -836,6 +836,13 @@ const MainApp = {
             cell.parentNode.replaceChild(newCell, cell);
 
             newCell.addEventListener('click', (e) => {
+                if (window.innerWidth < 640) {
+                    const currentLang = window.localStorage.getItem('upf_lang') || 'ua';
+                    const nextLang = currentLang === 'ua' ? 'en' : 'ua';
+                    window.localStorage.setItem('upf_lang', nextLang);
+                    window.location.reload();
+                    return;
+                }
                 const targetLang = e.currentTarget.getAttribute('data-lang');
                 if (targetLang === storedLang) return;
                 window.localStorage.setItem('upf_lang', targetLang);

@@ -1284,6 +1284,8 @@ const Translator = {
         'Вкажіть ПІБ': 'Enter Full Name',
         'Вкажіть ім\'я': 'Enter name',
         'Наприклад: Хмельницький': 'e.g. Kyiv',
+        'Нова пошта / Укрпошта': 'Nova Poshta / Ukrposhta',
+        'Наприклад: Нова пошта / Укрпошта': 'e.g. Nova Poshta / Ukrposhta',
         'Наприклад: НП 27 / Укрпошта 01001': 'e.g. Post Office 27',
         'Наприклад: Польща': 'e.g. Poland',
         'Наприклад: Варшава': 'e.g. Warsaw',

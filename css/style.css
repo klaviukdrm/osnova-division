@@ -3209,12 +3209,8 @@ body.tail-container textarea::placeholder {
 }
 
 body.tail-container {
-    background:
-        radial-gradient(circle at 15% 8%, rgba(79, 143, 240, 0.045) 0%, transparent 28%),
-        radial-gradient(circle at 82% 80%, rgba(79, 143, 240, 0.03) 0%, transparent 30%),
-        repeating-linear-gradient(122deg, rgba(148, 163, 184, 0.03) 0 1px, transparent 1px 72px),
-        repeating-linear-gradient(27deg, rgba(148, 163, 184, 0.02) 0 1px, transparent 1px 96px),
-        linear-gradient(180deg, var(--fx-bg-1) 0%, var(--fx-bg-0) 64%, #000103 100%) !important;
+    background-color: var(--fx-bg-2) !important;
+    background-image: none !important;
     color: var(--fx-text) !important;
 }
 
@@ -3223,7 +3219,7 @@ nav,
 #products,
 #constructor,
 footer {
-    background: linear-gradient(180deg, var(--fx-bg-2) 0%, #030711 100%) !important;
+    background: var(--fx-bg-2) !important;
 }
 
 nav {
@@ -4307,12 +4303,6 @@ body.tail-container .mockup-stage {
 
 body.tail-container #catalog-grid {
     min-height: 480px;
-    contain: layout;
-}
-
-body.tail-container .product-card-v2 {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 420px;
 }
 
 /* Hero background: clean original gradient without grid lines */

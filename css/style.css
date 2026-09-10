@@ -4292,7 +4292,7 @@ body.tail-container #examples-lightbox-modal .examples-lightbox-modal__close:hov
     border-color: #dbeafe !important;
 }
 
-/* Catalog & Constructor section background: stealth dark blue workshop grid */
+/* Catalog & Constructor section background: ultra-fast hardware-accelerated SVG workshop grid */
 body.tail-container #products,
 body.tail-container #constructor,
 body.tail-container .mockup-stage {
@@ -4300,15 +4300,22 @@ body.tail-container .mockup-stage {
     background-image:
         radial-gradient(circle at 18% 12%, rgba(63, 126, 230, 0.05) 0%, transparent 45%),
         radial-gradient(circle at 82% 76%, rgba(34, 211, 238, 0.03) 0%, transparent 40%),
-        repeating-linear-gradient(117deg, rgba(34, 50, 77, 0.42) 0 1px, transparent 1px 150px),
-        repeating-linear-gradient(27deg, rgba(34, 50, 77, 0.35) 0 1px, transparent 1px 150px),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cdefs%3E%3Cpattern id='g' width='150' height='150' patternUnits='userSpaceOnUse' patternTransform='rotate(27)'%3E%3Cpath d='M150 0H0V150' fill='none' stroke='rgba(64,105,160,0.50)' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/svg%3E"),
         linear-gradient(180deg, var(--fx-bg-2) 0%, #030711 100%) !important;
-    background-attachment: fixed !important;
+    background-repeat: no-repeat, no-repeat, repeat, no-repeat !important;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100% !important;
+    background-position: top center, top center, 0 0, top center !important;
+    background-attachment: scroll !important;
 }
 
 body.tail-container #catalog-grid {
     min-height: 480px;
-    contain: layout paint;
+    contain: layout;
+}
+
+body.tail-container .product-card-v2 {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 420px;
 }
 
 /* Hero background: clean original gradient without grid lines */

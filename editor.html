@@ -62,8 +62,8 @@
                 <h1 class="text-5xl font-bold mt-4 section-title">Редагування виробу</h1>
             </div>
 
-            <div id="constructor-layout" class="grid lg:grid-cols-12 gap-8 items-start">
-                <div class="editor-tools order-2 lg:order-2 bg-slate-50 border border-slate-100 rounded-3xl p-6 shadow-sm">
+            <div id="constructor-layout" class="grid md:grid-cols-12 lg:grid-cols-12 gap-8 items-start">
+                <div class="editor-tools order-2 md:order-2 lg:order-2 md:col-span-5 lg:col-span-5 bg-slate-50 border border-slate-100 rounded-3xl p-6 shadow-sm">
                     <div class="editor-tools-head mb-5">
                         <h3 class="font-semibold text-base flex items-center gap-x-2">
                             <i class="fa-solid fa-sliders"></i>
@@ -83,10 +83,6 @@
                             <i class="fa-solid fa-image"></i>
                             <span>Фото</span>
                         </button>
-                        <button type="button" class="mobile-tools-tab" data-mobile-panel="mobile-panel-text" aria-pressed="false" title="Текст">
-                            <i class="fa-solid fa-font"></i>
-                            <span>Текст</span>
-                        </button>
                     </div>
 
                     <div id="mobile-panel-product" class="mb-6 tool-panel">
@@ -101,22 +97,6 @@
                         <div id="product-color-selector-wrap" class="mt-4">
                             <p class="text-xs text-slate-500 mb-2">Колір основи</p>
                             <div id="product-color-selector" class="product-color-selector" aria-label="Вибір кольору основи"></div>
-                        </div>
-                    </div>
-
-                    <div id="mobile-panel-text" class="mb-6 tool-panel">
-                        <label for="text-input" class="text-sm text-slate-500 block mb-2">Текст принту</label>
-                        <input id="text-input" type="text" placeholder="Напиши свій текст..." class="w-full px-5 py-4 border border-slate-200 rounded-2xl focus:outline-none focus:border-blue-700 text-lg transition">
-
-                        <div class="flex gap-4 mt-4">
-                            <div class="flex-1">
-                                <label for="color-picker" class="text-xs text-slate-500 block mb-1">Колір тексту</label>
-                                <input id="color-picker" type="color" value="#1e40af" class="w-full h-12 p-1 border border-slate-200 rounded-2xl cursor-pointer bg-white">
-                            </div>
-                            <div class="flex-1">
-                                <label for="size-slider" class="text-xs text-slate-500 block mb-1">Розмір тексту</label>
-                                <input id="size-slider" type="range" min="14" max="52" value="28" class="w-full accent-blue-700 mt-3">
-                            </div>
                         </div>
                     </div>
 
@@ -166,7 +146,7 @@
 
                 </div>
 
-                <div class="editor-preview order-1 lg:order-1 flex justify-center items-start">
+                <div class="editor-preview order-1 md:order-1 lg:order-1 md:col-span-7 lg:col-span-7 flex justify-center items-start">
                     <div class="w-full max-w-[1160px] space-y-5">
                         <h2 id="selected-product-name" class="hidden" aria-hidden="true"></h2>
                         <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600">

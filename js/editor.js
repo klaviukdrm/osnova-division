@@ -550,19 +550,25 @@ const Editor = {
             this.selectFormat(button.getAttribute('data-format-id'));
         });
 
-        this.elements.textInput.addEventListener('input', () => {
-            this.markDesignDirty();
-            this.handleTextInput();
-        });
-        this.elements.textInput.addEventListener('blur', () => this.translateTextInputToUkrainian());
-        this.elements.colorPicker.addEventListener('input', () => {
-            this.markDesignDirty();
-            this.updatePreviewColor();
-        });
-        this.elements.sizeSlider.addEventListener('input', () => {
-            this.markDesignDirty();
-            this.updatePreviewSize();
-        });
+        if (this.elements.textInput) {
+            this.elements.textInput.addEventListener('input', () => {
+                this.markDesignDirty();
+                this.handleTextInput();
+            });
+            this.elements.textInput.addEventListener('blur', () => this.translateTextInputToUkrainian());
+        }
+        if (this.elements.colorPicker) {
+            this.elements.colorPicker.addEventListener('input', () => {
+                this.markDesignDirty();
+                this.updatePreviewColor();
+            });
+        }
+        if (this.elements.sizeSlider) {
+            this.elements.sizeSlider.addEventListener('input', () => {
+                this.markDesignDirty();
+                this.updatePreviewSize();
+            });
+        }
         this.elements.imageUpload.addEventListener('change', (event) => {
             const selectedFiles = Array.from(event.target.files || []);
             if (this.hasUnsupportedEditorImageFiles(selectedFiles)) {
@@ -634,7 +640,9 @@ const Editor = {
 
         this.elements.printArea.addEventListener('click', (event) => {
             if (event.target.closest('.preview-image') || event.target.closest('.image-transform-handle') || event.target.closest('#upload-label')) return;
-            this.elements.textInput.focus();
+            if (this.elements.textInput) {
+                this.elements.textInput.focus();
+            }
         });
 
         document.addEventListener('keydown', (event) => {
@@ -776,7 +784,7 @@ const Editor = {
         const parent = tools?.parentElement;
         if (!tools || !stage || !parent) return;
 
-        if (!window.matchMedia('(min-width: 1024px)').matches) {
+        if (!window.matchMedia('(min-width: 769px)').matches) {
             tools.style.removeProperty('margin-top');
             return;
         }
@@ -1282,6 +1290,7 @@ const Editor = {
 
     configureTextSlider(product) {
         const slider = this.elements.sizeSlider;
+        if (!slider || !product?.text) return;
         const currentValue = Number(slider.value || product.text.default);
         slider.min = String(product.text.min);
         slider.max = String(product.text.max);
@@ -1442,20 +1451,26 @@ const Editor = {
         return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     },
 
-    updatePreviewText(previewValue = this.elements.textInput.value || '') {
-        const value = previewValue.trim();
-        this.elements.previewText.textContent = value ? value.toUpperCase() : '';
-        this.elements.previewText.style.opacity = value ? '1' : '0';
+    updatePreviewText(previewValue = this.elements.textInput?.value || '') {
+        const value = String(previewValue || '').trim();
+        if (this.elements.previewText) {
+            this.elements.previewText.textContent = value ? value.toUpperCase() : '';
+            this.elements.previewText.style.opacity = value ? '1' : '0';
+        }
         this.updateUploadPromptVisibility();
         this.updateCanvasLayout();
     },
 
     updatePreviewColor() {
-        this.elements.previewText.style.color = this.elements.colorPicker.value;
+        if (this.elements.previewText && this.elements.colorPicker) {
+            this.elements.previewText.style.color = this.elements.colorPicker.value;
+        }
     },
 
     updatePreviewSize() {
-        this.elements.previewText.style.fontSize = `${this.elements.sizeSlider.value}px`;
+        if (this.elements.previewText && this.elements.sizeSlider) {
+            this.elements.previewText.style.fontSize = `${this.elements.sizeSlider.value}px`;
+        }
     },
 
     applyConstructorOrderControlsState() {
@@ -1818,17 +1833,17 @@ const Editor = {
     },
 
     updateUploadPromptVisibility() {
-        const hasText = this.elements.textInput.value.trim().length > 0;
+        const hasText = Boolean(this.elements.textInput?.value?.trim()?.length);
         const hasImage = this.getImageLayers().length > 0;
-        this.elements.uploadLabel.classList.toggle('hidden', hasText || hasImage);
-        const uploadIcon = this.elements.uploadLabel.querySelector('.upload-prompt__icon');
+        this.elements.uploadLabel?.classList?.toggle('hidden', hasText || hasImage);
+        const uploadIcon = this.elements.uploadLabel?.querySelector('.upload-prompt__icon');
         if (uploadIcon) {
             uploadIcon.classList.toggle('hidden', hasImage);
         }
     },
 
     updateCanvasLayout() {
-        const hasText = this.elements.textInput.value.trim().length > 0;
+        const hasText = Boolean(this.elements.textInput?.value?.trim()?.length);
         const hasImage = this.getImageLayers().length > 0;
         let layout = 'empty';
 
@@ -1840,7 +1855,9 @@ const Editor = {
             layout = 'image-only';
         }
 
-        this.elements.printCanvas.dataset.layout = layout;
+        if (this.elements.printCanvas) {
+            this.elements.printCanvas.dataset.layout = layout;
+        }
         window.requestAnimationFrame(() => this.updateImageTransformBox());
     },
 
@@ -2398,12 +2415,14 @@ const Editor = {
             return;
         }
 
-        this.translateTextInputToUkrainian();
+        if (this.elements.textInput) {
+            this.translateTextInputToUkrainian();
+        }
         const product = this.getSelectedProduct();
         const format = this.getSelectedFormat();
         const selectedVariant = this.getSelectedVariant(product);
         const selectedColor = String(selectedVariant?.label || this.getProductVisual(product).colorLabel || '').trim();
-        const text = this.elements.textInput.value.trim() || 'Без тексту';
+        const text = this.elements.textInput?.value?.trim() || '';
         const cartStorageKey = 'upf_cart_v1';
         const sourceImages = this.collectCurrentSourceImages();
         const selectedSize = this.getSelectedProductSize(product);
@@ -2418,7 +2437,7 @@ const Editor = {
             price: formatBasePrice,
             image: this.savedDesignPreview,
             sourceImages,
-            description: `${product.description} Текст: ${text}`
+            description: text ? `${product.description} Текст: ${text}` : product.description
         };
 
         try {

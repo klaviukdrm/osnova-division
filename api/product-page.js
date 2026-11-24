@@ -821,9 +821,9 @@ function buildProductHtml(product, baseUrl) {
         }
     })();
     </script>
-    <script src="/js/ui-helpers.js"></script>
-    <script src="/js/catalog.js"></script>
-    <script src="/js/main.js"></script>
+    <script src="/js/ui-helpers.js?v=20261124"></script>
+    <script src="/js/catalog.js?v=20261124"></script>
+    <script src="/js/main.js?v=20261124"></script>
 </body>
 </html>`;
 }

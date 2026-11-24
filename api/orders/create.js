@@ -178,12 +178,12 @@ module.exports = async (req, res) => {
         ? buildWorldwideOrderMessage({
             ...order,
             orderId,
-            paymentMethod: 'worldwide'
+            paymentMethod: order.paymentMethod || 'worldwide'
         })
         : buildInvoiceOrderMessage({
             ...order,
             orderId,
-            paymentMethod: 'invoice'
+            paymentMethod: order.paymentMethod || 'invoice'
         });
 
     const notificationsPromise = sendOrderNotifications({ order, body, orderId, text, siteOrigin });

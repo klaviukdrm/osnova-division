@@ -1,5 +1,6 @@
 const Catalog = {
     CART_STORAGE_KEY: 'upf_cart_v1',
+    ORDER_DRAFT_STORAGE_KEY: 'upf_order_draft_v1',
     FAVORITES_STORAGE_KEY: 'upf_favorites_v1',
     PRODUCT_ORDER_STORAGE_KEY: 'upf_order_from_product',
     LIQPAY_PENDING_ORDER_STORAGE_KEY: 'upf_pending_liqpay_order',
@@ -106,7 +107,89 @@ const Catalog = {
         cartItems: [],
         favoriteKeys: new Set(),
         modalImageLoadToken: 0,
-        currentSizeChartType: 'default'
+        currentSizeChartType: 'default',
+        activeOrderRegion: 'ua',
+        activeWwPayTab: 'euro'
+    },
+
+    convertUahToEur(uahValue) {
+        const uah = Math.round(Number(uahValue || 0));
+        if (!Number.isFinite(uah) || uah <= 0) return 0;
+        const priceMap = {
+            650: 13, 750: 15, 850: 17, 950: 19,
+            1350: 26, 1450: 28, 1550: 30, 1650: 32
+        };
+        if (priceMap[uah]) return priceMap[uah];
+        return Math.max(1, Math.round(uah / 50));
+    },
+
+    getProductPriceEur(item, selectedSize = '', fit = '') {
+        const uahPrice = this.getProductPrice(item, selectedSize, fit);
+        return this.convertUahToEur(uahPrice);
+    },
+
+    getCartTotalEur() {
+        return this.state.cartItems.reduce((sum, entry) => {
+            return sum + this.getProductPriceEur(entry.item) * this.normalizeQuantity(entry.quantity);
+        }, 0);
+    },
+
+    getWorldwideShippingBase(country) {
+        const raw = String(country || '').trim().toLowerCase();
+        if (!raw) return 30;
+        if (
+            raw.includes('польщ') || raw.includes('poland')
+            || raw.includes('німеччин') || raw.includes('germany')
+            || raw.includes('словаччин') || raw.includes('slovakia')
+        ) {
+            return 20;
+        }
+        if (raw.includes('швейцар') || raw.includes('switzerland')) {
+            return 37;
+        }
+        return 30;
+    },
+
+    getWorldwideShippingBreakdown(country) {
+        const itemTotal = this.getCartTotalEur();
+        const totalQty = this.getCartItemsCount();
+        const shippingBase = this.getWorldwideShippingBase(country);
+        const shippingStep = Math.floor(Math.max(0, totalQty - 1) / 3) * 5;
+        const shippingTotal = totalQty > 0 ? (shippingBase + shippingStep) : 0;
+        const totalAmount = itemTotal + shippingTotal;
+        return {
+            itemTotal,
+            shippingBase,
+            shippingStep,
+            shippingTotal,
+            totalAmount,
+            totalQty
+        };
+    },
+
+    loadOrderDraft() {
+        try {
+            const raw = window.localStorage.getItem(this.ORDER_DRAFT_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (_) {
+            return null;
+        }
+    },
+
+    saveOrderDraft(draftPatch = {}) {
+        try {
+            const current = this.loadOrderDraft() || {};
+            const next = { ...current, ...draftPatch };
+            window.localStorage.setItem(this.ORDER_DRAFT_STORAGE_KEY, JSON.stringify(next));
+        } catch (_) {}
+    },
+
+    clearOrderDraft() {
+        try {
+            window.localStorage.removeItem(this.ORDER_DRAFT_STORAGE_KEY);
+        } catch (_) {}
     },
 
     getDemoVisual(category, index) {
@@ -2050,42 +2133,78 @@ const Catalog = {
 
         const itemsCountEl = document.getElementById('order-items-count');
         const totalPriceEl = document.getElementById('order-total-price');
-        const fullNameInput = document.getElementById('order-full-name');
-        const cityInput = document.getElementById('order-city');
-        const shippingInput = document.getElementById('order-shipping');
-        const phoneInput = document.getElementById('order-phone');
-        const commentInput = document.getElementById('order-comment');
-        const orderHint = document.getElementById('order-note-hint');
-        const worldwideNameInput = document.getElementById('worldwide-name');
-        const worldwideCountryInput = document.getElementById('worldwide-country');
-        const worldwideCityInput = document.getElementById('worldwide-city');
-        const worldwideTelegramInput = document.getElementById('worldwide-telegram');
-        const worldwidePhoneInput = document.getElementById('worldwide-phone');
-        const worldwideSuccess = document.getElementById('worldwide-success');
         if (itemsCountEl) itemsCountEl.textContent = String(this.getCartItemsCount());
         if (totalPriceEl) totalPriceEl.textContent = this.formatPrice(this.getCartTotal());
-        if (fullNameInput && !fullNameInput.value) fullNameInput.value = '';
-        if (cityInput && !cityInput.value) cityInput.value = '';
-        if (phoneInput && !phoneInput.value) phoneInput.value = '';
-        if (shippingInput && !shippingInput.value) shippingInput.value = '';
-        if (commentInput && !commentInput.value) commentInput.value = '';
-        if (worldwideNameInput && !worldwideNameInput.value) worldwideNameInput.value = '';
-        if (worldwideCountryInput && !worldwideCountryInput.value) worldwideCountryInput.value = '';
-        if (worldwideCityInput && !worldwideCityInput.value) worldwideCityInput.value = '';
-        if (worldwideTelegramInput && !worldwideTelegramInput.value) worldwideTelegramInput.value = '';
-        if (worldwidePhoneInput && !worldwidePhoneInput.value) worldwidePhoneInput.value = '';
-        if (orderHint) {
-            orderHint.textContent = '';
-        }
+
+        this.restoreOrderDraftToDom();
 
         window.UI?.openModal('order-modal');
         window.requestAnimationFrame(() => {
-            document.getElementById('tab-ukraine')?.click();
+            const region = this.state.activeOrderRegion === 'ww' ? 'ww' : 'ua';
+            const targetTab = document.getElementById(region === 'ww' ? 'tab-worldwide' : 'tab-ukraine');
+            targetTab?.click();
         });
     },
 
     closeOrderModal() {
         window.UI?.closeModal('order-modal');
+    },
+
+    restoreOrderDraftToDom() {
+        const draft = this.loadOrderDraft();
+        if (!draft) return;
+
+        if (draft.region === 'ww' || draft.region === 'ua') {
+            this.state.activeOrderRegion = draft.region;
+        }
+
+        const fieldMap = {
+            uaName: 'order-full-name',
+            uaPhone: 'order-phone',
+            uaCity: 'order-city',
+            uaTelegram: 'order-shipping',
+            wwCountry: 'worldwide-country',
+            wwState: 'worldwide-state',
+            wwPostal: 'worldwide-postal',
+            wwCity: 'worldwide-city',
+            wwPhone: 'worldwide-phone',
+            wwName: 'worldwide-name',
+            wwEmail: 'worldwide-email',
+            wwTelegram: 'worldwide-telegram',
+            wwPostOffice: 'worldwide-post-office',
+            wwResidential: 'worldwide-residential'
+        };
+
+        Object.entries(fieldMap).forEach(([draftKey, elementId]) => {
+            const el = document.getElementById(elementId);
+            if (!el || draft[draftKey] === undefined || draft[draftKey] === null) return;
+            el.value = String(draft[draftKey]);
+        });
+    },
+
+    collectAndSaveOrderDraftFromDom() {
+        const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el ? String(el.value || '') : '';
+        };
+
+        this.saveOrderDraft({
+            region: this.state.activeOrderRegion || 'ua',
+            uaName: getVal('order-full-name'),
+            uaPhone: getVal('order-phone'),
+            uaCity: getVal('order-city'),
+            uaTelegram: getVal('order-shipping'),
+            wwCountry: getVal('worldwide-country'),
+            wwState: getVal('worldwide-state'),
+            wwPostal: getVal('worldwide-postal'),
+            wwCity: getVal('worldwide-city'),
+            wwPhone: getVal('worldwide-phone'),
+            wwName: getVal('worldwide-name'),
+            wwEmail: getVal('worldwide-email'),
+            wwTelegram: getVal('worldwide-telegram'),
+            wwPostOffice: getVal('worldwide-post-office'),
+            wwResidential: getVal('worldwide-residential')
+        });
     },
 
     setupModalEvents() {
@@ -2251,8 +2370,20 @@ const Catalog = {
         const closeButton = document.getElementById('order-close');
         const backdrop = orderModal.querySelector('[data-close-order]');
         const form = document.getElementById('order-form');
-        const walletButton = document.getElementById('order-wallet-btn');
         const submitButton = document.getElementById('order-submit-btn');
+        const worldwideForm = document.getElementById('worldwide-order-form');
+        const worldwideSubmitButton = document.getElementById('worldwide-submit-btn');
+        const worldwideCountryInput = document.getElementById('worldwide-country');
+        const worldwideStateInput = document.getElementById('worldwide-state');
+        const worldwidePostalInput = document.getElementById('worldwide-postal');
+        const worldwideCityInput = document.getElementById('worldwide-city');
+        const worldwidePhoneInput = document.getElementById('worldwide-phone');
+        const worldwideNameInput = document.getElementById('worldwide-name');
+        const worldwideEmailInput = document.getElementById('worldwide-email');
+        const worldwideTelegramInput = document.getElementById('worldwide-telegram');
+        const worldwidePostOfficeInput = document.getElementById('worldwide-post-office');
+        const worldwideResidentialInput = document.getElementById('worldwide-residential');
+
         const invoiceModal = document.getElementById('invoice-modal');
         const invoiceCloseButton = document.getElementById('invoice-close');
         const invoiceBackdrop = invoiceModal?.querySelector('[data-close-invoice]');
@@ -2260,15 +2391,12 @@ const Catalog = {
         const invoiceReceiptInput = document.getElementById('invoice-receipt-input');
         const invoiceReceiptName = document.getElementById('invoice-receipt-name');
         const invoiceTotalAmount = document.getElementById('invoice-total-amount');
+        const invoiceUaBlock = document.getElementById('invoice-ua-block');
+        const invoiceWwBlock = document.getElementById('invoice-ww-block');
+        const invoiceWwItemTotal = document.getElementById('invoice-ww-item-total');
+        const invoiceWwShippingTotal = document.getElementById('invoice-ww-shipping-total');
+        const invoiceWwTotalAmount = document.getElementById('invoice-ww-total-amount');
         const orderPhoneInput = document.getElementById('order-phone');
-        let worldwideForm = null;
-        let worldwideSubmitButton = null;
-        let worldwideNameInput = null;
-        let worldwideCountryInput = null;
-        let worldwideCityInput = null;
-        let worldwideTelegramInput = null;
-        let worldwidePhoneInput = null;
-        let worldwideSuccess = null;
 
         if (closeButton) closeButton.addEventListener('click', () => this.closeOrderModal());
         if (backdrop) backdrop.addEventListener('click', () => this.closeOrderModal());
@@ -2284,113 +2412,65 @@ const Catalog = {
                     el.style.display = 'none';
                 }
             });
-
-            const itemsCountEl = document.getElementById('order-items-count');
-            const totalPriceEl = document.getElementById('order-total-price');
-            if (itemsCountEl && totalPriceEl && form) {
-                let parent = itemsCountEl.parentElement;
-                while (parent && parent !== orderModal) {
-                    if (parent.contains(totalPriceEl) && !parent.contains(form)) {
-                        parent.style.display = 'none';
-                        break;
-                    }
-                    parent = parent.parentElement;
-                }
-            }
         }
 
-        if (form && !document.getElementById('order-region-tabs')) {
-            const activeTabCls = 'flex-1 py-3 text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200';
-            const inactiveTabCls = 'flex-1 py-3 text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200';
+        const activeTabCls = 'flex-1 py-3 text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200';
+        const inactiveTabCls = 'flex-1 py-3 text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200';
+        const tabUa = document.getElementById('tab-ukraine');
+        const tabWw = document.getElementById('tab-worldwide');
+        const wwContent = document.getElementById('worldwide-content');
 
-            const tabsHtml = `
-                <div id="order-region-tabs" class="flex gap-2 mb-6">
-                    <button type="button" id="tab-ukraine" class="${activeTabCls}">УКРАЇНА</button>
-                    <button type="button" id="tab-worldwide" class="${inactiveTabCls}">WORLDWIDE</button>
-                </div>
-                <div id="worldwide-content" class="hidden text-center py-6">
-                    <form id="worldwide-order-form" class="max-w-md mx-auto mb-6 text-left space-y-4 rounded-3xl bg-slate-900/30 p-5 shadow-sm">
-                        <div>
-                            <label for="worldwide-name" class="text-sm text-slate-300 block mb-1">ПІБ</label>
-                            <input id="worldwide-name" type="text" placeholder="Вкажіть ПІБ" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="worldwide-country" class="text-sm text-slate-300 block mb-1">Країна</label>
-                                <input id="worldwide-country" type="text" placeholder="Наприклад: Польща" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
-                            </div>
-                            <div>
-                                <label for="worldwide-city" class="text-sm text-slate-300 block mb-1">Місто</label>
-                                <input id="worldwide-city" type="text" placeholder="Наприклад: Варшава" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
-                            </div>
-                        </div>
-                        <div>
-                            <label for="worldwide-telegram" class="text-sm text-slate-300 block mb-1">Telegram (необов'язково)</label>
-                            <input id="worldwide-telegram" type="text" placeholder="Наприклад: @nickname" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700">
-                        </div>
-                        <div>
-                            <label for="worldwide-phone" class="text-sm text-slate-300 block mb-1">Номер телефону</label>
-                            <input id="worldwide-phone" type="tel" placeholder="Наприклад: +48 123 456 789" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
-                        </div>
-                        <button id="worldwide-submit-btn" type="submit" class="liquid-glass-btn w-full px-6 py-3 rounded-2xl bg-green-600 text-white font-semibold transition hover:bg-green-700 shadow-lg shadow-green-600/20">
-                            Відправити
-                        </button>
-                    </form>
-                    <div id="worldwide-success" class="hidden">
-                        <div class="w-16 h-16 mx-auto bg-slate-800 text-blue-400 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                            <i class="fa-solid fa-check text-2xl"></i>
-                        </div>
-                        <h4 class="text-xl font-bold text-slate-100 mb-2">Доставка по світу</h4>
-                        <p class="text-sm text-slate-400 mb-6 max-w-xs mx-auto leading-relaxed">Ваші дані успішно надіслано. Напишіть менеджеру в Telegram або Instagram або зачекайте, поки він зв'яжеться з вами.</p>
-                        <div class="flex flex-col gap-3">
-                            <a href="https://t.me/Ukrainian_Print_Familybot" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-[#0088cc] text-white font-bold rounded-xl hover:bg-[#0077b5] transition-colors duration-200">
-                                <i class="fa-brands fa-telegram text-xl"></i>
-                                Відкрити Telegram-бот
-                            </a>
-                            <a href="https://www.instagram.com/ukrainian_print_family" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white font-bold rounded-xl hover:opacity-90 transition-opacity duration-200">
-                                <i class="fa-brands fa-instagram text-xl"></i>
-                                Відкрити Instagram
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-            form.insertAdjacentHTML('beforebegin', tabsHtml);
+        const switchTab = (mode) => {
+            const nextMode = mode === 'ww' ? 'ww' : 'ua';
+            this.state.activeOrderRegion = nextMode;
+            this.saveOrderDraft({ region: nextMode });
 
-            worldwideForm = document.getElementById('worldwide-order-form');
-            worldwideSubmitButton = document.getElementById('worldwide-submit-btn');
-            worldwideNameInput = document.getElementById('worldwide-name');
-            worldwideCountryInput = document.getElementById('worldwide-country');
-            worldwideCityInput = document.getElementById('worldwide-city');
-            worldwideTelegramInput = document.getElementById('worldwide-telegram');
-            worldwidePhoneInput = document.getElementById('worldwide-phone');
-            worldwideSuccess = document.getElementById('worldwide-success');
-
-            const tabUa = document.getElementById('tab-ukraine');
-            const tabWw = document.getElementById('tab-worldwide');
-            const wwContent = document.getElementById('worldwide-content');
-
-            const switchTab = (mode) => {
-                if (mode === 'ua') {
-                    tabUa.className = activeTabCls;
-                    tabWw.className = inactiveTabCls;
-                    form.style.display = '';
-                    if (worldwideForm) worldwideForm.style.display = 'none';
-                    if (worldwideSuccess) worldwideSuccess.classList.add('hidden');
+            if (nextMode === 'ua') {
+                if (tabUa) tabUa.className = activeTabCls;
+                if (tabWw) tabWw.className = inactiveTabCls;
+                if (form) form.style.display = '';
+                if (wwContent) {
+                    wwContent.classList.add('hidden');
                     wwContent.style.display = 'none';
-                } else {
-                    tabWw.className = activeTabCls;
-                    tabUa.className = inactiveTabCls;
-                    form.style.display = 'none';
-                    if (worldwideForm) worldwideForm.style.display = '';
-                    if (worldwideSuccess) worldwideSuccess.classList.add('hidden');
+                }
+            } else {
+                if (tabWw) tabWw.className = activeTabCls;
+                if (tabUa) tabUa.className = inactiveTabCls;
+                if (form) form.style.display = 'none';
+                if (wwContent) {
+                    wwContent.classList.remove('hidden');
                     wwContent.style.display = 'block';
                 }
-            };
+            }
+        };
 
-            tabUa.addEventListener('click', () => switchTab('ua'));
-            tabWw.addEventListener('click', () => switchTab('ww'));
-        }
+        if (tabUa) tabUa.addEventListener('click', () => switchTab('ua'));
+        if (tabWw) tabWw.addEventListener('click', () => switchTab('ww'));
+
+        // Worldwide payment method sub-tabs (EURO / SWIFT / USD)
+        const wwPayActiveCls = 'flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200';
+        const wwPayInactiveCls = 'flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200';
+        const wwPayTabs = invoiceModal ? Array.from(invoiceModal.querySelectorAll('[data-ww-pay-tab]')) : [];
+        const wwPayPanels = invoiceModal ? Array.from(invoiceModal.querySelectorAll('[data-ww-pay-panel]')) : [];
+
+        const switchWwPayTab = (tabKey) => {
+            const target = tabKey || 'euro';
+            this.state.activeWwPayTab = target;
+            wwPayTabs.forEach((btn) => {
+                const isMatch = btn.getAttribute('data-ww-pay-tab') === target;
+                btn.className = isMatch ? wwPayActiveCls : wwPayInactiveCls;
+            });
+            wwPayPanels.forEach((panel) => {
+                const isMatch = panel.getAttribute('data-ww-pay-panel') === target;
+                panel.classList.toggle('hidden', !isMatch);
+            });
+        };
+
+        wwPayTabs.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                switchWwPayTab(btn.getAttribute('data-ww-pay-tab'));
+            });
+        });
 
         const extractOrderPhoneDigits = (value) => {
             let digits = String(value || '').replace(/\D/g, '');
@@ -2407,7 +2487,7 @@ const Catalog = {
 
         const formatOrderPhoneMask = (digits) => {
             const normalized = String(digits || '');
-            const template = '38 (0__) ___-__-__';
+            const template = '+38 (0__) ___-__-__';
             let pointer = 0;
             return template.replace(/_/g, () => {
                 if (pointer < normalized.length) {
@@ -2417,7 +2497,7 @@ const Catalog = {
             });
         };
 
-        const phoneEditablePositions = [5, 6, 9, 10, 11, 13, 14, 16, 17];
+        const phoneEditablePositions = [6, 7, 10, 11, 12, 14, 15, 17, 18];
         const getPhoneDigitIndexFromCaret = (caret) => {
             const pos = Number.isFinite(caret) ? caret : 0;
             for (let idx = 0; idx < phoneEditablePositions.length; idx += 1) {
@@ -2453,6 +2533,7 @@ const Catalog = {
 
         const syncOrderPhoneValidity = () => {
             if (!orderPhoneInput) return;
+            const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
             const value = String(orderPhoneInput.value || '').trim();
             if (!value) {
                 orderPhoneInput.setCustomValidity('');
@@ -2460,11 +2541,61 @@ const Catalog = {
             }
             const digits = extractOrderPhoneDigits(value);
             if (digits.length < 9) {
-                orderPhoneInput.setCustomValidity('Введіть повний номер телефону.');
+                orderPhoneInput.setCustomValidity(isEn ? 'Enter a full phone number (at least 10 digits).' : 'Введіть повний номер телефону (мінімум 10 цифр).');
                 return;
             }
             orderPhoneInput.setCustomValidity('');
         };
+
+        const syncWorldwideEmailValidity = () => {
+            if (!worldwideEmailInput) return;
+            const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+            const value = String(worldwideEmailInput.value || '').trim().toLowerCase();
+            if (!value) {
+                worldwideEmailInput.setCustomValidity('');
+                return;
+            }
+            const isValidGmail = /^[^\s@]+@gmail\.com$/i.test(value);
+            if (!isValidGmail) {
+                worldwideEmailInput.setCustomValidity(isEn ? 'Email must end with @gmail.com!' : 'Пошта повинна закінчуватися на @gmail.com!');
+                return;
+            }
+            worldwideEmailInput.setCustomValidity('');
+        };
+
+        if (worldwideEmailInput) {
+            worldwideEmailInput.addEventListener('input', () => {
+                syncWorldwideEmailValidity();
+                this.collectAndSaveOrderDraftFromDom();
+            });
+            worldwideEmailInput.addEventListener('blur', () => {
+                syncWorldwideEmailValidity();
+                this.collectAndSaveOrderDraftFromDom();
+            });
+        }
+
+        // Bind draft auto-save to all delivery inputs
+        [
+            'order-full-name',
+            'order-phone',
+            'order-city',
+            'order-shipping',
+            'worldwide-country',
+            'worldwide-state',
+            'worldwide-postal',
+            'worldwide-city',
+            'worldwide-phone',
+            'worldwide-name',
+            'worldwide-email',
+            'worldwide-telegram',
+            'worldwide-post-office',
+            'worldwide-residential'
+        ].forEach((inputId) => {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            el.addEventListener('input', () => this.collectAndSaveOrderDraftFromDom());
+            el.addEventListener('change', () => this.collectAndSaveOrderDraftFromDom());
+        });
 
         if (orderPhoneInput) {
             orderPhoneInput.addEventListener('focus', () => {
@@ -2478,10 +2609,12 @@ const Catalog = {
                 const digits = extractOrderPhoneDigits(orderPhoneInput.value);
                 setOrderPhoneCaret(Math.min(digits.length, phoneEditablePositions.length));
                 syncOrderPhoneValidity();
+                this.collectAndSaveOrderDraftFromDom();
             });
             orderPhoneInput.addEventListener('blur', () => {
                 applyOrderPhoneMask(false);
                 syncOrderPhoneValidity();
+                this.collectAndSaveOrderDraftFromDom();
             });
             orderPhoneInput.addEventListener('paste', () => {
                 window.setTimeout(() => {
@@ -2489,6 +2622,7 @@ const Catalog = {
                     const digits = extractOrderPhoneDigits(orderPhoneInput.value);
                     setOrderPhoneCaret(Math.min(digits.length, phoneEditablePositions.length));
                     syncOrderPhoneValidity();
+                    this.collectAndSaveOrderDraftFromDom();
                 }, 0);
             });
             orderPhoneInput.addEventListener('keydown', (event) => {
@@ -2498,6 +2632,7 @@ const Catalog = {
                 if (!currentDigits.length) {
                     orderPhoneInput.value = '';
                     syncOrderPhoneValidity();
+                    this.collectAndSaveOrderDraftFromDom();
                     return;
                 }
 
@@ -2517,6 +2652,7 @@ const Catalog = {
                     orderPhoneInput.value = nextDigits ? formatOrderPhoneMask(nextDigits) : '';
                     setOrderPhoneCaret(from);
                     syncOrderPhoneValidity();
+                    this.collectAndSaveOrderDraftFromDom();
                     return;
                 }
 
@@ -2532,14 +2668,11 @@ const Catalog = {
                 orderPhoneInput.value = nextDigits ? formatOrderPhoneMask(nextDigits) : '';
                 setOrderPhoneCaret(Math.max(0, removeIndex));
                 syncOrderPhoneValidity();
+                this.collectAndSaveOrderDraftFromDom();
             });
         }
 
         if (form) {
-            const submitDefaultText = submitButton?.textContent?.trim() || 'Оплата за реквізитами';
-            const walletDefaultText = walletButton?.textContent?.trim() || 'Google Pay / Apple Pay';
-            const invoiceConfirmDefaultText = invoiceConfirmButton?.textContent?.trim() || 'Оформити замовлення';
-            const MAX_RECEIPT_PDF_BYTES = Math.floor(4.5 * 1024 * 1024);
             const MAX_RECEIPT_IMAGE_INPUT_BYTES = 12 * 1024 * 1024;
             const MAX_RECEIPT_IMAGE_TARGET_BYTES = Math.floor(2.2 * 1024 * 1024);
             const RECEIPT_ATTACH_TARGET_BYTES = Math.floor(0.32 * 1024 * 1024);
@@ -2549,19 +2682,10 @@ const Catalog = {
             let receiptFileName = '';
             let isInvoicePending = false;
 
-            const setPaymentButtonsState = (isPending, mode) => {
-                if (submitButton) {
-                    submitButton.disabled = isPending;
-                    submitButton.textContent = isPending && mode === 'invoice'
-                        ? 'Зберігаємо...'
-                        : submitDefaultText;
-                }
-                if (walletButton) {
-                    walletButton.disabled = isPending;
-                    walletButton.textContent = isPending && mode === 'wallet'
-                        ? 'Переходимо до LiqPay...'
-                        : walletDefaultText;
-                }
+            const getConfirmBtnLabel = (pending) => {
+                const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+                if (pending) return isEn ? 'Processing...' : 'Оформлюємо...';
+                return isEn ? 'I PAID' : 'Я ОПЛАТИВ';
             };
 
             const setInvoiceConfirmState = (isPending) => {
@@ -2570,7 +2694,7 @@ const Catalog = {
                 const isReady = !isInvoicePending && Boolean(receiptImage);
                 invoiceConfirmButton.disabled = isInvoicePending || !receiptImage;
                 invoiceConfirmButton.classList.toggle('is-ready', isReady);
-                invoiceConfirmButton.textContent = isInvoicePending ? 'Оформлюємо...' : invoiceConfirmDefaultText;
+                invoiceConfirmButton.textContent = getConfirmBtnLabel(isInvoicePending);
             };
 
             const resetInvoiceReceiptState = () => {
@@ -2580,7 +2704,8 @@ const Catalog = {
                     invoiceReceiptInput.value = '';
                 }
                 if (invoiceReceiptName) {
-                    invoiceReceiptName.textContent = 'Файл не вибрано';
+                    const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+                    invoiceReceiptName.textContent = isEn ? 'No file chosen' : 'Файл не вибрано';
                 }
                 setInvoiceConfirmState(false);
             };
@@ -2718,8 +2843,44 @@ const Catalog = {
                 }
             };
 
-            const openInvoiceModal = () => {
+            const openInvoiceModalForRegion = (region) => {
                 if (!invoiceModal) return;
+                const isWw = region === 'ww';
+                const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+
+                if (invoiceUaBlock) invoiceUaBlock.classList.toggle('hidden', isWw);
+                if (invoiceWwBlock) invoiceWwBlock.classList.toggle('hidden', !isWw);
+
+                if (isWw) {
+                    const country = worldwideCountryInput?.value?.trim() || '';
+                    const breakdown = this.getWorldwideShippingBreakdown(country);
+                    if (invoiceWwItemTotal) {
+                        invoiceWwItemTotal.textContent = isEn
+                            ? `🛒 Product Price: ${breakdown.itemTotal}€`
+                            : `🛒 Ціна за товар: ${breakdown.itemTotal}€`;
+                    }
+                    if (invoiceWwShippingTotal) {
+                        invoiceWwShippingTotal.textContent = isEn
+                            ? `🚚 Shipping Price: ${breakdown.shippingTotal}€`
+                            : `🚚 Ціна за доставку: ${breakdown.shippingTotal}€`;
+                    }
+                    if (invoiceWwTotalAmount) {
+                        invoiceWwTotalAmount.textContent = isEn
+                            ? `💰 Total Amount: ${breakdown.totalAmount}€`
+                            : `💰 Сума до сплати: ${breakdown.totalAmount}€`;
+                    }
+                    switchWwPayTab(this.state.activeWwPayTab || 'euro');
+                } else {
+                    const totalUah = Math.round(Number(this.getCartTotal() || 0));
+                    if (invoiceTotalAmount) {
+                        invoiceTotalAmount.textContent = isEn
+                            ? `💰 Total to pay: ${totalUah}₴`
+                            : `💰 Сума до сплати: ${totalUah}₴`;
+                    }
+                }
+
+                resetInvoiceReceiptState();
+                this.closeOrderModal();
                 window.UI?.openModal('invoice-modal');
             };
 
@@ -2728,27 +2889,18 @@ const Catalog = {
                 window.UI?.closeModal('invoice-modal');
             };
 
-            const formatInvoiceAmount = (value) => {
-                const amount = Number(value || 0);
-                if (!Number.isFinite(amount) || amount <= 0) return '0₴';
-                return `${Math.round(amount)}₴`;
-            };
-
-            const buildOrderPayload = () => {
+            const buildUkraineOrderPayload = () => {
                 const fullNameInput = document.getElementById('order-full-name');
                 const cityInput = document.getElementById('order-city');
                 const telegramInput = document.getElementById('order-shipping');
                 const phoneInput = document.getElementById('order-phone');
-                const commentInput = document.getElementById('order-comment');
                 const name = fullNameInput?.value?.trim() || 'Без ПІБ';
                 const city = cityInput?.value?.trim() || 'Без міста та відділення';
                 const telegram = telegramInput?.value?.trim() || '';
-                const shipping = '';
                 const phoneDigits = extractOrderPhoneDigits(phoneInput?.value || '');
                 const phone = phoneDigits.length === 9
                     ? formatOrderPhoneMask(phoneDigits)
                     : (phoneInput?.value?.trim() || 'Без телефону');
-                const comment = commentInput?.value?.trim() || '';
                 const cartItems = [...this.state.cartItems];
 
                 if (!cartItems.length) {
@@ -2760,10 +2912,13 @@ const Catalog = {
                 return {
                     name,
                     city,
-                    shipping,
+                    shipping: '',
                     telegram,
                     phone,
-                    comment,
+                    comment: '',
+                    currency: 'UAH',
+                    orderType: 'ukraine',
+                    paymentMethod: 'invoice',
                     items: cartItems.map((entry) => ({
                         title: entry.item?.title || '',
                         category: this.getDisplayCategory(entry.item),
@@ -2781,11 +2936,16 @@ const Catalog = {
             };
 
             const buildWorldwideOrderPayload = () => {
-                const name = worldwideNameInput?.value?.trim() || 'Без імені';
-                const country = worldwideCountryInput?.value?.trim() || 'Без країни';
-                const city = worldwideCityInput?.value?.trim() || 'Без міста';
-                const telegram = worldwideTelegramInput?.value?.trim() || 'Не вказано';
-                const phone = worldwidePhoneInput?.value?.trim() || 'Без телефону';
+                const country = worldwideCountryInput?.value?.trim() || '';
+                const stateRegion = worldwideStateInput?.value?.trim() || '';
+                const postalCode = worldwidePostalInput?.value?.trim() || '';
+                const city = worldwideCityInput?.value?.trim() || '';
+                const phone = worldwidePhoneInput?.value?.trim() || '';
+                const name = worldwideNameInput?.value?.trim() || '';
+                const email = worldwideEmailInput?.value?.trim() || '';
+                const telegram = worldwideTelegramInput?.value?.trim() || '';
+                const postOffice = worldwidePostOfficeInput?.value?.trim() || '';
+                const residentialAddress = worldwideResidentialInput?.value?.trim() || '';
                 const cartItems = [...this.state.cartItems];
 
                 if (!cartItems.length) {
@@ -2794,90 +2954,67 @@ const Catalog = {
                     return null;
                 }
 
+                const breakdown = this.getWorldwideShippingBreakdown(country);
+
                 return {
                     name,
                     country,
+                    stateRegion,
+                    postalCode,
                     city,
-                    telegram,
                     phone,
+                    email,
+                    telegram,
+                    postOffice,
+                    residentialAddress,
+                    currency: 'EUR',
+                    itemTotal: breakdown.itemTotal,
+                    shippingPrice: breakdown.shippingTotal,
+                    total: breakdown.totalAmount,
+                    orderType: 'worldwide',
+                    paymentMethod: `worldwide_${(this.state.activeWwPayTab || 'euro').toLowerCase()}`,
                     items: cartItems.map((entry) => ({
                         title: entry.item?.title || '',
                         category: this.getDisplayCategory(entry.item),
                         source: entry.item?.source || '',
                         color: entry.item?.color || '',
                         size: entry.item?.selectedSize ? `${entry.item.selectedSize}${entry.item.selectedFit === 'oversize' ? ' (oversize)' : ''}` : '',
-                        price: this.getProductPrice(entry.item),
+                        price: this.getProductPriceEur(entry.item),
                         quantity: this.normalizeQuantity(entry.quantity),
                         image: entry.item?.image || '',
                         customKey: entry.item?.customKey || '',
                         sourceImages: Array.isArray(entry.item?.sourceImages) ? entry.item.sourceImages : []
-                    })),
-                    total: this.getCartTotal(),
-                    orderType: 'worldwide',
-                    paymentMethod: 'worldwide'
+                    }))
                 };
             };
 
-            const setWorldwideSubmitState = (isPending) => {
-                if (!worldwideSubmitButton) return;
-                worldwideSubmitButton.disabled = isPending;
-                worldwideSubmitButton.textContent = isPending ? 'Відправляємо...' : 'Відправити';
-            };
-
-            const processWorldwideOrder = async () => {
-                if (!worldwideForm?.reportValidity()) return;
-                const orderPayload = buildWorldwideOrderPayload();
-                if (!orderPayload) return;
-
-                setWorldwideSubmitState(true);
-                try {
-                    const response = await fetch('/api/orders/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(orderPayload)
-                    });
-
-                    const result = await response.json().catch(() => ({}));
-                    if (!response.ok) {
-                        throw new Error(result?.error || 'Не вдалося оформити замовлення. Спробуйте ще раз.');
-                    }
-
-                    const successMessage = 'Ваші дані успішно надіслано. Очікуйте зв\'язку з менеджером.';
-                    window.UI?.showToast?.(window.Translator?.dict?.[successMessage] || successMessage, { tone: 'success' });
-                    this.clearCart(false);
-                    form.reset();
-                    worldwideForm.reset();
-                    form.style.display = 'none';
-                    worldwideForm.style.display = 'none';
-                    if (worldwideSuccess) worldwideSuccess.classList.remove('hidden');
-                } catch (error) {
-                    console.warn('Worldwide order submission failed.', error);
-                    window.UI?.showToast?.(error?.message || 'Не вдалося оформити замовлення. Спробуйте ще раз.', { tone: 'warning' });
-                } finally {
-                    setWorldwideSubmitState(false);
+            const processPaidOrder = async () => {
+                const isWw = this.state.activeOrderRegion === 'ww';
+                if (isWw) {
+                    syncWorldwideEmailValidity();
+                    if (!worldwideForm?.reportValidity()) return;
+                } else {
+                    syncOrderPhoneValidity();
+                    if (!form.reportValidity()) return;
                 }
-            };
 
-            const processInvoiceOrder = async () => {
-                syncOrderPhoneValidity();
-                if (!form.reportValidity()) return;
-                const orderPayload = buildOrderPayload();
+                const orderPayload = isWw ? buildWorldwideOrderPayload() : buildUkraineOrderPayload();
                 if (!orderPayload) return;
+
                 if (!receiptImage) {
                     window.UI?.showToast?.('Додайте скріншот або квитанцію про оплату перед оформленням замовлення.', { tone: 'warning' });
                     return;
                 }
 
-                setPaymentButtonsState(true, 'invoice');
                 setInvoiceConfirmState(true);
                 try {
                     const requestPayload = {
                         ...orderPayload,
-                        paymentMethod: 'invoice',
                         receiptImage,
                         receiptName: receiptFileName
                     };
-                    const requestBody = JSON.stringify(requestPayload);
+                    let requestBody = JSON.stringify(requestPayload);
+
                     if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
                         if (
                             requestPayload.receiptImage
@@ -2894,32 +3031,10 @@ const Catalog = {
                             } catch (_) {}
                         }
 
-                        const retryBody = JSON.stringify(requestPayload);
-                        if (getByteLength(retryBody) > MAX_ORDER_REQUEST_BYTES) {
-                            throw new Error('Файл квитанції завеликий для безпечного відправлення. Для PDF бажано до 3.2 МБ, для фото стиснення виконується автоматично.');
+                        requestBody = JSON.stringify(requestPayload);
+                        if (getByteLength(requestBody) > MAX_ORDER_REQUEST_BYTES) {
+                            throw new Error('Файл скріншоту завеликий для безпечного відправлення.');
                         }
-
-                        const response = await fetch('/api/orders/create', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: retryBody
-                        });
-
-                        const result = await response.json().catch(() => ({}));
-                        if (!response.ok) {
-                            if (response.status === 413) {
-                                throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште вагу квитанції або кількість/розмір макетів у кошику.');
-                            }
-                            throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
-                        }
-
-                        window.UI?.showOrderSuccessModal?.();
-                        this.clearCart(false);
-                        closeInvoiceModal();
-                        this.closeOrderModal();
-                        form.reset();
-                        resetInvoiceReceiptState();
-                        return;
                     }
 
                     const response = await fetch('/api/orders/create', {
@@ -2930,99 +3045,61 @@ const Catalog = {
 
                     const result = await response.json().catch(() => ({}));
                     if (!response.ok) {
-                        throw new Error(result?.error || 'Не вдалося оформити замовлення за реквізитами.');
+                        if (response.status === 413) {
+                            throw new Error('Розмір замовлення перевищує ліміт сервера. Зменште вагу скріншоту або кількість макетів у кошику.');
+                        }
+                        throw new Error(result?.error || 'Не вдалося оформити замовлення. Спробуйте ще раз.');
                     }
 
-                    window.UI?.showOrderSuccessModal?.();
                     this.clearCart(false);
+                    this.clearOrderDraft();
+                    form.reset();
+                    worldwideForm?.reset();
+                    resetInvoiceReceiptState();
                     closeInvoiceModal();
                     this.closeOrderModal();
-                    form.reset();
-                    resetInvoiceReceiptState();
+                    window.UI?.showOrderSuccessModal?.();
                 } catch (error) {
-                    console.warn('Invoice order submission failed.', error);
+                    console.warn('Order submission failed.', error);
                     window.UI?.showToast?.(error?.message || 'Не вдалося оформити замовлення. Спробуйте ще раз.', { tone: 'warning' });
                 } finally {
-                    setPaymentButtonsState(false);
                     setInvoiceConfirmState(false);
-                }
-            };
-
-            const processWalletPayment = async () => {
-                syncOrderPhoneValidity();
-                if (!form.reportValidity()) return;
-                const orderPayload = buildOrderPayload();
-                if (!orderPayload) return;
-
-                setPaymentButtonsState(true, 'wallet');
-                try {
-                    const response = await fetch('/api/liqpay/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ...orderPayload,
-                            paymentMethod: 'wallet'
-                        })
-                    });
-
-                    const result = await response.json().catch(() => ({}));
-                    if (!response.ok) {
-                        throw new Error(result?.error || 'Не вдалося ініціювати оплату через LiqPay.');
-                    }
-
-                    if (!result?.checkoutUrl) {
-                        throw new Error('LiqPay checkout URL is missing.');
-                    }
-
-                    window.sessionStorage.setItem(this.LIQPAY_PENDING_ORDER_STORAGE_KEY, JSON.stringify({
-                        orderId: result.orderId,
-                        total: orderPayload.total,
-                        createdAt: Date.now()
-                    }));
-
-                    window.location.assign(result.checkoutUrl);
-                } catch (error) {
-                    console.warn('LiqPay checkout init failed.', error);
-                    window.UI?.showToast?.(error?.message || 'Не вдалося перейти до LiqPay. Спробуйте ще раз.', { tone: 'warning' });
-                    setPaymentButtonsState(false);
                 }
             };
 
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
-                if (submitButton) {
-                    submitButton.click();
-                }
+                syncOrderPhoneValidity();
+                if (!form.reportValidity()) return;
+                this.collectAndSaveOrderDraftFromDom();
+                const payload = buildUkraineOrderPayload();
+                if (!payload) return;
+                openInvoiceModalForRegion('ua');
             });
 
-            if (submitButton) {
-                submitButton.addEventListener('click', () => {
-                    syncOrderPhoneValidity();
-                    if (!form.reportValidity()) return;
-                    const orderPayload = buildOrderPayload();
-                    if (!orderPayload) return;
-                    if (invoiceTotalAmount) {
-                        invoiceTotalAmount.textContent = `💰 Сума до сплати: ${formatInvoiceAmount(orderPayload.total)}`;
-                    }
-                    if (Number(orderPayload.total || 0) > this.LARGE_ORDER_RECOMMENDATION_TOTAL) {
-                        window.UI?.showToast?.(this.LARGE_ORDER_RECOMMENDATION_MESSAGE, { tone: 'warning', duration: 10000 });
-                    }
-                    resetInvoiceReceiptState();
-                    this.closeOrderModal();
-                    openInvoiceModal();
-                });
-            }
-
-            if (walletButton) {
-                walletButton.addEventListener('click', async () => {
-                    await processWalletPayment();
+            if (submitButton && submitButton.getAttribute('type') !== 'submit') {
+                submitButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    form.requestSubmit();
                 });
             }
 
             if (worldwideForm) {
-                worldwideForm.addEventListener('submit', async (event) => {
+                worldwideForm.addEventListener('submit', (event) => {
                     event.preventDefault();
-                    await processWorldwideOrder();
+                    syncWorldwideEmailValidity();
+                    if (!worldwideForm.reportValidity()) return;
+                    this.collectAndSaveOrderDraftFromDom();
+                    const payload = buildWorldwideOrderPayload();
+                    if (!payload) return;
+                    openInvoiceModalForRegion('ww');
+                });
+            }
+
+            if (worldwideSubmitButton && worldwideSubmitButton.getAttribute('type') !== 'submit') {
+                worldwideSubmitButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    worldwideForm?.requestSubmit();
                 });
             }
 
@@ -3037,57 +3114,38 @@ const Catalog = {
                     const fileType = String(selectedFile.type || '').toLowerCase();
                     const fileName = String(selectedFile.name || '').trim();
                     const normalizedName = fileName.toLowerCase();
-                    const isPdfByName = normalizedName.endsWith('.pdf');
                     const isImageByName = /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif)$/i.test(normalizedName);
-                    const isPdf = fileType === 'application/pdf' || isPdfByName;
                     const isImage = fileType.startsWith('image/')
                         || ((fileType === 'application/octet-stream' || !fileType) && isImageByName);
 
-                    if (!isImage && !isPdf) {
-                        window.UI?.showToast?.('Дозволено завантажувати тільки зображення або PDF (скріншот/квитанцію).', { tone: 'warning' });
+                    if (!isImage) {
+                        window.UI?.showToast?.('Дозволено завантажувати тільки зображення (скріншот оплати).', { tone: 'warning' });
                         resetInvoiceReceiptState();
                         return;
                     }
 
-                    if (isPdf && selectedFile.size > MAX_RECEIPT_PDF_BYTES) {
-                        window.UI?.showToast?.('PDF файл завеликий. Максимум 4.5 МБ.', { tone: 'warning' });
-                        resetInvoiceReceiptState();
-                        return;
-                    }
-
-                    if (isImage && selectedFile.size > MAX_RECEIPT_IMAGE_INPUT_BYTES) {
+                    if (selectedFile.size > MAX_RECEIPT_IMAGE_INPUT_BYTES) {
                         window.UI?.showToast?.('Файл занадто великий. Максимум 12 МБ.', { tone: 'warning' });
                         resetInvoiceReceiptState();
                         return;
                     }
 
                     try {
-                        let normalizedDataUrl = '';
-                        if (isImage) {
-                            // Normalize image receipt immediately on attach so original file size
-                            // does not impact later order submission payload limits.
-                            normalizedDataUrl = await compressReceiptImage(selectedFile, RECEIPT_ATTACH_TARGET_BYTES);
-                        } else {
-                            normalizedDataUrl = await readFileAsDataUrl(selectedFile);
-                        }
+                        let normalizedDataUrl = await compressReceiptImage(selectedFile, RECEIPT_ATTACH_TARGET_BYTES);
 
                         if (normalizedDataUrl.startsWith('data:application/octet-stream;base64,')) {
-                            if (isPdf) {
-                                normalizedDataUrl = normalizedDataUrl.replace('data:application/octet-stream;base64,', 'data:application/pdf;base64,');
-                            } else if (isImage) {
-                                const mimeByExt = normalizedName.endsWith('.png') ? 'image/png'
-                                    : normalizedName.endsWith('.webp') ? 'image/webp'
-                                    : normalizedName.endsWith('.gif') ? 'image/gif'
-                                    : 'image/jpeg';
-                                normalizedDataUrl = normalizedDataUrl.replace('data:application/octet-stream;base64,', `data:${mimeByExt};base64,`);
-                            }
+                            const mimeByExt = normalizedName.endsWith('.png') ? 'image/png'
+                                : normalizedName.endsWith('.webp') ? 'image/webp'
+                                : normalizedName.endsWith('.gif') ? 'image/gif'
+                                : 'image/jpeg';
+                            normalizedDataUrl = normalizedDataUrl.replace('data:application/octet-stream;base64,', `data:${mimeByExt};base64,`);
                         }
 
-                        if (!normalizedDataUrl.startsWith('data:image/') && !normalizedDataUrl.startsWith('data:application/pdf')) {
+                        if (!normalizedDataUrl.startsWith('data:image/')) {
                             throw new Error('Непідтримуваний формат файлу.');
                         }
                         receiptImage = normalizedDataUrl;
-                        receiptFileName = fileName || 'receipt-file';
+                        receiptFileName = fileName || 'receipt-image.jpg';
                         if (invoiceReceiptName) {
                             invoiceReceiptName.textContent = fileName || 'Файл обрано';
                         }
@@ -3108,7 +3166,8 @@ const Catalog = {
                     const ok = await copyTextToClipboard(value);
                     if (ok) {
                         const initial = button.textContent;
-                        button.textContent = 'Скопійовано';
+                        const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+                        button.textContent = isEn ? 'Copied' : 'Скопійовано';
                         window.setTimeout(() => {
                             button.textContent = initial || 'Copy';
                         }, 1200);
@@ -3120,7 +3179,7 @@ const Catalog = {
 
             if (invoiceConfirmButton) {
                 invoiceConfirmButton.addEventListener('click', async () => {
-                    await processInvoiceOrder();
+                    await processPaidOrder();
                 });
             }
 

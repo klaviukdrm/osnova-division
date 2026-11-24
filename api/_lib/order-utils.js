@@ -45,28 +45,39 @@ function parseOrderItems(items) {
 function parseOrderPayload(body) {
     const items = parseOrderItems(body?.items);
     const total = Number(body?.total || 0);
+    const itemTotal = Number(body?.itemTotal || 0);
+    const shippingPrice = Number(body?.shippingPrice || 0);
 
     return {
         name: String(body?.name || '').trim(),
         country: String(body?.country || '').trim(),
+        stateRegion: String(body?.stateRegion || '').trim(),
+        postalCode: String(body?.postalCode || '').trim(),
         city: String(body?.city || '').trim(),
         shipping: String(body?.shipping || '').trim(),
         telegram: String(body?.telegram || '').trim(),
         phone: String(body?.phone || '').trim(),
+        email: String(body?.email || '').trim(),
+        postOffice: String(body?.postOffice || '').trim(),
+        residentialAddress: String(body?.residentialAddress || '').trim(),
         comment: String(body?.comment || '').trim(),
         receiptImage: String(body?.receiptImage || '').trim(),
         receiptName: String(body?.receiptName || '').trim(),
         items,
+        currency: String(body?.currency || '').trim().toUpperCase(),
+        itemTotal: Number.isFinite(itemTotal) ? itemTotal : 0,
+        shippingPrice: Number.isFinite(shippingPrice) ? shippingPrice : 0,
         total: Number.isFinite(total) ? total : 0,
         paymentMethod: String(body?.paymentMethod || '').trim(),
         orderType: String(body?.orderType || '').trim().toLowerCase()
     };
 }
 
-function formatCurrency(value) {
+function formatCurrency(value, currency = 'UAH') {
     const amount = Number(value || 0);
-    if (!Number.isFinite(amount)) return `0\u20B4`;
-    return `${Math.round(amount)}\u20B4`;
+    const symbol = String(currency || '').toUpperCase() === 'EUR' ? '\u20AC' : '\u20B4';
+    if (!Number.isFinite(amount)) return `0${symbol}`;
+    return `${Math.round(amount)}${symbol}`;
 }
 
 function mapPaymentMethodLabel(method) {
@@ -74,11 +85,15 @@ function mapPaymentMethodLabel(method) {
     if (normalized === 'invoice') return '\u041e\u043f\u043b\u0430\u0442\u0430 \u0437\u0430 \u0440\u0435\u043a\u0432\u0456\u0437\u0438\u0442\u0430\u043c\u0438';
     if (normalized === 'wallet') return 'Google Pay / Apple Pay (LiqPay)';
     if (normalized === 'liqpay') return 'LiqPay';
-    if (normalized === 'worldwide') return '\u0417\u0430 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0435\u043d\u0456\u0441\u0442\u044e';
+    if (normalized === 'worldwide') return 'WORLDWIDE (\u0437\u0430 \u0440\u0435\u043a\u0432\u0456\u0437\u0438\u0442\u0430\u043c\u0438)';
+    if (normalized === 'worldwide_euro') return 'WORLDWIDE (EURO)';
+    if (normalized === 'worldwide_swift') return 'WORLDWIDE (SWIFT)';
+    if (normalized === 'worldwide_usd') return 'WORLDWIDE (USD)';
+    if (normalized === 'worldwide_paypal') return 'WORLDWIDE (PayPal)';
     return method || '\u041d\u0435 \u0432\u043a\u0430\u0437\u0430\u043d\u043e';
 }
 
-function formatCreatedItems(items) {
+function formatCreatedItems(items, currency = 'UAH') {
     if (!Array.isArray(items) || !items.length) return '\u2014';
 
     const maxItems = 18;
@@ -90,7 +105,7 @@ function formatCreatedItems(items) {
         const sizePart = item.size ? ` (${item.size})` : '';
         const qtyPart = item.quantity > 1 ? ` x${item.quantity}` : '';
         const lineTotal = Number(item.price || 0) * Number(item.quantity || 0);
-        return `${index + 1}. ${titledWithColor}${sizePart}${qtyPart} \u2014 ${formatCurrency(lineTotal)}`;
+        return `${index + 1}. ${titledWithColor}${sizePart}${qtyPart} \u2014 ${formatCurrency(lineTotal, currency)}`;
     });
 
     if (items.length > maxItems) {
@@ -150,21 +165,27 @@ function buildCreatedOrderMessage(order) {
 }
 
 function buildWorldwideOrderMessage(order) {
-    const itemsText = formatCreatedItems(order.items);
+    const currency = order.currency || 'EUR';
+    const itemsText = formatCreatedItems(order.items, currency);
     const lines = [
-        '🌖 НОВЕ ЗАМОВЛЕННЯ WORLDWIDE 🌖',
+        `🌍 НОВЕ ЗАМОВЛЕННЯ WORLDWIDE ${order.orderId} 🌍`,
         '',
-        `🎟️ Номер: ${order.orderId}`,
-        `🧍 Ім'я: ${order.name || 'Не вказано'}`,
+        `🧍 ПІБ (Latin): ${order.name || 'Не вказано'}`,
         `🌍 Країна: ${order.country || 'Не вказано'}`,
-        `📍 Місто: ${order.city || 'Не вказано'}`,
-        `💬 Telegram: ${order.telegram || 'Не вказано'}`,
+        `🗺 Штат/регіон: ${order.stateRegion || 'Не вказано'}`,
+        `📮 Поштовий індекс: ${order.postalCode || 'Не вказано'}`,
+        `🏙 Населений пункт: ${order.city || 'Не вказано'}`,
         `📱 Телефон: ${order.phone || 'Не вказано'}`,
+        `📧 Gmail: ${order.email || 'Не вказано'}`,
+        `💬 Telegram: ${order.telegram || 'Не вказано'}`,
+        `🏤 Відділення пошти: ${order.postOffice || 'Не вказано'}`,
+        `🏠 Адреса проживання: ${order.residentialAddress || 'Не вказано'}`,
         '',
         `🛍️ Товари:\n${itemsText}`,
-        `💳 Оплата: ${mapPaymentMethodLabel(order.paymentMethod)}`,
-        '🟡 Статус: created',
-        `💵 Сума: ${formatCurrency(order.total)}`
+        `🛒 Ціна за товар: ${formatCurrency(order.itemTotal || (order.total - (order.shippingPrice || 0)), currency)}`,
+        `🚚 Ціна за доставку: ${formatCurrency(order.shippingPrice || 0, currency)}`,
+        `💰 Сума до сплати: ${formatCurrency(order.total, currency)}`,
+        `💳 Оплата: ${mapPaymentMethodLabel(order.paymentMethod)}`
     ];
 
     if (order.comment) {

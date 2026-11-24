@@ -134,8 +134,220 @@ const Catalog = {
         }, 0);
     },
 
-    getWorldwideShippingBase(country) {
+    WORLDWIDE_REGIONS: [
+        {
+            id: 'europe',
+            ua: 'Європа',
+            en: 'Europe',
+            countries: [
+                { ua: 'Австрія', en: 'Austria' },
+                { ua: 'Албанія', en: 'Albania' },
+                { ua: 'Андорра', en: 'Andorra' },
+                { ua: 'Бельгія', en: 'Belgium' },
+                { ua: 'Болгарія', en: 'Bulgaria' },
+                { ua: 'Боснія і Герцеговина', en: 'Bosnia and Herzegovina' },
+                { ua: 'Великобританія', en: 'United Kingdom' },
+                { ua: 'Греція', en: 'Greece' },
+                { ua: 'Данія', en: 'Denmark' },
+                { ua: 'Естонія', en: 'Estonia' },
+                { ua: 'Ірландія', en: 'Ireland' },
+                { ua: 'Ісландія', en: 'Iceland' },
+                { ua: 'Іспанія', en: 'Spain' },
+                { ua: 'Італія', en: 'Italy' },
+                { ua: 'Кіпр', en: 'Cyprus' },
+                { ua: 'Косово', en: 'Kosovo' },
+                { ua: 'Латвія', en: 'Latvia' },
+                { ua: 'Литва', en: 'Lithuania' },
+                { ua: 'Ліхтенштейн', en: 'Liechtenstein' },
+                { ua: 'Люксембург', en: 'Luxembourg' },
+                { ua: 'Мальта', en: 'Malta' },
+                { ua: 'Молдова', en: 'Moldova' },
+                { ua: 'Монако', en: 'Monaco' },
+                { ua: 'Нідерланди', en: 'Netherlands' },
+                { ua: 'Німеччина', en: 'Germany' },
+                { ua: 'Норвегія', en: 'Norway' },
+                { ua: 'Північна Македонія', en: 'North Macedonia' },
+                { ua: 'Польща', en: 'Poland' },
+                { ua: 'Португалія', en: 'Portugal' },
+                { ua: 'Румунія', en: 'Romania' },
+                { ua: 'Сан-Марино', en: 'San Marino' },
+                { ua: 'Сербія', en: 'Serbia' },
+                { ua: 'Словаччина', en: 'Slovakia' },
+                { ua: 'Словенія', en: 'Slovenia' },
+                { ua: 'Угорщина', en: 'Hungary' },
+                { ua: 'Фінляндія', en: 'Finland' },
+                { ua: 'Франція', en: 'France' },
+                { ua: 'Хорватія', en: 'Croatia' },
+                { ua: 'Чехія', en: 'Czech Republic' },
+                { ua: 'Чорногорія', en: 'Montenegro' },
+                { ua: 'Швейцарія', en: 'Switzerland' },
+                { ua: 'Швеція', en: 'Sweden' }
+            ]
+        },
+        {
+            id: 'north_america',
+            ua: 'Північна Америка',
+            en: 'North America',
+            countries: [
+                { ua: 'США', en: 'United States' },
+                { ua: 'Канада', en: 'Canada' },
+                { ua: 'Мексика', en: 'Mexico' },
+                { ua: 'Багамські Острови', en: 'Bahamas' },
+                { ua: 'Барбадос', en: 'Barbados' },
+                { ua: 'Беліз', en: 'Belize' },
+                { ua: 'Гватемала', en: 'Guatemala' },
+                { ua: 'Гондурас', en: 'Honduras' },
+                { ua: 'Домініканська Республіка', en: 'Dominican Republic' },
+                { ua: 'Коста-Рика', en: 'Costa Rica' },
+                { ua: 'Панама', en: 'Panama' },
+                { ua: 'Сальвадор', en: 'El Salvador' },
+                { ua: 'Тринідад і Тобаго', en: 'Trinidad and Tobago' },
+                { ua: 'Ямайка', en: 'Jamaica' }
+            ]
+        },
+        {
+            id: 'asia',
+            ua: 'Азія та Близький Схід',
+            en: 'Asia & Middle East',
+            countries: [
+                { ua: 'Азербайджан', en: 'Azerbaijan' },
+                { ua: 'Бахрейн', en: 'Bahrain' },
+                { ua: 'Бруней', en: 'Brunei' },
+                { ua: 'В\'єтнам', en: 'Vietnam' },
+                { ua: 'Вірменія', en: 'Armenia' },
+                { ua: 'Гонконг', en: 'Hong Kong' },
+                { ua: 'Грузія', en: 'Georgia' },
+                { ua: 'Ізраїль', en: 'Israel' },
+                { ua: 'Індія', en: 'India' },
+                { ua: 'Індонезія', en: 'Indonesia' },
+                { ua: 'Йорданія', en: 'Jordan' },
+                { ua: 'Казахстан', en: 'Kazakhstan' },
+                { ua: 'Катар', en: 'Qatar' },
+                { ua: 'Киргизстан', en: 'Kyrgyzstan' },
+                { ua: 'Китай', en: 'China' },
+                { ua: 'Кувейт', en: 'Kuwait' },
+                { ua: 'Ліван', en: 'Lebanon' },
+                { ua: 'Малайзія', en: 'Malaysia' },
+                { ua: 'Мальдіви', en: 'Maldives' },
+                { ua: 'Монголія', en: 'Mongolia' },
+                { ua: 'Непал', en: 'Nepal' },
+                { ua: 'ОАЕ', en: 'United Arab Emirates' },
+                { ua: 'Оман', en: 'Oman' },
+                { ua: 'Пакистан', en: 'Pakistan' },
+                { ua: 'Південна Корея', en: 'South Korea' },
+                { ua: 'Саудівська Аравія', en: 'Saudi Arabia' },
+                { ua: 'Сінгапур', en: 'Singapore' },
+                { ua: 'Таджикистан', en: 'Tajikistan' },
+                { ua: 'Таїланд', en: 'Thailand' },
+                { ua: 'Тайвань', en: 'Taiwan' },
+                { ua: 'Туреччина', en: 'Turkey' },
+                { ua: 'Туркменістан', en: 'Turkmenistan' },
+                { ua: 'Узбекистан', en: 'Uzbekistan' },
+                { ua: 'Філіппіни', en: 'Philippines' },
+                { ua: 'Шрі-Ланка', en: 'Sri Lanka' },
+                { ua: 'Японія', en: 'Japan' }
+            ]
+        },
+        {
+            id: 'south_america',
+            ua: 'Південна Америка',
+            en: 'South America',
+            countries: [
+                { ua: 'Аргентина', en: 'Argentina' },
+                { ua: 'Болівія', en: 'Bolivia' },
+                { ua: 'Бразилія', en: 'Brazil' },
+                { ua: 'Гайана', en: 'Guyana' },
+                { ua: 'Еквадор', en: 'Ecuador' },
+                { ua: 'Колумбія', en: 'Colombia' },
+                { ua: 'Парагвай', en: 'Paraguay' },
+                { ua: 'Перу', en: 'Peru' },
+                { ua: 'Суринам', en: 'Suriname' },
+                { ua: 'Уругвай', en: 'Uruguay' },
+                { ua: 'Чилі', en: 'Chile' }
+            ]
+        },
+        {
+            id: 'africa',
+            ua: 'Африка',
+            en: 'Africa',
+            countries: [
+                { ua: 'Алжир', en: 'Algeria' },
+                { ua: 'Ангола', en: 'Angola' },
+                { ua: 'Ботсвана', en: 'Botswana' },
+                { ua: 'Гана', en: 'Ghana' },
+                { ua: 'Ефіопія', en: 'Ethiopia' },
+                { ua: 'Єгипет', en: 'Egypt' },
+                { ua: 'Замбія', en: 'Zambia' },
+                { ua: 'Камерун', en: 'Cameroon' },
+                { ua: 'Кенія', en: 'Kenya' },
+                { ua: 'Кот-д\'Івуар', en: 'Ivory Coast' },
+                { ua: 'Маврикій', en: 'Mauritius' },
+                { ua: 'Марокко', en: 'Morocco' },
+                { ua: 'Намібія', en: 'Namibia' },
+                { ua: 'Нігерія', en: 'Nigeria' },
+                { ua: 'ПАР (Південна Африка)', en: 'South Africa' },
+                { ua: 'Руанда', en: 'Rwanda' },
+                { ua: 'Сейшельські Острови', en: 'Seychelles' },
+                { ua: 'Сенегал', en: 'Senegal' },
+                { ua: 'Танзанія', en: 'Tanzania' },
+                { ua: 'Туніс', en: 'Tunisia' },
+                { ua: 'Уганда', en: 'Uganda' }
+            ]
+        },
+        {
+            id: 'oceania',
+            ua: 'Австралія та Океанія',
+            en: 'Australia & Oceania',
+            countries: [
+                { ua: 'Австралія', en: 'Australia' },
+                { ua: 'Нова Зеландія', en: 'New Zealand' },
+                { ua: 'Фіджі', en: 'Fiji' },
+                { ua: 'Папуа Нова Гвінея', en: 'Papua New Guinea' },
+                { ua: 'Самоа', en: 'Samoa' }
+            ]
+        }
+    ],
+
+    findContinentByCountry(countryValue) {
+        const normalized = String(countryValue || '').trim().toLowerCase();
+        if (!normalized) return null;
+        for (const region of this.WORLDWIDE_REGIONS) {
+            const match = region.countries.some((c) => c.ua.toLowerCase() === normalized || c.en.toLowerCase() === normalized);
+            if (match) return region.id;
+        }
+        return null;
+    },
+
+    populateWorldwideCountries(continentId = 'europe', selectedCountryUa = '') {
+        const countrySelect = document.getElementById('worldwide-country');
+        if (!countrySelect) return;
+
+        const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+        const region = this.WORLDWIDE_REGIONS.find((r) => r.id === continentId) || this.WORLDWIDE_REGIONS[0];
+        const placeholderText = isEn ? 'Select Country' : 'Оберіть країну';
+
+        countrySelect.innerHTML = `<option value="">${placeholderText}</option>` + region.countries.map((c) => {
+            const label = isEn ? c.en : c.ua;
+            const isSelected = selectedCountryUa && (c.ua === selectedCountryUa || c.en === selectedCountryUa);
+            return `<option value="${c.ua}" data-country-ua="${c.ua}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+
+        if (selectedCountryUa) {
+            const matchingCountry = region.countries.find((c) => c.ua === selectedCountryUa || c.en === selectedCountryUa);
+            if (matchingCountry) {
+                countrySelect.value = matchingCountry.ua;
+            }
+        }
+    },
+
+    getWorldwideShippingBase(country, continentId = '') {
         const raw = String(country || '').trim().toLowerCase();
+        const resolvedContinent = continentId || this.findContinentByCountry(country) || 'europe';
+
+        if (resolvedContinent !== 'europe') {
+            return 50;
+        }
+
         if (!raw) return 30;
         if (
             raw.includes('польщ') || raw.includes('poland')
@@ -150,10 +362,10 @@ const Catalog = {
         return 30;
     },
 
-    getWorldwideShippingBreakdown(country) {
+    getWorldwideShippingBreakdown(country, continentId = '') {
         const itemTotal = this.getCartTotalEur();
         const totalQty = this.getCartItemsCount();
-        const shippingBase = this.getWorldwideShippingBase(country);
+        const shippingBase = this.getWorldwideShippingBase(country, continentId);
         const shippingStep = Math.floor(Math.max(0, totalQty - 1) / 3) * 5;
         const shippingTotal = totalQty > 0 ? (shippingBase + shippingStep) : 0;
         const totalAmount = itemTotal + shippingTotal;
@@ -2152,6 +2364,13 @@ const Catalog = {
 
     restoreOrderDraftToDom() {
         const draft = this.loadOrderDraft();
+        const continentSelect = document.getElementById('worldwide-continent');
+        const inferredContinent = draft?.wwContinent || this.findContinentByCountry(draft?.wwCountry) || 'europe';
+        if (continentSelect) {
+            continentSelect.value = inferredContinent;
+        }
+        this.populateWorldwideCountries(inferredContinent, draft?.wwCountry || '');
+
         if (!draft) return;
 
         if (draft.region === 'ww' || draft.region === 'ua') {
@@ -2194,6 +2413,7 @@ const Catalog = {
             uaPhone: getVal('order-phone'),
             uaCity: getVal('order-city'),
             uaTelegram: getVal('order-shipping'),
+            wwContinent: getVal('worldwide-continent') || 'europe',
             wwCountry: getVal('worldwide-country'),
             wwState: getVal('worldwide-state'),
             wwPostal: getVal('worldwide-postal'),
@@ -2373,6 +2593,7 @@ const Catalog = {
         const submitButton = document.getElementById('order-submit-btn');
         const worldwideForm = document.getElementById('worldwide-order-form');
         const worldwideSubmitButton = document.getElementById('worldwide-submit-btn');
+        const worldwideContinentInput = document.getElementById('worldwide-continent');
         const worldwideCountryInput = document.getElementById('worldwide-country');
         const worldwideStateInput = document.getElementById('worldwide-state');
         const worldwidePostalInput = document.getElementById('worldwide-postal');
@@ -2419,6 +2640,16 @@ const Catalog = {
         const tabUa = document.getElementById('tab-ukraine');
         const tabWw = document.getElementById('tab-worldwide');
         const wwContent = document.getElementById('worldwide-content');
+
+        if (worldwideContinentInput) {
+            this.populateWorldwideCountries(worldwideContinentInput.value || 'europe');
+            worldwideContinentInput.addEventListener('change', () => {
+                this.populateWorldwideCountries(worldwideContinentInput.value || 'europe', '');
+                this.collectAndSaveOrderDraftFromDom();
+            });
+        } else if (worldwideCountryInput && worldwideCountryInput.tagName === 'SELECT') {
+            this.populateWorldwideCountries('europe');
+        }
 
         const switchTab = (mode) => {
             const nextMode = mode === 'ww' ? 'ww' : 'ua';
@@ -2852,8 +3083,10 @@ const Catalog = {
                 if (invoiceWwBlock) invoiceWwBlock.classList.toggle('hidden', !isWw);
 
                 if (isWw) {
-                    const country = worldwideCountryInput?.value?.trim() || '';
-                    const breakdown = this.getWorldwideShippingBreakdown(country);
+                    const selectedOption = worldwideCountryInput?.selectedOptions?.[0];
+                    const country = selectedOption?.getAttribute('data-country-ua') || worldwideCountryInput?.value?.trim() || '';
+                    const continentId = worldwideContinentInput?.value?.trim() || '';
+                    const breakdown = this.getWorldwideShippingBreakdown(country, continentId);
                     if (invoiceWwItemTotal) {
                         invoiceWwItemTotal.textContent = isEn
                             ? `🛒 Product Price: ${breakdown.itemTotal}€`
@@ -2936,7 +3169,9 @@ const Catalog = {
             };
 
             const buildWorldwideOrderPayload = () => {
-                const country = worldwideCountryInput?.value?.trim() || '';
+                const selectedOption = worldwideCountryInput?.selectedOptions?.[0];
+                const country = selectedOption?.getAttribute('data-country-ua') || worldwideCountryInput?.value?.trim() || '';
+                const continentId = worldwideContinentInput?.value?.trim() || '';
                 const stateRegion = worldwideStateInput?.value?.trim() || '';
                 const postalCode = worldwidePostalInput?.value?.trim() || '';
                 const city = worldwideCityInput?.value?.trim() || '';
@@ -2954,7 +3189,7 @@ const Catalog = {
                     return null;
                 }
 
-                const breakdown = this.getWorldwideShippingBreakdown(country);
+                const breakdown = this.getWorldwideShippingBreakdown(country, continentId);
 
                 return {
                     name,

@@ -687,7 +687,7 @@
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">ФОРМУВАННЯ ЗАМОВЛЕННЯ</p>
                     <h3 class="text-3xl font-bold section-title mt-2">Оформити покупку</h3>
                 </div>
-                <div class="grid grid-cols-2 gap-3 text-sm text-slate-600">
+                <div class="grid grid-cols-2 gap-3 text-sm text-slate-600 hidden">
                     <div class="preview-detail-card">
                         <span class="preview-detail-card__label">Позицій</span>
                         <strong id="order-items-count">0</strong>
@@ -697,37 +697,121 @@
                         <strong id="order-total-price">0 грн</strong>
                     </div>
                 </div>
+
+                <div id="order-region-tabs" class="flex gap-2">
+                    <button type="button" id="tab-ukraine" class="flex-1 py-3 text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200">УКРАЇНА</button>
+                    <button type="button" id="tab-worldwide" class="flex-1 py-3 text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200">WORLDWIDE</button>
+                </div>
+
                 <form id="order-form" class="space-y-4">
                     <div>
                         <label for="order-full-name" class="text-sm text-slate-600 block mb-1">ПІБ</label>
                         <input id="order-full-name" type="text" placeholder="Вкажіть ПІБ" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
                     </div>
                     <div>
-                        <label for="order-city" class="text-sm text-slate-600 block mb-1">Місто та номер НП/Укрпошти</label>
-                        <input id="order-city" type="text" placeholder="Нова пошта / Укрпошта" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
-                    </div>
-                    <div>
                         <label for="order-phone" class="text-sm text-slate-600 block mb-1">Телефон</label>
-                        <input id="order-phone" type="tel" placeholder="38 (0__) ___-__-__" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        <input id="order-phone" type="tel" placeholder="+38 (0__) ___-__-__" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
                     </div>
                     <div>
-                        <label for="order-shipping" class="text-sm text-slate-600 block mb-1">Ваш Telegram (необов'язково)</label>
-                        <input id="order-shipping" type="text" placeholder="Наприклад: @nickname" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700">
+                        <label for="order-city" class="text-sm text-slate-600 block mb-1">Місто та № відділення НП</label>
+                        <input id="order-city" type="text" placeholder="Місто та № відділення НП" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
                     </div>
                     <div>
-                        <label for="order-comment" class="text-sm text-slate-600 block mb-1">Опис (необов'язково)</label>
-                        <textarea id="order-comment" rows="3" placeholder="Потрібен дзвінок або SMS для підтвердження? Напишіть тут." class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700 resize-y"></textarea>
+                        <label for="order-shipping" class="text-sm text-slate-600 block mb-1">Ваш Telegram / коментар (необов'язково)</label>
+                        <input id="order-shipping" type="text" placeholder="Ваш Telegram / коментар" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700">
                     </div>
-                    <p id="order-note-hint" class="text-sm text-slate-500"></p>
-                    <div id="order-payment-actions" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button id="order-submit-btn" type="button" class="liquid-glass-btn w-full px-6 py-3 rounded-2xl bg-blue-700 text-white font-semibold transition">
-                            Оплата за реквізитами
-                        </button>
-                        <button id="order-wallet-btn" type="button" class="liquid-glass-btn w-full px-6 py-3 rounded-2xl bg-blue-700 text-white font-semibold transition">
-                            Google Pay / Apple Pay
+                    <p id="order-note-hint" class="text-sm text-slate-500 hidden"></p>
+                    <div id="order-payment-actions" class="pt-2">
+                        <button id="order-submit-btn" type="submit" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-blue-700 text-white font-semibold transition">
+                            ДАЛІ ДО ОПЛАТИ
                         </button>
                     </div>
                 </form>
+
+                <div id="worldwide-content" class="hidden">
+                    <form id="worldwide-order-form" class="space-y-4 text-left">
+                        <div>
+                            <label for="worldwide-country" class="text-sm text-slate-600 block mb-1">Країна</label>
+                            <select id="worldwide-country" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                                <option value="">Оберіть країну</option>
+                                <option value="Австрія">Австрія</option>
+                                <option value="Бельгія">Бельгія</option>
+                                <option value="Великобританія">Великобританія</option>
+                                <option value="Болгарія">Болгарія</option>
+                                <option value="Хорватія">Хорватія</option>
+                                <option value="Кіпр">Кіпр</option>
+                                <option value="Чехія">Чехія</option>
+                                <option value="Данія">Данія</option>
+                                <option value="Естонія">Естонія</option>
+                                <option value="Фінляндія">Фінляндія</option>
+                                <option value="Франція">Франція</option>
+                                <option value="Німеччина">Німеччина</option>
+                                <option value="Греція">Греція</option>
+                                <option value="Угорщина">Угорщина</option>
+                                <option value="Ірландія">Ірландія</option>
+                                <option value="Італія">Італія</option>
+                                <option value="Латвія">Латвія</option>
+                                <option value="Литва">Литва</option>
+                                <option value="Люксембург">Люксембург</option>
+                                <option value="Мальта">Мальта</option>
+                                <option value="Нідерланди">Нідерланди</option>
+                                <option value="Польща">Польща</option>
+                                <option value="Португалія">Португалія</option>
+                                <option value="Румунія">Румунія</option>
+                                <option value="Словаччина">Словаччина</option>
+                                <option value="Словенія">Словенія</option>
+                                <option value="Іспанія">Іспанія</option>
+                                <option value="Швейцарія">Швейцарія</option>
+                                <option value="Швеція">Швеція</option>
+                                <option value="США">США</option>
+                                <option value="Канада">Канада</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="worldwide-state" class="text-sm text-slate-600 block mb-1">Штат/регіон</label>
+                                <input id="worldwide-state" type="text" placeholder="Штат/регіон" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                            </div>
+                            <div>
+                                <label for="worldwide-postal" class="text-sm text-slate-600 block mb-1">Поштовий індекс</label>
+                                <input id="worldwide-postal" type="text" placeholder="Поштовий індекс" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="worldwide-city" class="text-sm text-slate-600 block mb-1">Населений пункт</label>
+                            <input id="worldwide-city" type="text" placeholder="Населений пункт" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-phone" class="text-sm text-slate-600 block mb-1">Мобільний номер місцевого оператора</label>
+                            <input id="worldwide-phone" type="tel" placeholder="Наприклад: +48 123 456 789" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-name" class="text-sm text-slate-600 block mb-1">ПІБ латиницею</label>
+                            <input id="worldwide-name" type="text" placeholder="Full Name (Latin)" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-email" class="text-sm text-slate-600 block mb-1">Email на Gmail</label>
+                            <input id="worldwide-email" type="email" placeholder="example@gmail.com" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-telegram" class="text-sm text-slate-600 block mb-1">Ваш @Telegram юзер</label>
+                            <input id="worldwide-telegram" type="text" placeholder="@nickname" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-post-office" class="text-sm text-slate-600 block mb-1">Адреса і номер відділення пошти</label>
+                            <input id="worldwide-post-office" type="text" placeholder="Адреса і номер відділення пошти" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div>
+                            <label for="worldwide-residential" class="text-sm text-slate-600 block mb-1">Адреса фактичного проживання</label>
+                            <input id="worldwide-residential" type="text" placeholder="Адреса фактичного проживання" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                        </div>
+                        <div class="pt-2">
+                            <button id="worldwide-submit-btn" type="submit" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-blue-700 text-white font-semibold transition">
+                                ДАЛІ ДО ОПЛАТИ
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -743,47 +827,208 @@
                     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">ОПЛАТА ЗА РЕКВІЗИТАМИ</p>
                     <h3 class="text-3xl font-bold section-title mt-2">Реквізити для оплати</h3>
                 </div>
-                <div class="space-y-3 text-sm text-slate-700">
-                    <div class="preview-detail-card flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs text-slate-500">🪙 ФОП РАХУНОК:</p>
-                            <p class="font-semibold tracking-wide">UA783220010000026002320017237</p>
+
+                <div id="invoice-ua-block" class="space-y-4">
+                    <div class="space-y-3 text-sm text-slate-700">
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🪙 ФОП РАХУНОК (IBAN):</p>
+                                <p class="font-semibold tracking-wide">UA783220010000026002320017237</p>
+                            </div>
+                            <button type="button" data-copy-invoice="UA783220010000026002320017237" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
                         </div>
-                        <button type="button" data-copy-invoice="UA783220010000026002320017237" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">💳 КАРТА:</p>
+                                <p class="font-semibold tracking-wide">4035 2000 4130 1190</p>
+                            </div>
+                            <button type="button" data-copy-invoice="4035 2000 4130 1190" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🔢 ЄДРПОУ:</p>
+                                <p class="font-semibold tracking-wide">3215715672</p>
+                            </div>
+                            <button type="button" data-copy-invoice="3215715672" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">👤 ПІБ ФОП:</p>
+                                <p class="font-semibold tracking-wide">Тарасов Олег Михайлович</p>
+                            </div>
+                            <button type="button" data-copy-invoice="Тарасов Олег Михайлович" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
                     </div>
-                    <div class="preview-detail-card flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs text-slate-500">💸 PayPal:</p>
-                            <p class="font-semibold tracking-wide">Oleh Tarasov dreamprint777@ukr.net</p>
-                        </div>
-                        <button type="button" data-copy-invoice="Oleh Tarasov dreamprint777@ukr.net" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
-                    </div>
-                    <div class="preview-detail-card flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs text-slate-500">💳 КАРТА:</p>
-                            <p class="font-semibold tracking-wide">4035 2000 4130 1190</p>
-                        </div>
-                        <button type="button" data-copy-invoice="4035 2000 4130 1190" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
-                    </div>
-                    <div class="preview-detail-card flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs text-slate-500">🔢 ЄДРПОУ:</p>
-                            <p class="font-semibold tracking-wide">3215715672</p>
-                        </div>
-                        <button type="button" data-copy-invoice="3215715672" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                    <div class="space-y-1.5 text-sm text-slate-700">
+                        <p class="text-slate-400">У описі платежу вкажіть: платіж за товар.</p>
+                        <p id="invoice-total-amount" class="font-semibold text-base">💰 Сума до сплати: 0₴</p>
                     </div>
                 </div>
-                <div class="space-y-1 text-sm text-slate-700">
-                    <p class="font-semibold">👤 ФОП: Тарасов Олег Михайлович</p>
-                    <p id="invoice-total-amount" class="font-semibold">💰 Сума до сплати: 0₴</p>
+
+                <div id="invoice-ww-block" class="hidden space-y-4">
+                    <div id="invoice-ww-tabs" class="flex gap-2">
+                        <button type="button" data-ww-pay-tab="euro" class="flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200">EURO</button>
+                        <button type="button" data-ww-pay-tab="swift" class="flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200">SWIFT</button>
+                        <button type="button" data-ww-pay-tab="usd" class="flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200">USD</button>
+                        <button type="button" data-ww-pay-tab="paypal" class="flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200">PAYPAL</button>
+                    </div>
+
+                    <div data-ww-pay-panel="euro" class="space-y-3 text-sm text-slate-700">
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🪙 IBAN:</p>
+                                <p class="font-semibold tracking-wide">GB38CLJU00997181380493</p>
+                            </div>
+                            <button type="button" data-copy-invoice="GB38CLJU00997181380493" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🏦 BIC code:</p>
+                                <p class="font-semibold tracking-wide">CLJUGB21</p>
+                            </div>
+                            <button type="button" data-copy-invoice="CLJUGB21" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">👤 Receiver:</p>
+                                <p class="font-semibold tracking-wide">TARASOV OLEH</p>
+                            </div>
+                            <button type="button" data-copy-invoice="TARASOV OLEH" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-3.5 text-xs text-slate-300 space-y-1">
+                            <p class="font-bold text-slate-200">Важливо знати 🧐</p>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                <li>Для переказів з Європи по SEPA</li>
+                                <li>Використовуйте лише для валюти EUR</li>
+                                <li>Зазвичай надходять протягом 1-5 робочих днів</li>
+                                <li>Зараховуються на єврову картку</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div data-ww-pay-panel="swift" class="hidden space-y-3 text-sm text-slate-700">
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🪙 IBAN:</p>
+                                <p class="font-semibold tracking-wide">UA453220010000026202346466617</p>
+                            </div>
+                            <button type="button" data-copy-invoice="UA453220010000026202346466617" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🏦 SWIFT/ BIC Code:</p>
+                                <p class="font-semibold tracking-wide">UNJSUAUKXXX</p>
+                            </div>
+                            <button type="button" data-copy-invoice="UNJSUAUKXXX" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">👤 Receiver:</p>
+                                <p class="font-semibold tracking-wide">TARASOV OLEH</p>
+                            </div>
+                            <button type="button" data-copy-invoice="TARASOV OLEH" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">📍 Address:</p>
+                                <p class="font-semibold tracking-wide">29010, Ukraine, reg. Khmelnytska, c. Khmelnytskyi, st. Sportyvna, build 44, fl. 31</p>
+                            </div>
+                            <button type="button" data-copy-invoice="29010, Ukraine, reg. Khmelnytska, c. Khmelnytskyi, st. Sportyvna, build 44, fl. 31" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-3.5 text-xs text-slate-300 space-y-1">
+                            <p class="font-bold text-slate-200">Важливо знати 🧐</p>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                <li>Для переказів з усього світу через SWIFT</li>
+                                <li>Банки-посередники можуть брати додаткову комісію</li>
+                                <li>Зазвичай надходять протягом 3-5 робочих днів</li>
+                                <li>Зараховуються на єврову картку</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div data-ww-pay-panel="usd" class="hidden space-y-3 text-sm text-slate-700">
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🪙 IBAN:</p>
+                                <p class="font-semibold tracking-wide">UA313220010000026203347089478</p>
+                            </div>
+                            <button type="button" data-copy-invoice="UA313220010000026203347089478" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">🏦 SWIFT/ BIC Code:</p>
+                                <p class="font-semibold tracking-wide">UNJSUAUKXXX</p>
+                            </div>
+                            <button type="button" data-copy-invoice="UNJSUAUKXXX" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">👤 Receiver:</p>
+                                <p class="font-semibold tracking-wide">TARASOV OLEH</p>
+                            </div>
+                            <button type="button" data-copy-invoice="TARASOV OLEH" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">📍 Address:</p>
+                                <p class="font-semibold tracking-wide">29010, Ukraine, reg. Khmelnytska, c. Khmelnytskyi, st. Sportyvna, build 44, fl. 31</p>
+                            </div>
+                            <button type="button" data-copy-invoice="29010, Ukraine, reg. Khmelnytska, c. Khmelnytskyi, st. Sportyvna, build 44, fl. 31" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-3.5 text-xs text-slate-300 space-y-1">
+                            <p class="font-bold text-slate-200">Важливо знати 🧐</p>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                <li>Для переказів з усього світу через SWIFT</li>
+                                <li>Банки-посередники можуть брати додаткову комісію</li>
+                                <li>Зазвичай надходять протягом 3-5 робочих днів</li>
+                                <li>Зараховуються на доларову картку</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div data-ww-pay-panel="paypal" class="hidden space-y-3 text-sm text-slate-700">
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">💸 PayPal Email:</p>
+                                <p class="font-semibold tracking-wide">dreamprint777@ukr.net</p>
+                            </div>
+                            <button type="button" data-copy-invoice="dreamprint777@ukr.net" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <div class="preview-detail-card flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">👤 Receiver:</p>
+                                <p class="font-semibold tracking-wide">Oleh Tarasov</p>
+                            </div>
+                            <button type="button" data-copy-invoice="Oleh Tarasov" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        </div>
+                        <a href="https://www.paypal.com/ncp/payment/28XXQVNE5KEFN" target="_blank" rel="noopener noreferrer" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-[#0070ba] hover:bg-[#005ea6] text-white font-bold flex items-center justify-center gap-2.5 transition">
+                            <i class="fa-brands fa-paypal text-lg"></i>
+                            <span>Оплатити через PayPal</span>
+                        </a>
+                        <div class="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-3.5 text-xs text-slate-300 space-y-1">
+                            <p class="font-bold text-slate-200">Важливо знати 🧐</p>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                <li>Натисніть кнопку «Оплатити через PayPal» для швидкого переходу до оплати</li>
+                                <li>Після оплати зробіть скріншот квитанції та прикріпіть його нижче</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 text-sm text-slate-700">
+                        <p id="invoice-ww-item-total" class="font-semibold">🛒 Ціна за товар: 0€</p>
+                        <p id="invoice-ww-shipping-total" class="font-semibold">🚚 Ціна за доставку: 0€</p>
+                        <p class="text-slate-400">У описі платежу вкажіть: платіж за товар.</p>
+                        <p id="invoice-ww-total-amount" class="font-bold text-base">💰 Сума до сплати: 0€</p>
+                    </div>
                 </div>
+
                 <div>
-                    <label for="invoice-receipt-input" class="text-sm text-slate-600 block mb-1">Квитанція / скріншот оплати</label>
-                    <input id="invoice-receipt-input" type="file" accept="image/*,application/pdf,.pdf" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700 bg-white" required>
+                    <label for="invoice-receipt-input" class="text-sm font-semibold text-slate-600 block mb-1">ДОДАТИ СКРІНШОТ ОПЛАТИ (ОБОВ'ЯЗКОВО):</label>
+                    <input id="invoice-receipt-input" type="file" accept="image/*" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700 bg-white" required>
                     <p id="invoice-receipt-name" class="text-xs text-slate-500 mt-2">Файл не вибрано</p>
                 </div>
-                <button id="invoice-confirm-btn" type="button" class="liquid-glass-btn w-full px-6 py-3 rounded-2xl bg-emerald-600 text-white font-semibold transition disabled:opacity-60 disabled:pointer-events-none" disabled>
-                    Оформити замовлення
+                <button id="invoice-confirm-btn" type="button" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-emerald-600 text-white font-semibold transition disabled:opacity-60 disabled:pointer-events-none" disabled>
+                    Я ОПЛАТИВ
                 </button>
             </div>
         </div>

@@ -83,7 +83,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20261124">
 </head>
 <body class="tail-container bg-white text-slate-900 overflow-x-hidden">
     <nav class="bg-white/95 border-b border-slate-200 sticky top-0 z-50 backdrop-blur">
@@ -731,40 +731,20 @@
                 <div id="worldwide-content" class="hidden">
                     <form id="worldwide-order-form" class="space-y-4 text-left">
                         <div>
+                            <label for="worldwide-continent" class="text-sm text-slate-600 block mb-1">Регіон світу</label>
+                            <select id="worldwide-continent" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
+                                <option value="europe">Європа</option>
+                                <option value="north_america">Північна Америка</option>
+                                <option value="asia">Азія та Близький Схід</option>
+                                <option value="south_america">Південна Америка</option>
+                                <option value="africa">Африка</option>
+                                <option value="oceania">Австралія та Океанія</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="worldwide-country" class="text-sm text-slate-600 block mb-1">Країна</label>
                             <select id="worldwide-country" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700" required>
                                 <option value="">Оберіть країну</option>
-                                <option value="Австрія">Австрія</option>
-                                <option value="Бельгія">Бельгія</option>
-                                <option value="Великобританія">Великобританія</option>
-                                <option value="Болгарія">Болгарія</option>
-                                <option value="Хорватія">Хорватія</option>
-                                <option value="Кіпр">Кіпр</option>
-                                <option value="Чехія">Чехія</option>
-                                <option value="Данія">Данія</option>
-                                <option value="Естонія">Естонія</option>
-                                <option value="Фінляндія">Фінляндія</option>
-                                <option value="Франція">Франція</option>
-                                <option value="Німеччина">Німеччина</option>
-                                <option value="Греція">Греція</option>
-                                <option value="Угорщина">Угорщина</option>
-                                <option value="Ірландія">Ірландія</option>
-                                <option value="Італія">Італія</option>
-                                <option value="Латвія">Латвія</option>
-                                <option value="Литва">Литва</option>
-                                <option value="Люксембург">Люксембург</option>
-                                <option value="Мальта">Мальта</option>
-                                <option value="Нідерланди">Нідерланди</option>
-                                <option value="Польща">Польща</option>
-                                <option value="Португалія">Португалія</option>
-                                <option value="Румунія">Румунія</option>
-                                <option value="Словаччина">Словаччина</option>
-                                <option value="Словенія">Словенія</option>
-                                <option value="Іспанія">Іспанія</option>
-                                <option value="Швейцарія">Швейцарія</option>
-                                <option value="Швеція">Швеція</option>
-                                <option value="США">США</option>
-                                <option value="Канада">Канада</option>
                             </select>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1114,8 +1094,8 @@
         <span data-cart-count class="hidden absolute -top-1 -right-1 min-w-[1.3rem] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-xs font-semibold leading-5 text-center">0</span>
     </button>
 
-    <script src="js/ui-helpers.js"></script>
-    <script src="js/catalog.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/ui-helpers.js?v=20261124"></script>
+    <script src="js/catalog.js?v=20261124"></script>
+    <script src="js/main.js?v=20261124"></script>
 </body>
 </html>

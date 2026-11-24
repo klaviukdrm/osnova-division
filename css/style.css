@@ -3474,6 +3474,30 @@ body.tail-container .mobile-tools-tab {
     word-break: break-word;
 }
 
+#invoice-modal #invoice-ww-block .preview-detail-card {
+    padding: 13px 16px !important;
+}
+
+#invoice-modal #invoice-ww-block .preview-detail-card > div p:last-child {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+}
+
+#invoice-modal > .relative,
+#order-modal > .relative,
+#cart-modal > .relative {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#invoice-modal > .relative::-webkit-scrollbar,
+#order-modal > .relative::-webkit-scrollbar,
+#cart-modal > .relative::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
 #invoice-modal [data-copy-invoice] {
     min-width: 92px;
     font-size: 0.95rem !important;
@@ -3524,11 +3548,18 @@ body.tail-container .mobile-tools-tab {
 
 input,
 textarea,
+select,
 #text-input,
 #order-modal input,
-#order-modal textarea {
+#order-modal textarea,
+#order-modal select {
     background: #081223 !important;
     border-color: #28466f !important;
+    color: var(--fx-text) !important;
+}
+
+#order-modal select option {
+    background: #081223 !important;
     color: var(--fx-text) !important;
 }
 

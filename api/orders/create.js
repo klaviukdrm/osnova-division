@@ -173,6 +173,18 @@ module.exports = async (req, res) => {
         return;
     }
 
+    if (!order.receiptImage) {
+        res.status(400).json({ error: 'Будь ласка, оновіть сторінку (Ctrl+F5) та прикріпіть скріншот оплати / Please refresh the page and attach the payment screenshot.' });
+        return;
+    }
+
+    if (order.orderType === 'worldwide') {
+        if (!order.country || !order.stateRegion || !order.postalCode || !order.city || !order.phone || !order.name || !order.email || !order.telegram || !order.postOffice || !order.residentialAddress) {
+            res.status(400).json({ error: 'Будь ласка, оновіть сторінку та заповніть усі обов\'язкові поля доставки WORLDWIDE / Please refresh the page and fill in all required WORLDWIDE shipping fields.' });
+            return;
+        }
+    }
+
     const orderId = generateOrderId();
     const text = order.orderType === 'worldwide'
         ? buildWorldwideOrderMessage({

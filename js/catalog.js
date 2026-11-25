@@ -318,9 +318,35 @@ const Catalog = {
         return null;
     },
 
+    populateWorldwideContinents(selectedContinentId = 'europe') {
+        const continentSelect = document.getElementById('worldwide-continent');
+        if (!continentSelect) return;
+
+        const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+        const currentVal = selectedContinentId || continentSelect.value || 'europe';
+
+        continentSelect.innerHTML = this.WORLDWIDE_REGIONS.map((r) => {
+            const label = isEn ? r.en : r.ua;
+            const isSelected = r.id === currentVal;
+            return `<option value="${r.id}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+        continentSelect.value = currentVal;
+
+        const continentLabel = document.querySelector('label[for="worldwide-continent"]');
+        if (continentLabel) {
+            continentLabel.textContent = isEn ? 'World Region' : 'Регіон світу';
+        }
+        const countryLabel = document.querySelector('label[for="worldwide-country"]');
+        if (countryLabel) {
+            countryLabel.textContent = isEn ? 'Country' : 'Країна';
+        }
+    },
+
     populateWorldwideCountries(continentId = 'europe', selectedCountryUa = '') {
         const countrySelect = document.getElementById('worldwide-country');
         if (!countrySelect) return;
+
+        this.populateWorldwideContinents(continentId);
 
         const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
         const region = this.WORLDWIDE_REGIONS.find((r) => r.id === continentId) || this.WORLDWIDE_REGIONS[0];

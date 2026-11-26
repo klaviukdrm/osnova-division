@@ -2617,6 +2617,7 @@ const Catalog = {
         const backdrop = orderModal.querySelector('[data-close-order]');
         const form = document.getElementById('order-form');
         const submitButton = document.getElementById('order-submit-btn');
+        const walletButton = document.getElementById('order-wallet-btn');
         const worldwideForm = document.getElementById('worldwide-order-form');
         const worldwideSubmitButton = document.getElementById('worldwide-submit-btn');
         const worldwideContinentInput = document.getElementById('worldwide-continent');
@@ -2704,11 +2705,38 @@ const Catalog = {
         if (tabUa) tabUa.addEventListener('click', () => switchTab('ua'));
         if (tabWw) tabWw.addEventListener('click', () => switchTab('ww'));
 
-        // Worldwide payment method sub-tabs (EURO / SWIFT / USD)
+        // Worldwide payment method sub-tabs (EURO / SWIFT / USD / PAYPAL)
         const wwPayActiveCls = 'flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200';
         const wwPayInactiveCls = 'flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200';
         const wwPayTabs = invoiceModal ? Array.from(invoiceModal.querySelectorAll('[data-ww-pay-tab]')) : [];
         const wwPayPanels = invoiceModal ? Array.from(invoiceModal.querySelectorAll('[data-ww-pay-panel]')) : [];
+        const uaPayTabs = invoiceModal ? Array.from(invoiceModal.querySelectorAll('[data-ua-pay-tab]')) : [];
+        const uaPayPanels = invoiceModal ? Array.from(invoiceModal.querySelectorAll('[data-ua-pay-panel]')) : [];
+        const invoiceReceiptSection = document.getElementById('invoice-receipt-section');
+        const invoiceFastItemsCount = document.getElementById('invoice-fast-items-count');
+        const invoiceFastTotalAmount = document.getElementById('invoice-fast-total-amount');
+
+        const switchUaPayTab = (tabKey) => {
+            const target = tabKey === 'fast' ? 'fast' : 'requisites';
+            this.state.activeUaPayTab = target;
+            uaPayTabs.forEach((btn) => {
+                const isMatch = btn.getAttribute('data-ua-pay-tab') === target;
+                btn.className = isMatch ? wwPayActiveCls : wwPayInactiveCls;
+            });
+            uaPayPanels.forEach((panel) => {
+                const isMatch = panel.getAttribute('data-ua-pay-panel') === target;
+                panel.classList.toggle('hidden', !isMatch);
+            });
+            if (invoiceReceiptSection && this.state.activeOrderRegion !== 'ww') {
+                invoiceReceiptSection.classList.toggle('hidden', target === 'fast');
+            }
+        };
+
+        uaPayTabs.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                switchUaPayTab(btn.getAttribute('data-ua-pay-tab'));
+            });
+        });
 
         const switchWwPayTab = (tabKey) => {
             const target = tabKey || 'euro';
@@ -3109,6 +3137,7 @@ const Catalog = {
                 if (invoiceWwBlock) invoiceWwBlock.classList.toggle('hidden', !isWw);
 
                 if (isWw) {
+                    if (invoiceReceiptSection) invoiceReceiptSection.classList.remove('hidden');
                     const selectedOption = worldwideCountryInput?.selectedOptions?.[0];
                     const country = selectedOption?.getAttribute('data-country-ua') || worldwideCountryInput?.value?.trim() || '';
                     const continentId = worldwideContinentInput?.value?.trim() || '';
@@ -3131,11 +3160,23 @@ const Catalog = {
                     switchWwPayTab(this.state.activeWwPayTab || 'euro');
                 } else {
                     const totalUah = Math.round(Number(this.getCartTotal() || 0));
+                    const itemsCount = this.getCartItemsCount();
                     if (invoiceTotalAmount) {
                         invoiceTotalAmount.textContent = isEn
                             ? `💰 Total to pay: ${totalUah}₴`
                             : `💰 Сума до сплати: ${totalUah}₴`;
                     }
+                    if (invoiceFastItemsCount) {
+                        invoiceFastItemsCount.textContent = isEn
+                            ? `🛍 Items in order: ${itemsCount}`
+                            : `🛍 Товарів у замовленні: ${itemsCount} шт.`;
+                    }
+                    if (invoiceFastTotalAmount) {
+                        invoiceFastTotalAmount.textContent = isEn
+                            ? `💰 Total to pay: ${totalUah}₴`
+                            : `💰 Сума до сплати: ${totalUah}₴`;
+                    }
+                    switchUaPayTab(this.state.activeUaPayTab || 'requisites');
                 }
 
                 resetInvoiceReceiptState();
@@ -3328,6 +3369,56 @@ const Catalog = {
                 }
             };
 
+            const setWalletButtonState = (isPending) => {
+                if (!walletButton) return;
+                const isEn = (window.localStorage.getItem('upf_lang') || 'ua') === 'en';
+                walletButton.disabled = Boolean(isPending);
+                walletButton.textContent = isPending
+                    ? (isEn ? 'Redirecting to LiqPay...' : 'Переходимо до LiqPay...')
+                    : (isEn ? 'PAY NOW' : 'ОПЛАТИТИ');
+            };
+
+            const processWalletPayment = async () => {
+                syncOrderPhoneValidity();
+                if (!form.reportValidity()) return;
+                this.collectAndSaveOrderDraftFromDom();
+                const orderPayload = buildUkraineOrderPayload();
+                if (!orderPayload) return;
+
+                setWalletButtonState(true);
+                try {
+                    const response = await fetch('/api/liqpay/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...orderPayload,
+                            paymentMethod: 'wallet'
+                        })
+                    });
+
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(result?.error || 'Не вдалося ініціювати оплату через LiqPay.');
+                    }
+
+                    if (!result?.checkoutUrl) {
+                        throw new Error('LiqPay checkout URL is missing.');
+                    }
+
+                    window.sessionStorage.setItem(this.LIQPAY_PENDING_ORDER_STORAGE_KEY, JSON.stringify({
+                        orderId: result.orderId,
+                        total: orderPayload.total,
+                        createdAt: Date.now()
+                    }));
+
+                    window.location.assign(result.checkoutUrl);
+                } catch (error) {
+                    console.warn('LiqPay checkout init failed.', error);
+                    window.UI?.showToast?.(error?.message || 'Не вдалося перейти до LiqPay. Спробуйте ще раз.', { tone: 'warning' });
+                    setWalletButtonState(false);
+                }
+            };
+
             form.addEventListener('submit', (event) => {
                 event.preventDefault();
                 syncOrderPhoneValidity();
@@ -3335,8 +3426,17 @@ const Catalog = {
                 this.collectAndSaveOrderDraftFromDom();
                 const payload = buildUkraineOrderPayload();
                 if (!payload) return;
+                if (Number(payload.total || 0) > this.LARGE_ORDER_RECOMMENDATION_TOTAL) {
+                    window.UI?.showToast?.(this.LARGE_ORDER_RECOMMENDATION_MESSAGE, { tone: 'warning', duration: 10000 });
+                }
                 openInvoiceModalForRegion('ua');
             });
+
+            if (walletButton) {
+                walletButton.addEventListener('click', async () => {
+                    await processWalletPayment();
+                });
+            }
 
             if (submitButton && submitButton.getAttribute('type') !== 'submit') {
                 submitButton.addEventListener('click', (event) => {

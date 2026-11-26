@@ -16,7 +16,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css?v=20261125">
+    <link rel="stylesheet" href="css/style.css?v=20261126">
 </head>
 <body class="tail-container bg-white text-slate-900 overflow-x-hidden">
     <nav class="bg-white/95 border-b border-slate-200 sticky top-0 z-50 backdrop-blur">
@@ -503,39 +503,64 @@
                 </div>
 
                 <div id="invoice-ua-block" class="space-y-4">
-                    <div class="space-y-3 text-sm text-slate-700">
-                        <div class="preview-detail-card flex items-center justify-between gap-3">
-                            <div>
-                                <p class="text-xs text-slate-500">🪙 ФОП РАХУНОК (IBAN):</p>
-                                <p class="font-semibold tracking-wide">UA783220010000026002320017237</p>
+                    <div id="invoice-ua-tabs" class="flex gap-2">
+                        <button type="button" data-ua-pay-tab="requisites" class="flex-1 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl bg-blue-700 text-white transition-colors duration-200">
+                            Оплата за реквізитами
+                        </button>
+                        <button type="button" data-ua-pay-tab="fast" class="flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-white transition-colors duration-200">
+                            Швидка оплата
+                        </button>
+                    </div>
+
+                    <div id="invoice-ua-requisites-panel" data-ua-pay-panel="requisites" class="space-y-4">
+                        <div class="space-y-3 text-sm text-slate-700">
+                            <div class="preview-detail-card flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs text-slate-500">🪙 ФОП РАХУНОК (IBAN):</p>
+                                    <p class="font-semibold tracking-wide">UA783220010000026002320017237</p>
+                                </div>
+                                <button type="button" data-copy-invoice="UA783220010000026002320017237" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
                             </div>
-                            <button type="button" data-copy-invoice="UA783220010000026002320017237" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                            <div class="preview-detail-card flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs text-slate-500">💳 КАРТА:</p>
+                                    <p class="font-semibold tracking-wide">4035 2000 4130 1190</p>
+                                </div>
+                                <button type="button" data-copy-invoice="4035 2000 4130 1190" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                            </div>
+                            <div class="preview-detail-card flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs text-slate-500">🔢 ЄДРПОУ:</p>
+                                    <p class="font-semibold tracking-wide">3215715672</p>
+                                </div>
+                                <button type="button" data-copy-invoice="3215715672" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                            </div>
+                            <div class="preview-detail-card flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs text-slate-500">👤 ПІБ ФОП:</p>
+                                    <p class="font-semibold tracking-wide">Тарасов Олег Михайлович</p>
+                                </div>
+                                <button type="button" data-copy-invoice="Тарасов Олег Михайлович" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                            </div>
                         </div>
-                        <div class="preview-detail-card flex items-center justify-between gap-3">
-                            <div>
-                                <p class="text-xs text-slate-500">💳 КАРТА:</p>
-                                <p class="font-semibold tracking-wide">4035 2000 4130 1190</p>
-                            </div>
-                            <button type="button" data-copy-invoice="4035 2000 4130 1190" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
-                        </div>
-                        <div class="preview-detail-card flex items-center justify-between gap-3">
-                            <div>
-                                <p class="text-xs text-slate-500">🔢 ЄДРПОУ:</p>
-                                <p class="font-semibold tracking-wide">3215715672</p>
-                            </div>
-                            <button type="button" data-copy-invoice="3215715672" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
-                        </div>
-                        <div class="preview-detail-card flex items-center justify-between gap-3">
-                            <div>
-                                <p class="text-xs text-slate-500">👤 ПІБ ФОП:</p>
-                                <p class="font-semibold tracking-wide">Тарасов Олег Михайлович</p>
-                            </div>
-                            <button type="button" data-copy-invoice="Тарасов Олег Михайлович" class="liquid-glass-btn px-3 py-2 rounded-xl text-xs font-semibold">Copy</button>
+                        <div class="space-y-1.5 text-sm text-slate-700">
+                            <p class="text-slate-400">У описі платежу вкажіть: платіж за товар.</p>
+                            <p id="invoice-total-amount" class="font-semibold text-base">💰 Сума до сплати: 0₴</p>
                         </div>
                     </div>
-                    <div class="space-y-1.5 text-sm text-slate-700">
-                        <p class="text-slate-400">У описі платежу вкажіть: платіж за товар.</p>
-                        <p id="invoice-total-amount" class="font-semibold text-base">💰 Сума до сплати: 0₴</p>
+
+                    <div id="invoice-ua-fast-panel" data-ua-pay-panel="fast" class="hidden space-y-4 text-sm text-slate-700">
+                        <div class="rounded-2xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-2.5">
+                            <p class="font-bold text-base text-slate-100">⚡ Швидка онлайн-оплата (LiqPay)</p>
+                            <p class="text-slate-300 leading-relaxed">Миттєва оплата через <strong>Google Pay</strong>, <strong>Apple Pay</strong> або банківською карткою Visa / Mastercard з автоматичним підтвердженням замовлення.</p>
+                            <div class="pt-2 border-t border-slate-700/60 space-y-1 text-slate-200">
+                                <p id="invoice-fast-items-count" class="font-medium">🛍 Товарів у замовленні: 0 шт.</p>
+                                <p id="invoice-fast-total-amount" class="font-bold text-lg text-emerald-400">💰 Сума до сплати: 0₴</p>
+                            </div>
+                        </div>
+                        <button id="order-wallet-btn" type="button" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-blue-700 text-white font-bold text-base transition">
+                            ОПЛАТИТИ
+                        </button>
                     </div>
                 </div>
 
@@ -696,14 +721,16 @@
                     </div>
                 </div>
 
-                <div>
-                    <label for="invoice-receipt-input" class="text-sm font-semibold text-slate-600 block mb-1">ДОДАТИ СКРІНШОТ ОПЛАТИ (ОБОВ'ЯЗКОВО):</label>
-                    <input id="invoice-receipt-input" type="file" accept="image/*" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700 bg-white" required>
-                    <p id="invoice-receipt-name" class="text-xs text-slate-500 mt-2">Файл не вибрано</p>
+                <div id="invoice-receipt-section" class="space-y-5">
+                    <div>
+                        <label for="invoice-receipt-input" class="text-sm font-semibold text-slate-600 block mb-1">ДОДАТИ СКРІНШОТ ОПЛАТИ (ОБОВ'ЯЗКОВО):</label>
+                        <input id="invoice-receipt-input" type="file" accept="image/*" class="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-blue-700 bg-white" required>
+                        <p id="invoice-receipt-name" class="text-xs text-slate-500 mt-2">Файл не вибрано</p>
+                    </div>
+                    <button id="invoice-confirm-btn" type="button" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-emerald-600 text-white font-semibold transition disabled:opacity-60 disabled:pointer-events-none" disabled>
+                        Я ОПЛАТИВ
+                    </button>
                 </div>
-                <button id="invoice-confirm-btn" type="button" class="liquid-glass-btn w-full px-6 py-3.5 rounded-2xl bg-emerald-600 text-white font-semibold transition disabled:opacity-60 disabled:pointer-events-none" disabled>
-                    Я ОПЛАТИВ
-                </button>
             </div>
         </div>
     </div>
@@ -788,9 +815,9 @@
         <span data-cart-count class="hidden absolute -top-1 -right-1 min-w-[1.3rem] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-xs font-semibold leading-5 text-center">0</span>
     </button>
 
-    <script src="js/ui-helpers.js?v=20261125"></script>
-    <script src="js/editor.js?v=20261125"></script>
-    <script src="js/catalog.js?v=20261125"></script>
-    <script src="js/main.js?v=20261125"></script>
+    <script src="js/ui-helpers.js?v=20261126"></script>
+    <script src="js/editor.js?v=20261126"></script>
+    <script src="js/catalog.js?v=20261126"></script>
+    <script src="js/main.js?v=20261126"></script>
 </body>
 </html>
